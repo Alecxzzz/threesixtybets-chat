@@ -1,22 +1,14 @@
-// Lista de proxies disponibles
+// Lista de proxies disponibles (descomenta y rellena si quieres usar proxies
+// HTTP para el origin server). La función getRandomProxy() asume que exista.
+/*
 export const proxyList = [
   "g3lbqr5h7jwe:y5r2sn6njfc5bhq@104.207.58.223:3129",
-  "g3lbqr5h7jwe:y5r2sn6njfc5bhq@216.26.225.198:3129",
-  "g3lbqr5h7jwe:y5r2sn6njfc5bhq@216.26.247.171:3129",
-  "g3lbqr5h7jwe:y5r2sn6njfc5bhq@216.26.232.64:3129",
-  "g3lbqr5h7jwe:y5r2sn6njfc5bhq@216.26.226.52:3129",
-  "g3lbqr5h7jwe:y5r2sn6njfc5bhq@65.111.14.38:3129",
-  "g3lbqr5h7jwe:y5r2sn6njfc5bhq@217.181.92.249:3129",
-  "g3lbqr5h7jwe:y5r2sn6njfc5bhq@151.123.177.162:3129",
-  "g3lbqr5h7jwe:y5r2sn6njfc5bhq@104.207.57.208:3129",
-  "g3lbqr5h7jwe:y5r2sn6njfc5bhq@217.181.92.252:3129"
-  // ... puedes agregar más proxies de tu lista
+  ...
 ];
-
-// Función para obtener un proxy aleatorio
 export function getRandomProxy() {
   return proxyList[Math.floor(Math.random() * proxyList.length)];
 }
+*/
 
 export const channels = [
   {
