@@ -3,6 +3,9 @@ import { useState } from "react";
 function formatExpiry(value) {
   if (!value) return "Sin fecha";
 
+  // Fecha de expiracion en el anio 9999 = acceso ilimitado
+  if (new Date(value).getFullYear() >= 9999) return "Ilimitado";
+
   return new Intl.DateTimeFormat("es", {
     day: "2-digit",
     month: "long",
@@ -12,6 +15,9 @@ function formatExpiry(value) {
 
 function daysLeft(value) {
   if (!value) return "Sin datos";
+
+  // Fecha de expiracion en el anio 9999 = acceso ilimitado
+  if (new Date(value).getFullYear() >= 9999) return "Ilimitado";
 
   const diff = new Date(value).getTime() - Date.now();
   return `${Math.max(Math.ceil(diff / 86400000), 0)} dias`;
