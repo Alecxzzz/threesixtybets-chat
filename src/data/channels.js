@@ -52,7 +52,7 @@ export const channels = [
     name: "ESPN 1 (BRASIL)",
     status: "ACTIVO",
     ads: false,
-    stream: "https://190.83.85.68/espn/index.m3u8",
+    stream: "http://190.83.85.68/espn/index.m3u8",
     geoRestriction: "NONE",
     useProxy: false
   },
