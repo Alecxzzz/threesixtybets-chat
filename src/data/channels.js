@@ -163,5 +163,14 @@ export const channels = [
     stream: "https://7nyaler.streamhostingcdn.top/stream/36/index.m3u8",
     geoRestriction: "NONE",
     useProxy: false
+  },
+  {
+    id: 18,
+    name: "ESPN COLOMBIA",
+    status: "ACTIVO",
+    ads: false,
+    stream: "http://190.60.36.103:8000/play/a01i/index.m3u8",
+    geoRestriction: "NONE",
+    useProxy: true
   }
 ];

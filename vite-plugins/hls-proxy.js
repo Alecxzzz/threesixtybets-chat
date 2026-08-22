@@ -81,6 +81,40 @@ function rewriteManifest(text, baseUrl, referer) {
     .join("\n");
 }
 
+/**
+ * Detecta si un manifiesto es un master playlist (contiene #EXT-X-STREAM-INF).
+ * Los master playlists apuntan a sub-playlists; los media playlists contienen
+ * segmentos .ts directamente.
+ */
+function isMasterPlaylist(text) {
+  return text.includes("#EXT-X-STREAM-INF");
+}
+
+/**
+ * Extrae la URL de la primera variante de un master playlist.
+ * Devuelve null si no hay variantes.
+ */
+function extractFirstVariantUrl(text, baseUrl) {
+  const lines = text.split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
+    if (trimmed.startsWith("#EXT-X-STREAM-INF")) {
+      // La siguiente línea no vacía y sin # es la URL de la variante
+      for (let j = i + 1; j < lines.length; j++) {
+        const next = lines[j].trim();
+        if (next && !next.startsWith("#")) {
+          try {
+            return new URL(next, baseUrl).href;
+          } catch {
+            return null;
+          }
+        }
+      }
+    }
+  }
+  return null;
+}
+
 function setCors(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS");
@@ -153,6 +187,33 @@ async function handleRequest(req, res) {
 
     if (isManifest(finalUrl, contentType)) {
       const text = await upstream.text();
+
+      // Si es un master playlist, resolver la sub-playlist inmediatamente.
+      // Algunos servidores IPTV (como Astra) generan tokens de sesión efímeros
+      // en la URL de la sub-playlist que expiran en segundos. Si hls.js la pide
+      // después, el token ya no es válido (404). Resolviéndola aquí garantizamos
+      // que se pide en el mismo instante.
+      if (isMasterPlaylist(text)) {
+        const variantUrl = extractFirstVariantUrl(text, finalUrl);
+        if (variantUrl) {
+          const subRes = await fetch(variantUrl, {
+            headers,
+            redirect: "follow",
+            signal: controller.signal,
+          });
+          if (subRes.ok) {
+            const subText = await subRes.text();
+            const subFinalUrl = subRes.url || variantUrl;
+            const rewritten = rewriteManifest(subText, subFinalUrl, referer);
+            res.setHeader("Content-Type", "application/vnd.apple.mpegurl");
+            res.setHeader("Cache-Control", "no-store");
+            return res.end(rewritten);
+          }
+          // Si la sub-playlist falla, caer al comportamiento normal
+          console.warn(`[hls-proxy] sub-playlist ${subRes.status} ${variantUrl}`);
+        }
+      }
+
       const rewritten = rewriteManifest(text, finalUrl, referer);
       res.setHeader("Content-Type", "application/vnd.apple.mpegurl");
       res.setHeader("Cache-Control", "no-store");
