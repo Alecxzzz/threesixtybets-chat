@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   getStoredSession,
   fetchSportGames,
@@ -49,6 +49,38 @@ function statusLabel(game) {
   return formatTime(game.date);
 }
 
+/* ---------- Pantalla de carga grande ---------- */
+function LoadingScreen({ sport }) {
+  const theme = SPORT_THEMES[sport] || SPORT_THEMES.soccer;
+  return (
+    <div style={{
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      minHeight: 400,
+      gap: 20,
+    }}>
+      <div style={{
+        width: 64,
+        height: 64,
+        borderRadius: "50%",
+        border: `4px solid ${theme.accent}33`,
+        borderTopColor: theme.accent,
+        animation: "spin 1s linear infinite",
+      }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <h2 style={{ color: theme.accent, fontSize: 22, fontWeight: 700 }}>
+        Cargando partidos...
+      </h2>
+      <p style={{ color: "#8b95a1", fontSize: 14 }}>
+        Obteniendo datos en vivo de ESPN
+      </p>
+    </div>
+  );
+}
+
+/* ---------- Tarjeta de partido ---------- */
 function GameCard({ game, onOpen }) {
   const live = game.state === "in";
   const theme = SPORT_THEMES[game.sport] || SPORT_THEMES.soccer;
@@ -79,7 +111,7 @@ function GameCard({ game, onOpen }) {
 
       {[game.away, game.home].map((team, i) => (
         <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, fontWeight: team?.winner ? 700 : 400, color: team?.winner ? "#e6edf3" : "#c9d1d9" }}>
-          {team?.logo && <img src={team.logo} alt="" width={24} height={24} style={{ objectFit: "contain" }} />}
+          {team?.logo && <img src={team.logo} alt="" width={28} height={28} style={{ objectFit: "contain" }} />}
           <span style={{ flex: 1 }}>
             {team?.name || "?"}
             {team?.record && <span style={{ color: "#8b95a1", fontWeight: 400, marginLeft: 8, fontSize: 12 }}>({team.record})</span>}
@@ -109,6 +141,7 @@ function GameCard({ game, onOpen }) {
   );
 }
 
+/* ---------- Diamante de bases MLB ---------- */
 function BasesDiamond({ situation }) {
   const base = (on) => ({
     width: 18, height: 18, transform: "rotate(45deg)",
@@ -123,6 +156,7 @@ function BasesDiamond({ situation }) {
   );
 }
 
+/* ---------- Tablero estilo Sportradar ---------- */
 function Scoreboard({ detail }) {
   const theme = SPORT_THEMES[detail.sport] || SPORT_THEMES.soccer;
   const away = detail.teams?.find((t) => t.homeAway !== "home") || detail.teams?.[0];
@@ -184,6 +218,7 @@ function Scoreboard({ detail }) {
   );
 }
 
+/* ---------- Barra de estadistica comparada ---------- */
 function StatBar({ stat, awayColor, homeColor }) {
   const a = parseFloat(stat.away);
   const h = parseFloat(stat.home);
@@ -206,25 +241,64 @@ function StatBar({ stat, awayColor, homeColor }) {
   );
 }
 
+/* ---------- Mini juego para H2H y ultimos partidos ---------- */
 function MiniGame({ game }) {
   const ha = game.away || {};
   const hh = game.home || {};
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, padding: "4px 0" }}>
+      {ha.logo && <img src={ha.logo} alt="" width={16} height={16} style={{ objectFit: "contain" }} />}
       <span style={{ flex: 1, textAlign: "right", color: ha.winner ? "#e6edf3" : "#8b95a1" }}>{ha.name}</span>
       <span style={{ fontWeight: 700, color: "#c9d1d9", minWidth: 20, textAlign: "center" }}>{ha.score ?? "-"}</span>
       <span style={{ color: "#566270" }}>-</span>
       <span style={{ fontWeight: 700, color: "#c9d1d9", minWidth: 20, textAlign: "center" }}>{hh.score ?? "-"}</span>
       <span style={{ flex: 1, color: hh.winner ? "#e6edf3" : "#8b95a1" }}>{hh.name}</span>
+      {hh.logo && <img src={hh.logo} alt="" width={16} height={16} style={{ objectFit: "contain" }} />}
     </div>
   );
 }
 
+/* ---------- Efecto de escritura para IA ---------- */
+function TypewriterText({ text, speed = 20 }) {
+  const [displayed, setDisplayed] = useState("");
+  const [done, setDone] = useState(false);
+  const indexRef = useRef(0);
+
+  useEffect(() => {
+    if (!text) return;
+    setDisplayed("");
+    setDone(false);
+    indexRef.current = 0;
+
+    const interval = setInterval(() => {
+      if (indexRef.current < text.length) {
+        setDisplayed(text.slice(0, indexRef.current + 1));
+        indexRef.current += 1;
+      } else {
+        setDone(true);
+        clearInterval(interval);
+      }
+    }, speed);
+
+    return () => clearInterval(interval);
+  }, [text, speed]);
+
+  return (
+    <span>
+      {displayed}
+      {!done && <span style={{ opacity: 0.5, animation: "blink 1s infinite" }}>▋</span>}
+      <style>{`@keyframes blink { 50% { opacity: 0; } }`}</style>
+    </span>
+  );
+}
+
+/* ---------- Vista de detalle del partido ---------- */
 function GameDetail({ sport, eventId, onBack }) {
   const [detail, setDetail] = useState(null);
   const [error, setError] = useState(null);
   const [aiAnalysis, setAiAnalysis] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const [aiStarted, setAiStarted] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -245,6 +319,14 @@ function GameDetail({ sport, eventId, onBack }) {
     const interval = setInterval(load, REFRESH_MS);
     return () => { cancelled = true; clearInterval(interval); };
   }, [sport, eventId]);
+
+  // Auto-cargar analisis IA cuando el detalle este listo
+  useEffect(() => {
+    if (detail && !detail.error && !aiStarted) {
+      setAiStarted(true);
+      loadAi();
+    }
+  }, [detail, aiStarted]);
 
   async function loadAi() {
     const session = getStoredSession();
@@ -275,7 +357,7 @@ function GameDetail({ sport, eventId, onBack }) {
     return (
       <div className="tool-panel">
         <button onClick={onBack} style={backBtnStyle}>← Volver</button>
-        <p style={{ color: "#8b95a1" }}>Cargando estadisticas...</p>
+        <LoadingScreen sport={sport} />
       </div>
     );
   }
@@ -309,7 +391,7 @@ function GameDetail({ sport, eventId, onBack }) {
   const keyPlayers = detail.key_players || [];
 
   return (
-    <div className="tool-panel">
+    <div className="tool-panel" style={{ maxWidth: "100%", overflowX: "auto" }}>
       <button onClick={onBack} style={backBtnStyle}>← Volver a partidos</button>
 
       <Scoreboard detail={detail} />
@@ -330,7 +412,10 @@ function GameDetail({ sport, eventId, onBack }) {
             <tbody>
               {[away, home].map((t, i) => (
                 <tr key={i}>
-                  <td style={{ padding: "4px 10px", color: "#c9d1d9", whiteSpace: "nowrap", fontWeight: 600 }}>{t?.abbr || t?.name}</td>
+                  <td style={{ padding: "4px 10px", color: "#c9d1d9", whiteSpace: "nowrap", fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+                    {t?.logo && <img src={t.logo} alt="" width={18} height={18} style={{ objectFit: "contain" }} />}
+                    {t?.abbr || t?.name}
+                  </td>
                   {(t?.linescores || []).map((v, j) => (
                     <td key={j} style={{ padding: "4px 10px", textAlign: "center", color: "#c9d1d9" }}>{v}</td>
                   ))}
@@ -348,7 +433,7 @@ function GameDetail({ sport, eventId, onBack }) {
           <h3 style={{ color: "#e6edf3", margin: "0 0 8px", padding: "8px 14px", background: `linear-gradient(90deg, ${theme.accent}22, transparent)`, borderLeft: `4px solid ${theme.accent}`, borderRadius: 6, fontSize: 15 }}>
             ⚔️ Historial H2H
           </h3>
-          <div style={{ maxWidth: 560, margin: "0 auto", padding: "0 8px" }}>
+          <div style={{ maxWidth: 600, margin: "0 auto", padding: "0 8px" }}>
             {h2h.map((h, i) => (
               <div key={i} style={{ marginBottom: 4 }}>
                 <MiniGame game={h} />
@@ -359,16 +444,19 @@ function GameDetail({ sport, eventId, onBack }) {
         </div>
       )}
 
-      {/* Ultimos partidos */}
+      {/* Ultimos partidos de cada equipo */}
       {(away?.recent_games?.length > 0 || home?.recent_games?.length > 0) && (
         <div style={{ marginBottom: 24 }}>
           <h3 style={{ color: "#e6edf3", margin: "0 0 8px", padding: "8px 14px", background: `linear-gradient(90deg, ${theme.accent}22, transparent)`, borderLeft: `4px solid ${theme.accent}`, borderRadius: 6, fontSize: 15 }}>
             📅 Ultimos partidos
           </h3>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, maxWidth: 600, margin: "0 auto" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, maxWidth: 700, margin: "0 auto" }}>
             {[away, home].map((t, i) => (
               <div key={i}>
-                <div style={{ fontSize: 12, color: theme.accent, fontWeight: 700, marginBottom: 4 }}>{t?.name}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: theme.accent, fontWeight: 700, marginBottom: 4 }}>
+                  {t?.logo && <img src={t.logo} alt="" width={18} height={18} style={{ objectFit: "contain" }} />}
+                  {t?.name}
+                </div>
                 {(t?.recent_games || []).map((r, j) => (
                   <div key={j} style={{ marginBottom: 4 }}>
                     <MiniGame game={r} />
@@ -386,7 +474,7 @@ function GameDetail({ sport, eventId, onBack }) {
           <h3 style={{ color: "#e6edf3", margin: "0 0 8px", padding: "8px 14px", background: `linear-gradient(90deg, ${theme.accent}22, transparent)`, borderLeft: `4px solid ${theme.accent}`, borderRadius: 6, fontSize: 15 }}>
             ⭐ Jugadores destacados
           </h3>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12, maxWidth: 600, margin: "0 auto" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12, maxWidth: 700, margin: "0 auto" }}>
             {keyPlayers.map((p, i) => (
               <div key={i} style={{ background: "#11161d", border: "1px solid #232a33", borderRadius: 10, padding: 12, display: "flex", gap: 10, alignItems: "center" }}>
                 {p.headshot && <img src={p.headshot} alt="" width={40} height={40} style={{ borderRadius: "50%", objectFit: "cover" }} />}
@@ -402,14 +490,14 @@ function GameDetail({ sport, eventId, onBack }) {
         </div>
       )}
 
-      {/* Estadisticas por equipo */}
+      {/* Estadisticas por equipo - usa toda la pantalla */}
       {Object.keys(groups).length > 0 &&
         Object.entries(groups).map(([cat, list]) => (
           <div key={cat} style={{ marginBottom: 24 }}>
             <h3 style={{ color: "#e6edf3", margin: "0 0 4px", padding: "8px 14px", background: `linear-gradient(90deg, ${theme.accent}22, transparent)`, borderLeft: `4px solid ${theme.accent}`, borderRadius: 6, fontSize: 15 }}>
               📊 {cat}
             </h3>
-            <div style={{ maxWidth: 560, margin: "0 auto", padding: "0 8px" }}>
+            <div style={{ maxWidth: 700, margin: "0 auto", padding: "0 8px" }}>
               {list.map((s, i) => (
                 <StatBar key={i} stat={s} awayColor="#38bdf8" homeColor="#f472b6" />
               ))}
@@ -417,13 +505,24 @@ function GameDetail({ sport, eventId, onBack }) {
           </div>
         ))}
 
-      {/* Analisis IA */}
+      {/* Analisis IA - automatico con efecto de escritura */}
       <div style={{ marginBottom: 24 }}>
         <h3 style={{ color: "#e6edf3", margin: "0 0 8px", padding: "8px 14px", background: `linear-gradient(90deg, ${theme.accent}22, transparent)`, borderLeft: `4px solid ${theme.accent}`, borderRadius: 6, fontSize: 15 }}>
           🤖 Analisis de la IA
         </h3>
-        <div style={{ maxWidth: 560, margin: "0 auto", padding: "0 8px" }}>
-          {!aiAnalysis && !aiLoading && (
+        <div style={{ maxWidth: 700, margin: "0 auto", padding: "0 8px" }}>
+          {aiLoading && (
+            <div style={{ background: "#11161d", border: `1px solid ${theme.accent}44`, borderRadius: 10, padding: 14, display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ width: 20, height: 20, borderRadius: "50%", border: `3px solid ${theme.accent}33`, borderTopColor: theme.accent, animation: "spin 1s linear infinite" }} />
+              <span style={{ color: "#8b95a1", fontSize: 13 }}>La IA esta analizando el partido...</span>
+            </div>
+          )}
+          {!aiLoading && aiAnalysis && (
+            <div style={{ background: "#11161d", border: `1px solid ${theme.accent}44`, borderRadius: 10, padding: 14, whiteSpace: "pre-wrap", fontSize: 13, color: "#c9d1d9", lineHeight: 1.6, minHeight: 60 }}>
+              <TypewriterText text={aiAnalysis.analysis} />
+            </div>
+          )}
+          {!aiLoading && !aiAnalysis && (
             <button
               onClick={loadAi}
               style={{
@@ -440,12 +539,6 @@ function GameDetail({ sport, eventId, onBack }) {
               🤖 Generar analisis IA del partido
             </button>
           )}
-          {aiLoading && <p style={{ color: "#8b95a1", textAlign: "center" }}>🤖 La IA esta analizando el partido...</p>}
-          {aiAnalysis && (
-            <div style={{ background: "#11161d", border: `1px solid ${theme.accent}44`, borderRadius: 10, padding: 14, whiteSpace: "pre-wrap", fontSize: 13, color: "#c9d1d9", lineHeight: 1.6 }}>
-              {aiAnalysis.analysis}
-            </div>
-          )}
         </div>
       </div>
 
@@ -458,6 +551,7 @@ function GameDetail({ sport, eventId, onBack }) {
   );
 }
 
+/* ---------- Vista principal de Estadisticas ---------- */
 function Stats() {
   const [sport, setSport] = useState("soccer");
   const [league, setLeague] = useState(null);
@@ -467,8 +561,8 @@ function Stats() {
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState(null);
   const [selected, setSelected] = useState(null);
+  const [filter, setFilter] = useState("all"); // all | in | pre | post
 
-  // Cargar ligas disponibles
   useEffect(() => {
     async function loadLeagues() {
       const session = getStoredSession();
@@ -513,9 +607,15 @@ function Stats() {
   const live = games.filter((g) => g.state === "in");
   const finished = games.filter((g) => g.state === "post");
 
+  // Filtrar por estado
+  let displayGames = games;
+  if (filter === "in") displayGames = live;
+  else if (filter === "pre") displayGames = upcoming;
+  else if (filter === "post") displayGames = finished;
+
   return (
     <section className="tool-page">
-      <div className="tool-panel">
+      <div className="tool-panel" style={{ maxWidth: "100%", overflowX: "auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
           <h2 style={{ margin: 0 }}>Estadisticas en vivo</h2>
           <span style={{ fontSize: 12, color: "#8b95a1" }}>
@@ -531,7 +631,7 @@ function Stats() {
             return (
               <button
                 key={s.key}
-                onClick={() => { setSport(s.key); setLeague(null); }}
+                onClick={() => { setSport(s.key); setLeague(null); setFilter("all"); }}
                 style={{
                   padding: "8px 14px",
                   borderRadius: 10,
@@ -575,38 +675,48 @@ function Stats() {
           </div>
         )}
 
-        {loading && !data && <p style={{ color: "#8b95a1" }}>Cargando partidos...</p>}
-        {error && <p style={{ color: "#f87171" }}>Error: {error}</p>}
+        {/* Filtros por estado */}
+        <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+          {[
+            { key: "all", label: "📋 Todos", count: games.length },
+            { key: "in", label: "🔴 En vivo", count: live.length },
+            { key: "pre", label: "📅 Proximos", count: upcoming.length },
+            { key: "post", label: "✅ Finalizados", count: finished.length },
+          ].map((f) => (
+            <button
+              key={f.key}
+              onClick={() => setFilter(f.key)}
+              style={{
+                padding: "6px 12px",
+                borderRadius: 8,
+                border: `1px solid ${filter === f.key ? "#3a4450" : "#232a33"}`,
+                background: filter === f.key ? "#1c232c" : "transparent",
+                color: filter === f.key ? "#e6edf3" : "#8b95a1",
+                cursor: "pointer",
+                fontSize: 12,
+                fontWeight: filter === f.key ? 700 : 400,
+              }}
+            >
+              {f.label} ({f.count})
+            </button>
+          ))}
+        </div>
 
-        {!loading && !error && games.length === 0 && (
-          <p style={{ color: "#8b95a1", marginTop: 20 }}>No hay partidos programados para hoy en este deporte.</p>
-        )}
-
-        {live.length > 0 && (
-          <>
-            <h3 style={{ color: "#22c55e", margin: "24px 0 12px" }}>🔴 En vivo ({live.length})</h3>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 12 }}>
-              {live.map((g) => <GameCard key={g.id} game={g} onOpen={(game) => setSelected({ id: game.id, sport })} />)}
-            </div>
-          </>
-        )}
-
-        {upcoming.length > 0 && (
-          <>
-            <h3 style={{ color: "#c9d1d9", margin: "24px 0 12px" }}>📅 Proximos ({upcoming.length})</h3>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 12 }}>
-              {upcoming.map((g) => <GameCard key={g.id} game={g} onOpen={(game) => setSelected({ id: game.id, sport })} />)}
-            </div>
-          </>
-        )}
-
-        {finished.length > 0 && (
-          <>
-            <h3 style={{ color: "#8b95a1", margin: "24px 0 12px" }}>✅ Finalizados ({finished.length})</h3>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 12 }}>
-              {finished.slice(0, 16).map((g) => <GameCard key={g.id} game={g} onOpen={(game) => setSelected({ id: game.id, sport })} />)}
-            </div>
-          </>
+        {/* Contenido */}
+        {loading ? (
+          <LoadingScreen sport={sport} />
+        ) : error ? (
+          <p style={{ color: "#f87171" }}>Error: {error}</p>
+        ) : displayGames.length === 0 ? (
+          <p style={{ color: "#8b95a1", marginTop: 20, textAlign: "center" }}>
+            No hay partidos en esta categoria.
+          </p>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 12, marginTop: 20 }}>
+            {displayGames.map((g) => (
+              <GameCard key={g.id} game={g} onOpen={(game) => setSelected({ id: game.id, sport })} />
+            ))}
+          </div>
         )}
       </div>
     </section>
