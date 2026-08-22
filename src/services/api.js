@@ -162,3 +162,19 @@ export async function loadAdminKeys(session) {
 
   return readJson(res);
 }
+
+export async function fetchStatsSummary(session) {
+  const res = await fetch(`${API_URL}/stats/summary`, {
+    headers: authHeaders(session),
+  });
+
+  return readJson(res);
+}
+
+export async function fetchSportGames(session, sport) {
+  const res = await fetch(`${API_URL}/stats/live?sport=${encodeURIComponent(sport)}`, {
+    headers: authHeaders(session),
+  });
+
+  return readJson(res);
+}
