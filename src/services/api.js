@@ -178,3 +178,12 @@ export async function fetchSportGames(session, sport) {
 
   return readJson(res);
 }
+
+export async function fetchGameDetail(session, sport, eventId) {
+  const params = new URLSearchParams({ sport, event_id: eventId });
+  const res = await fetch(`${API_URL}/stats/game?${params}`, {
+    headers: authHeaders(session),
+  });
+
+  return readJson(res);
+}
