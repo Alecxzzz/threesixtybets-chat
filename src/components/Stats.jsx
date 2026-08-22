@@ -342,12 +342,34 @@ function GameDetail({ sport, eventId, onBack }) {
     }
   }
 
-  const backBtnStyle = { background: "transparent", border: "1px solid #232a33", borderRadius: 8, color: "#c9d1d9", padding: "6px 12px", cursor: "pointer" };
+  const theme = SPORT_THEMES[sport] || SPORT_THEMES.soccer;
+
+  const backBtnStyle = {
+    background: "linear-gradient(135deg, #1c232c, #11161d)",
+    border: "1px solid #3a4450",
+    borderRadius: 10,
+    color: "#c9d1d9",
+    padding: "8px 16px",
+    cursor: "pointer",
+    fontWeight: 600,
+    fontSize: 13,
+    transition: "all .2s",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+  };
 
   if (error) {
     return (
       <div className="tool-panel">
-        <button onClick={onBack} style={backBtnStyle}>← Volver</button>
+        <button
+        onClick={onBack}
+        style={backBtnStyle}
+        onMouseEnter={(e) => { e.currentTarget.style.transform = "translateX(-3px)"; e.currentTarget.style.borderColor = theme.accent; e.currentTarget.style.color = theme.accent; }}
+        onMouseLeave={(e) => { e.currentTarget.style.transform = "none"; e.currentTarget.style.borderColor = "#3a4450"; e.currentTarget.style.color = "#c9d1d9"; }}
+      >
+        ← Volver a partidos
+      </button>
         <p style={{ color: "#f87171" }}>Error: {error}</p>
       </div>
     );
@@ -356,13 +378,19 @@ function GameDetail({ sport, eventId, onBack }) {
   if (!detail) {
     return (
       <div className="tool-panel">
-        <button onClick={onBack} style={backBtnStyle}>← Volver</button>
+        <button
+        onClick={onBack}
+        style={backBtnStyle}
+        onMouseEnter={(e) => { e.currentTarget.style.transform = "translateX(-3px)"; e.currentTarget.style.borderColor = theme.accent; e.currentTarget.style.color = theme.accent; }}
+        onMouseLeave={(e) => { e.currentTarget.style.transform = "none"; e.currentTarget.style.borderColor = "#3a4450"; e.currentTarget.style.color = "#c9d1d9"; }}
+      >
+        ← Volver a partidos
+      </button>
         <LoadingScreen sport={sport} />
       </div>
     );
   }
 
-  const theme = SPORT_THEMES[sport] || SPORT_THEMES.soccer;
   const away = detail.teams?.find((t) => t.homeAway !== "home") || detail.teams?.[0];
   const home = detail.teams?.find((t) => t.homeAway === "home") || detail.teams?.[1];
 
@@ -390,159 +418,158 @@ function GameDetail({ sport, eventId, onBack }) {
   const h2h = detail.head_to_head || [];
   const keyPlayers = detail.key_players || [];
 
+  const sectionTitle = () => ({
+    color: "#e6edf3",
+    margin: "0 0 8px",
+    padding: "8px 14px",
+    background: `linear-gradient(90deg, ${theme.accent}22, transparent)`,
+    borderLeft: `4px solid ${theme.accent}`,
+    borderRadius: 6,
+    fontSize: 15,
+    transition: "all .2s",
+  });
+
   return (
-    <div className="tool-panel" style={{ maxWidth: "100%", overflowX: "auto" }}>
-      <button onClick={onBack} style={backBtnStyle}>← Volver a partidos</button>
+    <div className="tool-panel" style={{ width: "100%", maxWidth: "100%", padding: "16px", boxSizing: "border-box" }}>
+      <button
+        onClick={onBack}
+        style={backBtnStyle}
+        onMouseEnter={(e) => { e.currentTarget.style.transform = "translateX(-3px)"; e.currentTarget.style.borderColor = theme.accent; e.currentTarget.style.color = theme.accent; }}
+        onMouseLeave={(e) => { e.currentTarget.style.transform = "none"; e.currentTarget.style.borderColor = "#3a4450"; e.currentTarget.style.color = "#c9d1d9"; }}
+      >
+        ← Volver a partidos
+      </button>
 
       <Scoreboard detail={detail} />
 
-      {/* Linescores */}
-      {linesLen > 0 && (
-        <div style={{ overflowX: "auto", margin: "0 0 20px" }}>
-          <table style={{ margin: "0 auto", borderCollapse: "collapse", fontSize: 13 }}>
-            <thead>
-              <tr style={{ color: "#8b95a1" }}>
-                <th style={{ padding: "4px 10px" }}></th>
-                {Array.from({ length: linesLen }, (_, i) => (
-                  <th key={i} style={{ padding: "4px 10px" }}>{i + 1}</th>
+      {/* Layout de 2 columnas: IA arriba izq, stats al lado */}
+      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-start" }}>
+        {/* Columna izquierda: Analisis IA (prioridad) + H2H */}
+        <div style={{ flex: "1 1 380px", minWidth: 320 }}>
+          {/* Analisis IA - PRIORIDAD arriba izq */}
+          <div style={{ marginBottom: 20 }}>
+            <h3 style={sectionTitle()}>🤖 Analisis de la IA</h3>
+            {aiLoading && (
+              <div style={{ background: "#11161d", border: `1px solid ${theme.accent}44`, borderRadius: 10, padding: 14, display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 20, height: 20, borderRadius: "50%", border: `3px solid ${theme.accent}33`, borderTopColor: theme.accent, animation: "spin 1s linear infinite" }} />
+                <span style={{ color: "#8b95a1", fontSize: 13 }}>La IA esta analizando el partido...</span>
+              </div>
+            )}
+            {!aiLoading && aiAnalysis && (
+              <div style={{ background: "#11161d", border: `1px solid ${theme.accent}44`, borderRadius: 10, padding: 14, whiteSpace: "pre-wrap", fontSize: 13, color: "#c9d1d9", lineHeight: 1.6, minHeight: 60 }}>
+                <TypewriterText text={aiAnalysis.analysis} />
+              </div>
+            )}
+            {!aiLoading && !aiAnalysis && (
+              <button onClick={loadAi} style={{ width: "100%", padding: "10px", borderRadius: 10, border: `1px solid ${theme.accent}`, background: `${theme.accent}11`, color: theme.accent, cursor: "pointer", fontWeight: 700 }}>
+                🤖 Generar analisis IA del partido
+              </button>
+            )}
+          </div>
+
+          {/* H2H debajo del analisis */}
+          {h2h.length > 0 && (
+            <div style={{ marginBottom: 20 }}>
+              <h3 style={sectionTitle()}>⚔️ Historial H2H</h3>
+              {h2h.map((h, i) => (
+                <div key={i} style={{ marginBottom: 4 }}>
+                  <MiniGame game={h} />
+                  <div style={{ fontSize: 11, color: "#566270", textAlign: "center" }}>{formatDate(h.date)} · {h.status}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Ultimos partidos */}
+          {(away?.recent_games?.length > 0 || home?.recent_games?.length > 0) && (
+            <div style={{ marginBottom: 20 }}>
+              <h3 style={sectionTitle()}>📅 Ultimos partidos</h3>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                {[away, home].map((t, i) => (
+                  <div key={i}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: theme.accent, fontWeight: 700, marginBottom: 4 }}>
+                      {t?.logo && <img src={t.logo} alt="" width={18} height={18} style={{ objectFit: "contain" }} />}
+                      {t?.name}
+                    </div>
+                    {(t?.recent_games || []).map((r, j) => (
+                      <div key={j} style={{ marginBottom: 4 }}>
+                        <MiniGame game={r} />
+                      </div>
+                    ))}
+                  </div>
                 ))}
-                <th style={{ padding: "4px 10px", color: theme.accent }}>T</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[away, home].map((t, i) => (
-                <tr key={i}>
-                  <td style={{ padding: "4px 10px", color: "#c9d1d9", whiteSpace: "nowrap", fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
-                    {t?.logo && <img src={t.logo} alt="" width={18} height={18} style={{ objectFit: "contain" }} />}
-                    {t?.abbr || t?.name}
-                  </td>
-                  {(t?.linescores || []).map((v, j) => (
-                    <td key={j} style={{ padding: "4px 10px", textAlign: "center", color: "#c9d1d9" }}>{v}</td>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Columna derecha: Estadisticas + Linescores + Jugadores */}
+        <div style={{ flex: "2 1 500px", minWidth: 320 }}>
+          {/* Linescores */}
+          {linesLen > 0 && (
+            <div style={{ overflowX: "auto", marginBottom: 20 }}>
+              <table style={{ margin: "0 auto", borderCollapse: "collapse", fontSize: 13 }}>
+                <thead>
+                  <tr style={{ color: "#8b95a1" }}>
+                    <th style={{ padding: "4px 10px" }}></th>
+                    {Array.from({ length: linesLen }, (_, i) => (
+                      <th key={i} style={{ padding: "4px 10px" }}>{i + 1}</th>
+                    ))}
+                    <th style={{ padding: "4px 10px", color: theme.accent }}>T</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[away, home].map((t, i) => (
+                    <tr key={i}>
+                      <td style={{ padding: "4px 10px", color: "#c9d1d9", whiteSpace: "nowrap", fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+                        {t?.logo && <img src={t.logo} alt="" width={18} height={18} style={{ objectFit: "contain" }} />}
+                        {t?.abbr || t?.name}
+                      </td>
+                      {(t?.linescores || []).map((v, j) => (
+                        <td key={j} style={{ padding: "4px 10px", textAlign: "center", color: "#c9d1d9" }}>{v}</td>
+                      ))}
+                      <td style={{ padding: "4px 10px", textAlign: "center", fontWeight: 800, color: theme.accent }}>{t?.score ?? "-"}</td>
+                    </tr>
                   ))}
-                  <td style={{ padding: "4px 10px", textAlign: "center", fontWeight: 800, color: theme.accent }}>{t?.score ?? "-"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+                </tbody>
+              </table>
+            </div>
+          )}
 
-      {/* H2H */}
-      {h2h.length > 0 && (
-        <div style={{ marginBottom: 24 }}>
-          <h3 style={{ color: "#e6edf3", margin: "0 0 8px", padding: "8px 14px", background: `linear-gradient(90deg, ${theme.accent}22, transparent)`, borderLeft: `4px solid ${theme.accent}`, borderRadius: 6, fontSize: 15 }}>
-            ⚔️ Historial H2H
-          </h3>
-          <div style={{ maxWidth: 600, margin: "0 auto", padding: "0 8px" }}>
-            {h2h.map((h, i) => (
-              <div key={i} style={{ marginBottom: 4 }}>
-                <MiniGame game={h} />
-                <div style={{ fontSize: 11, color: "#566270", textAlign: "center" }}>{formatDate(h.date)} · {h.status}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Ultimos partidos de cada equipo */}
-      {(away?.recent_games?.length > 0 || home?.recent_games?.length > 0) && (
-        <div style={{ marginBottom: 24 }}>
-          <h3 style={{ color: "#e6edf3", margin: "0 0 8px", padding: "8px 14px", background: `linear-gradient(90deg, ${theme.accent}22, transparent)`, borderLeft: `4px solid ${theme.accent}`, borderRadius: 6, fontSize: 15 }}>
-            📅 Ultimos partidos
-          </h3>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, maxWidth: 700, margin: "0 auto" }}>
-            {[away, home].map((t, i) => (
-              <div key={i}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: theme.accent, fontWeight: 700, marginBottom: 4 }}>
-                  {t?.logo && <img src={t.logo} alt="" width={18} height={18} style={{ objectFit: "contain" }} />}
-                  {t?.name}
-                </div>
-                {(t?.recent_games || []).map((r, j) => (
-                  <div key={j} style={{ marginBottom: 4 }}>
-                    <MiniGame game={r} />
+          {/* Jugadores destacados */}
+          {keyPlayers.length > 0 && (
+            <div style={{ marginBottom: 20 }}>
+              <h3 style={sectionTitle()}>⭐ Jugadores destacados</h3>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 10 }}>
+                {keyPlayers.map((p, i) => (
+                  <div key={i} style={{ background: "#11161d", border: "1px solid #232a33", borderRadius: 10, padding: 10, display: "flex", gap: 10, alignItems: "center" }}>
+                    {p.headshot && <img src={p.headshot} alt="" width={36} height={36} style={{ borderRadius: "50%", objectFit: "cover" }} />}
+                    <div>
+                      <div style={{ fontWeight: 700, color: "#e6edf3", fontSize: 13 }}>{p.name}</div>
+                      <div style={{ fontSize: 11, color: "#8b95a1" }}>
+                        {p.stats.map((s, j) => `${s.name}: ${s.value}`).join(" · ")}
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
-            ))}
-          </div>
-        </div>
-      )}
+            </div>
+          )}
 
-      {/* Jugadores destacados */}
-      {keyPlayers.length > 0 && (
-        <div style={{ marginBottom: 24 }}>
-          <h3 style={{ color: "#e6edf3", margin: "0 0 8px", padding: "8px 14px", background: `linear-gradient(90deg, ${theme.accent}22, transparent)`, borderLeft: `4px solid ${theme.accent}`, borderRadius: 6, fontSize: 15 }}>
-            ⭐ Jugadores destacados
-          </h3>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12, maxWidth: 700, margin: "0 auto" }}>
-            {keyPlayers.map((p, i) => (
-              <div key={i} style={{ background: "#11161d", border: "1px solid #232a33", borderRadius: 10, padding: 12, display: "flex", gap: 10, alignItems: "center" }}>
-                {p.headshot && <img src={p.headshot} alt="" width={40} height={40} style={{ borderRadius: "50%", objectFit: "cover" }} />}
-                <div>
-                  <div style={{ fontWeight: 700, color: "#e6edf3", fontSize: 13 }}>{p.name}</div>
-                  <div style={{ fontSize: 11, color: "#8b95a1" }}>
-                    {p.stats.map((s, j) => `${s.name}: ${s.value}`).join(" · ")}
-                  </div>
-                </div>
+          {/* Estadisticas por equipo */}
+          {Object.keys(groups).length > 0 &&
+            Object.entries(groups).map(([cat, list]) => (
+              <div key={cat} style={{ marginBottom: 20 }}>
+                <h3 style={sectionTitle()}>📊 {cat}</h3>
+                {list.map((s, i) => (
+                  <StatBar key={i} stat={s} awayColor="#38bdf8" homeColor="#f472b6" />
+                ))}
               </div>
             ))}
-          </div>
-        </div>
-      )}
-
-      {/* Estadisticas por equipo - usa toda la pantalla */}
-      {Object.keys(groups).length > 0 &&
-        Object.entries(groups).map(([cat, list]) => (
-          <div key={cat} style={{ marginBottom: 24 }}>
-            <h3 style={{ color: "#e6edf3", margin: "0 0 4px", padding: "8px 14px", background: `linear-gradient(90deg, ${theme.accent}22, transparent)`, borderLeft: `4px solid ${theme.accent}`, borderRadius: 6, fontSize: 15 }}>
-              📊 {cat}
-            </h3>
-            <div style={{ maxWidth: 700, margin: "0 auto", padding: "0 8px" }}>
-              {list.map((s, i) => (
-                <StatBar key={i} stat={s} awayColor="#38bdf8" homeColor="#f472b6" />
-              ))}
-            </div>
-          </div>
-        ))}
-
-      {/* Analisis IA - automatico con efecto de escritura */}
-      <div style={{ marginBottom: 24 }}>
-        <h3 style={{ color: "#e6edf3", margin: "0 0 8px", padding: "8px 14px", background: `linear-gradient(90deg, ${theme.accent}22, transparent)`, borderLeft: `4px solid ${theme.accent}`, borderRadius: 6, fontSize: 15 }}>
-          🤖 Analisis de la IA
-        </h3>
-        <div style={{ maxWidth: 700, margin: "0 auto", padding: "0 8px" }}>
-          {aiLoading && (
-            <div style={{ background: "#11161d", border: `1px solid ${theme.accent}44`, borderRadius: 10, padding: 14, display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ width: 20, height: 20, borderRadius: "50%", border: `3px solid ${theme.accent}33`, borderTopColor: theme.accent, animation: "spin 1s linear infinite" }} />
-              <span style={{ color: "#8b95a1", fontSize: 13 }}>La IA esta analizando el partido...</span>
-            </div>
-          )}
-          {!aiLoading && aiAnalysis && (
-            <div style={{ background: "#11161d", border: `1px solid ${theme.accent}44`, borderRadius: 10, padding: 14, whiteSpace: "pre-wrap", fontSize: 13, color: "#c9d1d9", lineHeight: 1.6, minHeight: 60 }}>
-              <TypewriterText text={aiAnalysis.analysis} />
-            </div>
-          )}
-          {!aiLoading && !aiAnalysis && (
-            <button
-              onClick={loadAi}
-              style={{
-                width: "100%",
-                padding: "10px",
-                borderRadius: 10,
-                border: `1px solid ${theme.accent}`,
-                background: `${theme.accent}11`,
-                color: theme.accent,
-                cursor: "pointer",
-                fontWeight: 700,
-              }}
-            >
-              🤖 Generar analisis IA del partido
-            </button>
-          )}
         </div>
       </div>
 
-      {Object.keys(groups).length === 0 && linesLen === 0 && h2h.length === 0 && keyPlayers.length === 0 && (
+      {Object.keys(groups).length === 0 && linesLen === 0 && h2h.length === 0 && keyPlayers.length === 0 && !aiAnalysis && (
         <p style={{ color: "#8b95a1", textAlign: "center" }}>
           Las estadisticas detalladas estan disponibles cuando el partido comience.
         </p>
