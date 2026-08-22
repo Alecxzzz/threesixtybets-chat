@@ -172,5 +172,14 @@ export const channels = [
     stream: "http://190.60.46.228:8888/play/a05u/index.m3u8",
     geoRestriction: "NONE",
     useProxy: true
+  },
+  {
+    id: 19,
+    name: "TUBI SPORTS (USA)",
+    status: "ACTIVO",
+    ads: false,
+    stream: "https://live-manifest.production-public.tubi.io/live/79123cfa-756c-4d5e-9f66-26755a4cd5c8/playlist.m3u8?token=eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJjb3VudHJ5IjoiVVMiLCJkZXZpY2VfaWQiOiIzY2ZlNmNkYS0xZTZjLTQ4MGMtOWYyMS1jMmRlNjJhNGFjNWUiLCJleHAiOjE3ODc2ODk5OTgsImlzcyI6ImxpdmVfbmV3c19tYW5pZmVzdCIsInBsYXRmb3JtIjoiV0VCIiwicnNzIjoiYXB2MjpuZmwtY2hhbm5lbC1kem5jdWQiLCJ1c2VyX2lkIjowfQ.eadp3wDSsm286Yf0uVrA24lGqNunOO_s1R5RQbAQ0Ryu1_PhmG__iLsBn28-Uq3S-iL5hjZaTDsZFstu7RlPvA&tb.sid=88a98fed-e1df-4704-bc8b-0fe99d9f7e34&ap-fb=aHR0cHM6Ly9saXZlLW1hbmlmZXN0LnByb2R1Y3Rpb24tcHVibGljLnR1YmkuaW8vbGl2ZS83OTEyM2NmYS03NTZjLTRkNWUtOWY2Ni0yNjc1NWE0Y2Q1YzgvcGxheWxpc3QubTN1OD90b2tlbj1leUpoYkdjaU9pSklVelV4TWlJc0luUjVjQ0k2SWtwWFZDSjkuZXlKamIzVnVkSEo1SWpvaVZWTWlMQ0prWlhacFkyVmZhV1FpT2lJelkyWmxObU5rWVMweFpUWmpMVFE0TUdNdE9XWXlNUzFqTW1SbE5qSmhOR0ZqTldVaUxDSmxlSEFpT2pFM09EYzJPRGs1T1Rnc0ltbHpjeUk2SW14cGRtVmZibVYzYzE5dFlXNXBabVZ6ZENJc0luQnNZWFJtYjNKdElqb2lWMFZDSWl3aWNuTnpJam9pY21NNmFIUjBjSE02THk5aFpXZHBjeTFqYkc5MVpHWnliMjUwTFRFdWRIVmlhUzUyYVdSbGJ5OWxPVGhtT1RNNE5TMHlaRGN6TFRRek5USXRZbUppTUMweVpUTTFOamM1T1RWaE9HVXZjR3hoZVd4cGMzUXViVE4xT0NJc0luVnpaWEpmYVdRaU9qQjkucVVLc3prTVB6YV9McGtpWUFXS3Y5Vm1ZajlDT2hxUTI2ZFhUVzU5d2o5OEkzVVdvRVgydnY0Qm53aEMwZVBTbWJKS2NyaE80TWxDUXEyemhlZUJTaWcmdGIuc2lkPTkyZTY3ODc5LWY4YmMtNDk0YS1iNTFlLTA3NWRhODNjMTY3NQ&app_id=tubitv&app_mode=DEFAULT_MODE&content_id=613761&content_type=mp4&device_id=3cfe6cda-1e6c-480c-9f21-c2de62a4ac5e&language=en&now_pos=0&pub_id=11cd1845cf46794a6463bb4eade05c60&vpaid_enabled=false&gdpr=0&platform=WEB&ap.pt=2&ap.furl=0",
+    geoRestriction: "USA",
+    useProxy: true
   }
 ];
