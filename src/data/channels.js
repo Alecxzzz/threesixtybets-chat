@@ -169,7 +169,7 @@ export const channels = [
     name: "ESPN COLOMBIA",
     status: "ACTIVO",
     ads: false,
-    stream: "http://190.60.36.103:8000/play/a01i/index.m3u8",
+    stream: "http://190.60.46.228:8888/play/a05u/index.m3u8",
     geoRestriction: "NONE",
     useProxy: true
   }
