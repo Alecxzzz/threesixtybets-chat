@@ -20,6 +20,70 @@ import { Readable } from "node:stream";
 
 export const PROXY_PATH = "/hls-proxy";
 
+/**
+ * Caché temporal de segmentos .ts para streams con tokens efímeros.
+ * Cuando el proxy resuelve una media playlist, descarga los segmentos
+ * inmediatamente y los guarda aquí. Cuando hls.js los pide, se sirven
+ * desde el caché en lugar de ir al servidor (donde el token ya expiró).
+ * Los segmentos expiran del caché después de 30 segundos.
+ */
+const segmentCache = new Map(); // key: tsUrl -> { buffer, timestamp, contentType }
+const SEGMENT_CACHE_TTL = 30000; // 30 segundos
+
+function cleanSegmentCache() {
+  const now = Date.now();
+  for (const [key, entry] of segmentCache) {
+    if (now - entry.timestamp > SEGMENT_CACHE_TTL) {
+      segmentCache.delete(key);
+    }
+  }
+}
+
+/**
+ * Extrae todas las URLs de segmentos de una media playlist y las descarga
+ * inmediatamente, guardándolas en el caché. Esto es necesario porque algunos
+ * servidores IPTV (como Astra) generan tokens efímeros que expiran en segundos.
+ */
+async function preloadSegments(manifestText, baseUrl, headers, signal) {
+  const lines = manifestText.split("\n");
+  const tsUrls = [];
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    try {
+      const absUrl = new URL(trimmed, baseUrl).href;
+      if (absUrl.endsWith(".ts") || absUrl.endsWith(".aac") || absUrl.endsWith(".m4s")) {
+        tsUrls.push(absUrl);
+      }
+    } catch {
+      /* URL inválida, ignorar */
+    }
+  }
+
+  // Descargar todos los segmentos en paralelo
+  const promises = tsUrls.map(async (url) => {
+    if (segmentCache.has(url)) return; // ya está en caché
+    try {
+      const resp = await fetch(url, {
+        headers,
+        redirect: "follow",
+        signal,
+      });
+      if (resp.ok) {
+        const buffer = Buffer.from(await resp.arrayBuffer());
+        const contentType = resp.headers.get("content-type") || "video/mp2t";
+        segmentCache.set(url, { buffer, timestamp: Date.now(), contentType });
+      }
+    } catch {
+      /* Si falla, hls.js intentará descargarlo directamente */
+    }
+  });
+
+  await Promise.all(promises);
+  cleanSegmentCache();
+}
+
 const HOP_BY_HOP = new Set([
   "connection",
   "keep-alive",
@@ -165,6 +229,16 @@ async function handleRequest(req, res) {
   req.on("close", () => controller.abort());
 
   try {
+    // --- Segmentos .ts: servir desde caché si existe ---
+    cleanSegmentCache();
+    if (segmentCache.has(target)) {
+      const cached = segmentCache.get(target);
+      res.setHeader("Content-Type", cached.contentType || "video/mp2t");
+      res.setHeader("Cache-Control", "no-store");
+      setCors(res);
+      return res.end(cached.buffer);
+    }
+
     const upstream = await fetch(target, {
       method: req.method === "HEAD" ? "HEAD" : "GET",
       headers,
@@ -204,6 +278,10 @@ async function handleRequest(req, res) {
           if (subRes.ok) {
             const subText = await subRes.text();
             const subFinalUrl = subRes.url || variantUrl;
+
+            // Precargar segmentos inmediatamente (tokens efímeros)
+            await preloadSegments(subText, subFinalUrl, headers, controller.signal);
+
             const rewritten = rewriteManifest(subText, subFinalUrl, referer);
             res.setHeader("Content-Type", "application/vnd.apple.mpegurl");
             res.setHeader("Cache-Control", "no-store");
@@ -212,6 +290,11 @@ async function handleRequest(req, res) {
           // Si la sub-playlist falla, caer al comportamiento normal
           console.warn(`[hls-proxy] sub-playlist ${subRes.status} ${variantUrl}`);
         }
+      }
+
+      // Si es media playlist, precargar segmentos antes de servir
+      if (!isMasterPlaylist(text)) {
+        await preloadSegments(text, finalUrl, headers, controller.signal);
       }
 
       const rewritten = rewriteManifest(text, finalUrl, referer);
