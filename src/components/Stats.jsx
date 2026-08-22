@@ -1,5 +1,11 @@
 import { useEffect, useState, useCallback } from "react";
-import { getStoredSession, fetchSportGames, fetchGameDetail } from "../services/api";
+import {
+  getStoredSession,
+  fetchSportGames,
+  fetchGameDetail,
+  fetchLeagues,
+  fetchAiAnalysis,
+} from "../services/api";
 
 const SPORTS = [
   { key: "soccer", label: "⚽ Futbol" },
@@ -23,6 +29,15 @@ function formatTime(dateStr) {
   if (!dateStr) return "";
   try {
     return new Date(dateStr).toLocaleTimeString("es-NI", { hour: "2-digit", minute: "2-digit" });
+  } catch {
+    return "";
+  }
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return "";
+  try {
+    return new Date(dateStr).toLocaleDateString("es-NI", { day: "2-digit", month: "short" });
   } catch {
     return "";
   }
@@ -89,7 +104,7 @@ function GameCard({ game, onOpen }) {
         </div>
       )}
 
-      <div style={{ fontSize: 11, color: theme.accent, textAlign: "right", opacity: 0.8 }}>Ver estadisticas →</div>
+      <div style={{ fontSize: 11, color: theme.accent, textAlign: "right", opacity: 0.8 }}>Ver detalle →</div>
     </div>
   );
 }
@@ -191,9 +206,25 @@ function StatBar({ stat, awayColor, homeColor }) {
   );
 }
 
+function MiniGame({ game }) {
+  const ha = game.away || {};
+  const hh = game.home || {};
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, padding: "4px 0" }}>
+      <span style={{ flex: 1, textAlign: "right", color: ha.winner ? "#e6edf3" : "#8b95a1" }}>{ha.name}</span>
+      <span style={{ fontWeight: 700, color: "#c9d1d9", minWidth: 20, textAlign: "center" }}>{ha.score ?? "-"}</span>
+      <span style={{ color: "#566270" }}>-</span>
+      <span style={{ fontWeight: 700, color: "#c9d1d9", minWidth: 20, textAlign: "center" }}>{hh.score ?? "-"}</span>
+      <span style={{ flex: 1, color: hh.winner ? "#e6edf3" : "#8b95a1" }}>{hh.name}</span>
+    </div>
+  );
+}
+
 function GameDetail({ sport, eventId, onBack }) {
   const [detail, setDetail] = useState(null);
   const [error, setError] = useState(null);
+  const [aiAnalysis, setAiAnalysis] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -214,6 +245,20 @@ function GameDetail({ sport, eventId, onBack }) {
     const interval = setInterval(load, REFRESH_MS);
     return () => { cancelled = true; clearInterval(interval); };
   }, [sport, eventId]);
+
+  async function loadAi() {
+    const session = getStoredSession();
+    if (!session) return;
+    setAiLoading(true);
+    try {
+      const result = await fetchAiAnalysis(session, sport, eventId);
+      setAiAnalysis(result);
+    } catch (err) {
+      setAiAnalysis({ analysis: `Error: ${err.message}` });
+    } finally {
+      setAiLoading(false);
+    }
+  }
 
   const backBtnStyle = { background: "transparent", border: "1px solid #232a33", borderRadius: 8, color: "#c9d1d9", padding: "6px 12px", cursor: "pointer" };
 
@@ -260,6 +305,8 @@ function GameDetail({ sport, eventId, onBack }) {
   }
 
   const linesLen = Math.max(away?.linescores?.length || 0, home?.linescores?.length || 0);
+  const h2h = detail.head_to_head || [];
+  const keyPlayers = detail.key_players || [];
 
   return (
     <div className="tool-panel">
@@ -267,6 +314,7 @@ function GameDetail({ sport, eventId, onBack }) {
 
       <Scoreboard detail={detail} />
 
+      {/* Linescores */}
       {linesLen > 0 && (
         <div style={{ overflowX: "auto", margin: "0 0 20px" }}>
           <table style={{ margin: "0 auto", borderCollapse: "collapse", fontSize: 13 }}>
@@ -294,6 +342,67 @@ function GameDetail({ sport, eventId, onBack }) {
         </div>
       )}
 
+      {/* H2H */}
+      {h2h.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <h3 style={{ color: "#e6edf3", margin: "0 0 8px", padding: "8px 14px", background: `linear-gradient(90deg, ${theme.accent}22, transparent)`, borderLeft: `4px solid ${theme.accent}`, borderRadius: 6, fontSize: 15 }}>
+            ⚔️ Historial H2H
+          </h3>
+          <div style={{ maxWidth: 560, margin: "0 auto", padding: "0 8px" }}>
+            {h2h.map((h, i) => (
+              <div key={i} style={{ marginBottom: 4 }}>
+                <MiniGame game={h} />
+                <div style={{ fontSize: 11, color: "#566270", textAlign: "center" }}>{formatDate(h.date)} · {h.status}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Ultimos partidos */}
+      {(away?.recent_games?.length > 0 || home?.recent_games?.length > 0) && (
+        <div style={{ marginBottom: 24 }}>
+          <h3 style={{ color: "#e6edf3", margin: "0 0 8px", padding: "8px 14px", background: `linear-gradient(90deg, ${theme.accent}22, transparent)`, borderLeft: `4px solid ${theme.accent}`, borderRadius: 6, fontSize: 15 }}>
+            📅 Ultimos partidos
+          </h3>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, maxWidth: 600, margin: "0 auto" }}>
+            {[away, home].map((t, i) => (
+              <div key={i}>
+                <div style={{ fontSize: 12, color: theme.accent, fontWeight: 700, marginBottom: 4 }}>{t?.name}</div>
+                {(t?.recent_games || []).map((r, j) => (
+                  <div key={j} style={{ marginBottom: 4 }}>
+                    <MiniGame game={r} />
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Jugadores destacados */}
+      {keyPlayers.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <h3 style={{ color: "#e6edf3", margin: "0 0 8px", padding: "8px 14px", background: `linear-gradient(90deg, ${theme.accent}22, transparent)`, borderLeft: `4px solid ${theme.accent}`, borderRadius: 6, fontSize: 15 }}>
+            ⭐ Jugadores destacados
+          </h3>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12, maxWidth: 600, margin: "0 auto" }}>
+            {keyPlayers.map((p, i) => (
+              <div key={i} style={{ background: "#11161d", border: "1px solid #232a33", borderRadius: 10, padding: 12, display: "flex", gap: 10, alignItems: "center" }}>
+                {p.headshot && <img src={p.headshot} alt="" width={40} height={40} style={{ borderRadius: "50%", objectFit: "cover" }} />}
+                <div>
+                  <div style={{ fontWeight: 700, color: "#e6edf3", fontSize: 13 }}>{p.name}</div>
+                  <div style={{ fontSize: 11, color: "#8b95a1" }}>
+                    {p.stats.map((s, j) => `${s.name}: ${s.value}`).join(" · ")}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Estadisticas por equipo */}
       {Object.keys(groups).length > 0 &&
         Object.entries(groups).map(([cat, list]) => (
           <div key={cat} style={{ marginBottom: 24 }}>
@@ -308,8 +417,42 @@ function GameDetail({ sport, eventId, onBack }) {
           </div>
         ))}
 
-      {Object.keys(groups).length === 0 && linesLen === 0 && (
-        <p style={{ color: "#8b95a1", textAlign: "center" }}>Las estadisticas detalladas estan disponibles cuando el partido comience.</p>
+      {/* Analisis IA */}
+      <div style={{ marginBottom: 24 }}>
+        <h3 style={{ color: "#e6edf3", margin: "0 0 8px", padding: "8px 14px", background: `linear-gradient(90deg, ${theme.accent}22, transparent)`, borderLeft: `4px solid ${theme.accent}`, borderRadius: 6, fontSize: 15 }}>
+          🤖 Analisis de la IA
+        </h3>
+        <div style={{ maxWidth: 560, margin: "0 auto", padding: "0 8px" }}>
+          {!aiAnalysis && !aiLoading && (
+            <button
+              onClick={loadAi}
+              style={{
+                width: "100%",
+                padding: "10px",
+                borderRadius: 10,
+                border: `1px solid ${theme.accent}`,
+                background: `${theme.accent}11`,
+                color: theme.accent,
+                cursor: "pointer",
+                fontWeight: 700,
+              }}
+            >
+              🤖 Generar analisis IA del partido
+            </button>
+          )}
+          {aiLoading && <p style={{ color: "#8b95a1", textAlign: "center" }}>🤖 La IA esta analizando el partido...</p>}
+          {aiAnalysis && (
+            <div style={{ background: "#11161d", border: `1px solid ${theme.accent}44`, borderRadius: 10, padding: 14, whiteSpace: "pre-wrap", fontSize: 13, color: "#c9d1d9", lineHeight: 1.6 }}>
+              {aiAnalysis.analysis}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {Object.keys(groups).length === 0 && linesLen === 0 && h2h.length === 0 && keyPlayers.length === 0 && (
+        <p style={{ color: "#8b95a1", textAlign: "center" }}>
+          Las estadisticas detalladas estan disponibles cuando el partido comience.
+        </p>
       )}
     </div>
   );
@@ -317,18 +460,33 @@ function GameDetail({ sport, eventId, onBack }) {
 
 function Stats() {
   const [sport, setSport] = useState("soccer");
+  const [league, setLeague] = useState(null);
+  const [leagues, setLeagues] = useState([]);
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState(null);
   const [selected, setSelected] = useState(null);
 
+  // Cargar ligas disponibles
+  useEffect(() => {
+    async function loadLeagues() {
+      const session = getStoredSession();
+      if (!session) return;
+      try {
+        const result = await fetchLeagues(session);
+        setLeagues(result?.soccer || []);
+      } catch {}
+    }
+    loadLeagues();
+  }, []);
+
   const load = useCallback(async () => {
     const session = getStoredSession();
     if (!session) return;
     setLoading(true);
     try {
-      const result = await fetchSportGames(session, sport);
+      const result = await fetchSportGames(session, sport, league);
       setData(result);
       setError(result?.error || null);
       setLastUpdate(new Date());
@@ -337,7 +495,7 @@ function Stats() {
     } finally {
       setLoading(false);
     }
-  }, [sport]);
+  }, [sport, league]);
 
   useEffect(() => {
     setSelected(null);
@@ -365,6 +523,7 @@ function Stats() {
           </span>
         </div>
 
+        {/* Tabs por deporte */}
         <div style={{ display: "flex", gap: 8, marginTop: 16, flexWrap: "wrap" }}>
           {SPORTS.map((s) => {
             const active = sport === s.key;
@@ -372,7 +531,7 @@ function Stats() {
             return (
               <button
                 key={s.key}
-                onClick={() => setSport(s.key)}
+                onClick={() => { setSport(s.key); setLeague(null); }}
                 style={{
                   padding: "8px 14px",
                   borderRadius: 10,
@@ -389,6 +548,32 @@ function Stats() {
             );
           })}
         </div>
+
+        {/* Selector de liga (solo futbol) */}
+        {sport === "soccer" && leagues.length > 0 && (
+          <div style={{ marginTop: 12 }}>
+            <select
+              value={league || ""}
+              onChange={(e) => setLeague(e.target.value || null)}
+              style={{
+                width: "100%",
+                maxWidth: 400,
+                padding: "8px 12px",
+                borderRadius: 10,
+                border: "1px solid #232a33",
+                background: "#11161d",
+                color: "#c9d1d9",
+                fontSize: 13,
+                cursor: "pointer",
+              }}
+            >
+              <option value="">🌍 Todas las ligas</option>
+              {leagues.map((l) => (
+                <option key={l.code} value={l.code}>{l.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {loading && !data && <p style={{ color: "#8b95a1" }}>Cargando partidos...</p>}
         {error && <p style={{ color: "#f87171" }}>Error: {error}</p>}

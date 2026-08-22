@@ -171,8 +171,18 @@ export async function fetchStatsSummary(session) {
   return readJson(res);
 }
 
-export async function fetchSportGames(session, sport) {
-  const res = await fetch(`${API_URL}/stats/live?sport=${encodeURIComponent(sport)}`, {
+export async function fetchLeagues(session) {
+  const res = await fetch(`${API_URL}/stats/leagues`, {
+    headers: authHeaders(session),
+  });
+
+  return readJson(res);
+}
+
+export async function fetchSportGames(session, sport, league) {
+  const params = new URLSearchParams({ sport });
+  if (league) params.set("league", league);
+  const res = await fetch(`${API_URL}/stats/live?${params}`, {
     headers: authHeaders(session),
   });
 
@@ -182,6 +192,15 @@ export async function fetchSportGames(session, sport) {
 export async function fetchGameDetail(session, sport, eventId) {
   const params = new URLSearchParams({ sport, event_id: eventId });
   const res = await fetch(`${API_URL}/stats/game?${params}`, {
+    headers: authHeaders(session),
+  });
+
+  return readJson(res);
+}
+
+export async function fetchAiAnalysis(session, sport, eventId) {
+  const params = new URLSearchParams({ sport, event_id: eventId });
+  const res = await fetch(`${API_URL}/stats/ai-analysis?${params}`, {
     headers: authHeaders(session),
   });
 
