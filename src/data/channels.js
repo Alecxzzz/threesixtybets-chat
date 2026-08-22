@@ -16,7 +16,7 @@ export const channels = [
     name: "TyC SPORTS",
     status: "ACTIVO",
     ads: false,
-    stream: "http://45.181.87.106/TYCSPORTSHD/index.m3u8",
+    stream: "http://190.60.36.103:8000/play/a01i/55069115.m3u8",
     geoRestriction: "NONE",
     useProxy: false
   },
