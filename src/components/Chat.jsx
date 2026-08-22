@@ -126,7 +126,12 @@ function Chat({ session }) {
         )}
 
         {messages.map((m, i) => (
-          <Message key={m.id || i} role={m.role} text={m.text} />
+          <Message
+            key={m.id || i}
+            role={m.role}
+            text={m.text}
+            animate={i === messages.length - 1 && m.role === "ai" && !loading}
+          />
         ))}
 
         {loading && (
