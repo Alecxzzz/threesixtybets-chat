@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import Hls from "hls.js";
 import { channels } from "../data/channels";
 import { resolveStreamUrl, needsProxy } from "../utils/stream";
@@ -7,7 +7,17 @@ function TV() {
   const [currentChannel, setCurrentChannel] = useState(null);
   const [playerError, setPlayerError] = useState("");
   const [viaProxy, setViaProxy] = useState(false); // reintento automático
+  const [loading, setLoading] = useState(false);
   const videoRef = useRef(null);
+  const hlsRef = useRef(null);
+
+  // Limpia la instancia HLS anterior antes de crear una nueva
+  const destroyHls = useCallback(() => {
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+      hlsRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
     if (!currentChannel || !videoRef.current) return;
@@ -18,7 +28,10 @@ function TV() {
     const alreadyProxied = viaProxy || needsProxy(currentChannel);
     let hls;
     let cancelled = false;
+    let mediaRecoveryAttempts = 0;
+    let networkRecoveryAttempts = 0;
 
+    setLoading(true);
     console.log("[TV] cargando:", streamUrl, alreadyProxied ? "(proxy)" : "(directo)");
 
     video.pause();
@@ -29,18 +42,35 @@ function TV() {
       hls = new Hls({
         enableWorker: true,
         lowLatencyMode: true,
-        // reintentos más tolerantes: muchos servidores IPTV cortan segmentos
-        manifestLoadingMaxRetry: 4,
-        levelLoadingMaxRetry: 4,
-        fragLoadingMaxRetry: 6,
-        fragLoadingMaxRetryTimeout: 8000,
+        // Reintentos más tolerantes: muchos servidores IPTV cortan segmentos
+        manifestLoadingMaxRetry: 6,
+        manifestLoadingMaxRetryTimeout: 10000,
+        levelLoadingMaxRetry: 6,
+        levelLoadingMaxRetryTimeout: 10000,
+        fragLoadingMaxRetry: 8,
+        fragLoadingMaxRetryTimeout: 10000,
+        // Buffer más grande para estabilidad en streams inestables
+        maxBufferLength: 30,
+        maxMaxBufferLength: 60,
+        maxBufferSize: 60 * 1000 * 1000,
+        // Backoff exponencial para reintentos
+        fragLoadingRetryDelay: 500,
+        levelLoadingRetryDelay: 500,
+        manifestLoadingRetryDelay: 500,
+        // Tolerancia a saltos de buffer (evita congelamiento en ESPN)
+        liveSyncDurationCount: 3,
+        liveMaxLatencyDurationCount: 6,
+        // Ajuste de ancho de banda: empezar con nivel más bajo para carga rápida
+        startLevel: -1, // auto: hls.js elige el mejor nivel inicial
       });
+      hlsRef.current = hls;
 
       hls.loadSource(streamUrl);
       hls.attachMedia(video);
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         setPlayerError("");
+        setLoading(false);
         video.play().catch((err) => {
           console.log("Autoplay bloqueado:", err);
         });
@@ -54,18 +84,36 @@ function TV() {
         // 1) Si aún no pasamos por el proxy y falla la red (CORS / mixed content /
         //    bloqueo del servidor) -> reintentar automáticamente vía proxy.
         const isNetworkError = data.type === Hls.ErrorTypes.NETWORK_ERROR;
-        if (isNetworkError && !alreadyProxied) {
+        if (isNetworkError && !alreadyProxied && networkRecoveryAttempts < 1) {
+          networkRecoveryAttempts++;
           setPlayerError("Bloqueado por el servidor (CORS). Reintentando vía proxy...");
-          hls.destroy();
+          destroyHls();
           if (!cancelled) setViaProxy(true);
           return;
         }
 
         // 2) Errores de media: intentar recuperar antes de rendirse
-        if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
-          setPlayerError("Problema de decodificación, recuperando...");
+        //    ESPN 1/3/4 tienen problemas de codificación intermitentes.
+        //    Estrategia: recoverMediaError -> swapAudioCodec -> recoverMediaError
+        if (data.type === Hls.ErrorTypes.MEDIA_ERROR && mediaRecoveryAttempts < 3) {
+          mediaRecoveryAttempts++;
+          const msgs = [
+            "Problema de codificación, recuperando (intento 1)...",
+            "Reiniciando decodificador de audio (intento 2)...",
+            "Recuperando nuevamente (intento 3)...",
+          ];
+          setPlayerError(msgs[mediaRecoveryAttempts - 1]);
           try {
-            hls.recoverMediaError();
+            if (mediaRecoveryAttempts === 2) {
+              // Segundo intento: intercambiar codec de audio (común en ESPN)
+              const tracks = hls.audioTracks;
+              if (tracks && tracks.length > 1) {
+                hls.audioTrack = (hls.audioTrack + 1) % tracks.length;
+              }
+              hls.recoverMediaError();
+            } else {
+              hls.recoverMediaError();
+            }
             return;
           } catch {
             /* cae al mensaje final */
@@ -82,28 +130,42 @@ function TV() {
         } else if (data.details === Hls.ErrorDetails.MANIFEST_PARSING_ERROR) {
           setPlayerError("El m3u8 no es válido (¿el servidor devolvió HTML de error?).");
         } else if (data.details === Hls.ErrorDetails.FRAG_LOAD_ERROR) {
-          setPlayerError("No se pudo cargar un segmento .ts.");
+          setPlayerError("No se pudo cargar un segmento .ts. El servidor puede estar saturado.");
         } else if (data.details === Hls.ErrorDetails.KEY_LOAD_ERROR) {
           setPlayerError("No se pudo cargar la llave del stream.");
         } else {
           setPlayerError(`Error fatal al reproducir el canal (${data.details}).`);
         }
 
-        hls.destroy();
+        setLoading(false);
+        destroyHls();
       });
     } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
       // Safari / iOS: HLS nativo (no aplica CORS del mismo modo)
       video.src = streamUrl;
       video.play().catch(console.error);
+      setLoading(false);
     } else {
       setPlayerError("Tu navegador no soporta HLS.");
+      setLoading(false);
     }
 
     return () => {
       cancelled = true;
-      if (hls) hls.destroy();
+      destroyHls();
     };
-  }, [currentChannel, viaProxy]);
+  }, [currentChannel, viaProxy, destroyHls]);
+
+  // Determinar el sandbox para iframes: bloquear popups pero permitir autoplay
+  const getIframeSandbox = (channel) => {
+    if (channel.ads) {
+      // Canales con anuncios: bloquear popups, navegación, etc.
+      // Pero permitir scripts y autoplay para que el reproductor funcione
+      return "allow-scripts allow-same-origin allow-presentation";
+    }
+    // Canales sin anuncios: permitir más cosas pero seguir bloqueando popups
+    return "allow-scripts allow-same-origin allow-presentation allow-popups";
+  };
 
   return (
     <section className="tv-page">
@@ -112,6 +174,7 @@ function TV() {
           <div className="tv-player-box">
             <div className="tv-title">
               Reproduciendo: <span>{currentChannel.name}</span>
+              {loading && <span className="loading-indicator"> ⏳ Cargando...</span>}
             </div>
 
             <div className="tv-player">
@@ -121,7 +184,9 @@ function TV() {
                   width="100%"
                   height="500"
                   allowFullScreen
-                  allow="autoplay; fullscreen"
+                  allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+                  sandbox={getIframeSandbox(currentChannel)}
+                  referrerPolicy="no-referrer"
                   frameBorder="0"
                   title={currentChannel.name}
                 />
@@ -154,6 +219,7 @@ function TV() {
                 }`}
                 onClick={() => {
                   setPlayerError("");
+                  setLoading(true);
                   setViaProxy(needsProxy(channel));
                   setCurrentChannel(channel);
                 }}

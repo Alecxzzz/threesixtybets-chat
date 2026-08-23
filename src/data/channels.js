@@ -16,7 +16,7 @@ export const channels = [
     name: "TyC SPORTS",
     status: "ACTIVO",
     ads: false,
-    stream: "http://190.60.36.103:8000/play/a01i/55069115.m3u8",
+    stream: "http://45.181.87.106/TYCSPORTSHD/index.m3u8",
     geoRestriction: "NONE",
     useProxy: false
   },
@@ -85,7 +85,7 @@ export const channels = [
   },
   {
     id: 9,
-    name: "BEIN 1",
+    name: "BEIN 1 (BAJO PRUEBAS)",
     status: "ACTIVO",
     ads: false,
     stream: "https://1nyaler.streamhostingcdn.top/stream/23/index.m3u8",
@@ -115,7 +115,7 @@ export const channels = [
     name: "CBS SPORT GOLAZO",
     status: "ACTIVO",
     ads: false,
-    stream: "https://stitcher-ipv4.pluto.tv/v2/stitch/embed/hls/channel/63a0e33a45264d000850ed7e/master.m3u8?deviceType=samsung-tvplus&deviceMake=samsung&deviceModel=samsung&deviceVersion=unknown&appVersion=unknown&deviceLat=0&deviceLon=0&deviceDNT=%7BTARGETOPT%7D&deviceId=%7BPSID%7D&advertisingId=%7BPSID%7D&us_privacy=%7BUS_PRIVACY%7D&samsung_app_domain=%7BAPP_DOMAIN%7D&samsung_app_name=%7BAPP_NAME%7D&profileLimit=&profileFloor=&embedPartner=samsung-tvplus&masterJWTPassthrough=1&authToken=eyJhbGciOiJIUzI1NiIsImtpZCI6ImQyZGEzNDMzLTYwYTEtNGYxZi1iNTMzLWFlN2E0MDE5Zjk0MiIsInR5cCI6IkpXVCJ9.eyJwYXJ0bmVyIjoic2Ftc3VuZ3R2cGx1cyIsImZlYXR1cmVzIjp7Im11bHRpUG9kQWRzIjp7ImNvaG9ydCI6IiIsImVuYWJsZWQiOnRydWV9LCJzdGl0Y2hlckhsc05nIjp7ImRlbXV4ZWRBdWRpbyI6ImRpc2FibGVkIn0sInN0aXRjaGVySGxzTmdWbGwiOnsiZW5hYmxlZCI6dHJ1ZX0sInN0aXRjaGVyUGFydG5lclNob3dTbGF0ZSI6eyJlbmFibGVkIjp0cnVlfX0sImlzcyI6InNlcnZpY2UtcGFydG5lci1hdXRoLnBsdXRvLnR2Iiwic3ViIjoicHJpOnYxOnBsdXRvOmRldmljZXM6YzJGdGMzVnVaM1IyY0d4MWN3PT0iLCJhdWQiOiIqLnBsdXRvLnR2IiwiZXhwIjoxNzg3MDMwODQ4LCJpYXQiOjE3ODY5NDQ0NDgsImp0aSI6ImY1M2NiMmVmLTEwOGEtNDE0Yy05YTNiLWIwNzY5NmI4NDFlNSJ9.MLKymVQTh6QtuwQ4i1u7QKi6sRK0_0XQGX_be3z53Eo",
+    stream: "https://jmp2.uk/plu-63a0e33a45264d000850ed7e.m3u8",
     geoRestriction: "NONE",
     useProxy: false
   },
@@ -124,7 +124,8 @@ export const channels = [
     name: "CANAL 4 (SOLO MLB)",
     status: "ACTIVO",
     ads: false,
-    stream: "https://live.eu-north-1a.cf.dmcdn.net/sec2(PJPIhPvsIJV-CCZPtMNW1uVR8cmfdN9V0mBVTmqCJWwP1L-fksw-j0GLsteerT5ukRl8yGbnbaxZNnNN6fXkHAs47M4owhtaEyS4pQXBd0VWSQYjc1MZlK6F1T00sxQX)/dm/3/x7rwv8c/s/live-480.m3u8#cell=lcf-eu-north-1a",
+    type: "iframe",
+    stream: "https://dailymotion.com/embed/video/x7rwv8c?ui-highlight&start&endscreen-enable=0&controls=1&mute=0&ui-start-screen-info=0&ui-logo=0&autoplay=1",
     geoRestriction: "NONE",
     useProxy: false
   },
@@ -189,6 +190,62 @@ export const channels = [
     ads: false,
     type: "iframe",
     stream: "https://pelisjuanita.com/tv/servers/shakaplayer.php?id=fox_sports_hd",
+    geoRestriction: "NONE",
+    useProxy: false
+  },
+  {
+    id: 21,
+    name: "ESPN USA",
+    status: "ACTIVO",
+    ads: false,
+    stream: "http://23.237.104.106:8080/USA_ESPNU/index.m3u8",
+    geoRestriction: "NONE",
+    useProxy: false
+  },
+  {
+    id: 22,
+    name: "BEIN SPORTS EXTRA",
+    status: "ACTIVO",
+    ads: false,
+    stream: "https://aegis-cloudfront-1.tubi.video/01f6c149-449b-4248-8bda-2278799205ec/playlist.m3u8",
+    geoRestriction: "NONE",
+    useProxy: false
+  },
+  {
+    id: 23,
+    name: "TELEMUNDO DEPORTES",
+    status: "ACTIVO",
+    ads: false,
+    stream: "https://d1rqgw5gocwo9i.cloudfront.net/10009/99951459/hls/master.m3u8?ads.xumo_channelId=99951459&ads.asnw=169843&ads.afid=442535792&ads.sfid=23780352&ads.caid=telemundodeportesahora_linear&ads.csid=xumo_",
+    geoRestriction: "NONE",
+    useProxy: false
+  },
+  {
+    id: 24,
+    name: "WIN SPORTS",
+    status: "ACTIVO",
+    ads: false,
+    stream: "http://138.121.15.230:9002/WIN-SPORT/index.m3u8",
+    geoRestriction: "NONE",
+    useProxy: false
+  },
+  {
+    id: 25,
+    name: "DSPORTS (CON ANUNCIOS)",
+    status: "ACTIVO",
+    ads: true,
+    type: "iframe",
+    stream: "https://latamplay1.click/channel/dsports.html",
+    geoRestriction: "NONE",
+    useProxy: false
+  },
+  {
+    id: 26,
+    name: "TNT SPORTS PREMIUM (CON ANUNCIOS)",
+    status: "ACTIVO",
+    ads: true,
+    type: "iframe",
+    stream: "https://bolaloca.my/player/2/83",
     geoRestriction: "NONE",
     useProxy: false
   }
