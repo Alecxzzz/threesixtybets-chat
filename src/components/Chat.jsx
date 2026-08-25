@@ -14,7 +14,7 @@ const WELCOME_MESSAGE = {
 };
 const MODELS = [
   { id: "you", name: "Demian tipster" },
-  { id: "groq", name: "Walter tipster" },
+  { id: "groq", name: "365AI Tipster" },
 ];
 
 function Chat({ session }) {
