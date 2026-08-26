@@ -74,7 +74,7 @@ function LoadingScreen({ sport }) {
         Cargando partidos...
       </h2>
       <p style={{ color: "#8b95a1", fontSize: 14 }}>
-        Obteniendo datos en vivo de ESPN
+        Obteniendo datos en vivo...
       </p>
     </div>
   );
@@ -462,7 +462,7 @@ function GameDetail({ sport, eventId, onBack }) {
             )}
             {!aiLoading && !aiAnalysis && (
               <button onClick={loadAi} style={{ width: "100%", padding: "10px", borderRadius: 10, border: `1px solid ${theme.accent}`, background: `${theme.accent}11`, color: theme.accent, cursor: "pointer", fontWeight: 700 }}>
-                🤖 Generar analisis IA del partido
+                🤖 IA Analizando el partido..
               </button>
             )}
           </div>
