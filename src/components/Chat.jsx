@@ -22,6 +22,7 @@ function Chat({ session }) {
   const [value, setValue] = useState("");
   const [model, setModel] = useState("you");
   const [loading, setLoading] = useState(false);
+  const [retrying, setRetrying] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(true);
 
   useEffect(() => {
@@ -75,39 +76,77 @@ function Chat({ session }) {
     }
   }
 
+  // Detecta los errores que vale la pena reintentar: timeout de You.com,
+  // "Failed to fetch" (backend dormido), o el error "leyendo respuesta".
+  function isRetryableError(error) {
+    const msg = (error?.message || "").toLowerCase();
+    const code = String(error?.code || "");
+    return (
+      msg === "failed to fetch" ||
+      msg.includes("timeout") ||
+      msg.includes("leyendo respuesta") ||
+      msg.includes("error leyendo respuesta") ||
+      code === "35" ||
+      msg.includes("request timed out")
+    );
+  }
+
   async function send() {
-    if (!value.trim() || loading) return;
+    if (!value.trim() || loading || retrying) return;
 
     const userMessage = { role: "user", text: value.trim() };
     setValue("");
     setLoading(true);
     await appendAndSave(userMessage);
 
-    try {
-      const text = await sendChatMessage({
-        mensaje: userMessage.text,
-        modelo: model,
-      });
-      const aiMessage = {
-        role: "ai",
-        text,
-      };
+    const MAX_ATTEMPTS = 3;
 
-      await appendAndSave(aiMessage);
-    } catch (error) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "ai",
-          text:
-            error.message === "Failed to fetch"
-              ? "No pude conectar con el backend. Revisa que el backend este desplegado y que la URL de la API este bien configurada."
-              : "Error real: " + error.message,
-        },
-      ]);
-    } finally {
-      setLoading(false);
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+      try {
+        const text = await sendChatMessage({
+          mensaje: userMessage.text,
+          modelo: model,
+        });
+        const aiMessage = { role: "ai", text };
+        await appendAndSave(aiMessage);
+        setLoading(false);
+        setRetrying(false);
+        return;
+      } catch (error) {
+        const lastAttempt = attempt === MAX_ATTEMPTS - 1;
+
+        // Si NO es un error de timeout/reintentable, mostrar y salir.
+        if (lastAttempt || !isRetryableError(error)) {
+          setLoading(false);
+          setRetrying(false);
+          const isFailFetch = error?.message === "Failed to fetch";
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: "ai",
+              text:
+                lastAttempt
+                  ? "No pude obtener la respuesta tras varios intentos (timeout). Intenta de nuevo o cambia de modelo."
+                  : isFailFetch
+                    ? "No pude conectar con el backend. Revisa que el backend este desplegado y que la URL de la API este bien configurada."
+                    : "Error real: " + error.message,
+            },
+          ]);
+          return;
+        }
+
+        // Timeout / error de You.com -> mostrar "Reintentando..." y volver
+        // a "Analizando partido" en el siguiente intento.
+        setLoading(false);
+        setRetrying(true);
+        await new Promise((r) => setTimeout(r, 3000));
+        setRetrying(false);
+        setLoading(true);
+      }
     }
+
+    setLoading(false);
+    setRetrying(false);
   }
 
   return (
@@ -139,6 +178,20 @@ function Chat({ session }) {
             <div className="thinking-title">Analizando partido</div>
             <div className="thinking-text">
               Consultando datos web y preparando el analisis
+              <span className="dots">...</span>
+            </div>
+            <div className="shimmer-line"></div>
+            <div className="shimmer-line short"></div>
+          </div>
+        )}
+
+        {retrying && (
+          <div className="thinking-card">
+            <div className="thinking-title" style={{ color: "#fbbf24" }}>
+              Reintentando...
+            </div>
+            <div className="thinking-text">
+              La conexion tardo demasiado. Reintentando el analisis
               <span className="dots">...</span>
             </div>
             <div className="shimmer-line"></div>
