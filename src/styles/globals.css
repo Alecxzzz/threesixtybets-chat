@@ -25,6 +25,7 @@ button {
 
 .app {
   height: 100vh;
+  height: 100dvh;
   display: flex;
   background: #0f1117;
   overflow: hidden;
@@ -202,6 +203,7 @@ button {
   left: -280px;
   top: 0;
   height: 100vh;
+  height: 100dvh;
   z-index: 1000;
   transition:
     left 0.25s ease,
@@ -295,7 +297,7 @@ button {
   flex: 1;
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100%;
   min-width: 0;
   overflow: hidden;
 }
@@ -400,6 +402,10 @@ button {
   flex-shrink: 0;
   border-top: 1px solid #262d3a;
   background: #151922;
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 .chat-toolbar {
@@ -436,13 +442,18 @@ button {
 .messages {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 38px;
   min-height: 0;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
 }
 
 .message {
   display: flex;
   margin-bottom: 20px;
+  min-width: 0;
 }
 
 .message.user {
@@ -451,6 +462,9 @@ button {
 
 .bubble {
   max-width: 760px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
   padding: 16px 18px;
   border-radius: 16px;
   white-space: pre-wrap;
@@ -479,7 +493,7 @@ button {
   padding: 16px;
   border-radius: 14px;
   outline: none;
-  font-size: 15px;
+  font-size: 16px;
 }
 
 .input-area input::placeholder {
@@ -499,7 +513,9 @@ button {
 /* THINKING */
 .thinking-card {
   width: fit-content;
-  max-width: 520px;
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
   background: #202633;
   border: 1px solid #303847;
   border-radius: 16px;
@@ -544,7 +560,11 @@ button {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
   padding: 28px;
+  padding-bottom: 80px;
   background: #0f1117;
   color: #ececec;
 }
@@ -637,6 +657,9 @@ button {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
   padding: 28px;
   background: #0f1117;
 }
@@ -1050,6 +1073,69 @@ button {
     align-items: flex-start;
     gap: 8px;
   }
+
+  .app {
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  .main {
+    height: 100%;
+  }
+
+  .sidebar {
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  .messages {
+    padding: 16px 12px;
+  }
+
+  .input-area {
+    padding: 12px 12px 8px;
+  }
+
+  .input-area input {
+    padding: 14px;
+    font-size: 16px;
+  }
+
+  .chat-toolbar {
+    padding: 0 12px 10px;
+  }
+
+  .tool-page {
+    padding: 16px 14px;
+  }
+
+  .tool-panel {
+    width: 100%;
+  }
+
+  .tv-page {
+    padding: 16px 14px;
+    padding-bottom: 100px;
+  }
+
+  .header {
+    padding: 0 14px;
+    min-height: 60px;
+    height: auto;
+  }
+
+  .composer {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .bubble {
+    max-width: 94%;
+    padding: 14px;
+  }
+
+  .thinking-card {
+    max-width: 100%;
+  }
 }
 
 /* ANIMATIONS */
@@ -1091,5 +1177,20 @@ button {
   50% {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+@media (max-height: 480px) {
+  .header {
+    min-height: 54px;
+    height: auto;
+  }
+
+  .header h1 {
+    font-size: 16px;
+  }
+
+  .messages {
+    padding: 12px 10px;
   }
 }

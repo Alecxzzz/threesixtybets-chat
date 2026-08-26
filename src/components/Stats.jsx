@@ -361,6 +361,7 @@ function GameDetail({ sport, eventId, onBack }) {
 
   if (error) {
     return (
+      <section className="tool-page">
       <div className="tool-panel">
         <button
         onClick={onBack}
@@ -372,11 +373,13 @@ function GameDetail({ sport, eventId, onBack }) {
       </button>
         <p style={{ color: "#f87171" }}>Error: {error}</p>
       </div>
+      </section>
     );
   }
 
   if (!detail) {
     return (
+      <section className="tool-page">
       <div className="tool-panel">
         <button
         onClick={onBack}
@@ -388,6 +391,7 @@ function GameDetail({ sport, eventId, onBack }) {
       </button>
         <LoadingScreen sport={sport} />
       </div>
+      </section>
     );
   }
 
@@ -430,6 +434,7 @@ function GameDetail({ sport, eventId, onBack }) {
   });
 
   return (
+    <section className="tool-page">
     <div className="tool-panel" style={{ width: "100%", maxWidth: "100%", padding: "16px", boxSizing: "border-box" }}>
       <button
         onClick={onBack}
@@ -575,6 +580,7 @@ function GameDetail({ sport, eventId, onBack }) {
         </p>
       )}
     </div>
+    </section>
   );
 }
 

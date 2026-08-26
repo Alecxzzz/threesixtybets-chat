@@ -204,5 +204,104 @@ export const channels = [
     useProxy: false
   },
 
+  {
+    id: 25,
+    name: "NBC SPORTS",
+    status: "ACTIVO",
+    ads: false,
+    stream: "https://d4whmvwm0rdvi.cloudfront.net/10007/99993008/hls/master.m3u8?ads.xumo_channelId=99993008",
+    geoRestriction: "USA",
+    useProxy: true
+  },
+  {
+    id: 26,
+    name: "NFL CHANNEL",
+    status: "ACTIVO",
+    ads: false,
+    stream: "https://jmp2.uk/plu-5ced7d5df64be98e07ed47b6.m3u8",
+    geoRestriction: "NONE",
+    useProxy: true
+  },
+  {
+    id: 27,
+    name: "GOLAZO NETWORK",
+    status: "ACTIVO",
+    ads: false,
+    stream: "https://jmp2.uk/plu-63a0e33a45264d000850ed7e.m3u8",
+    geoRestriction: "NONE",
+    useProxy: true
+  },
+  {
+    id: 28,
+    name: "MOVISTAR DEPORTES",
+    status: "ACTIVO",
+    ads: false,
+    stream: "https://7nyaler.streamhostingcdn.top/stream/18/index.m3u8",
+    geoRestriction: "NONE",
+    useProxy: true
+  },
+  {
+    id: 29,
+    name: "TNT SPORTS",
+    status: "ACTIVO",
+    ads: false,
+    stream: "http://38.252.215.33:8000/play/a00i/75622127.m3u8",
+    geoRestriction: "NONE",
+    useProxy: true
+  },
+  {
+    id: 30,
+    name: "CANAL AMERICA",
+    status: "ACTIVO",
+    ads: false,
+    stream: "http://38.252.215.33:8000/play/a006/10833287.m3u8",
+    geoRestriction: "NONE",
+    useProxy: true
+  },
+  {
+    id: 31,
+    name: "NBA TV",
+    status: "ACTIVO",
+    ads: false,
+    stream: "https://cdn1.ayitistream.com/NBATV/index.m3u8",
+    geoRestriction: "NONE",
+    useProxy: true
+  },
+  {
+    id: 32,
+    name: "NHL NETWORK",
+    status: "ACTIVO",
+    ads: false,
+    stream: "https://nhl-firetv.amagi.tv/playlist.m3u8",
+    geoRestriction: "USA",
+    useProxy: true
+  },
+  {
+    id: 33,
+    name: "DSPORTS",
+    status: "ACTIVO",
+    ads: false,
+    stream: "http://38.252.215.33:8000/play/a00q/46330021.m3u8",
+    geoRestriction: "NONE",
+    useProxy: true
+  },
+  {
+    id: 34,
+    name: "FOX MEXICO",
+    status: "ACTIVO",
+    ads: false,
+    stream: "https://jmp2.uk/plu-5a74b8e1e22a61737979c6bf.m3u8",
+    geoRestriction: "NONE",
+    useProxy: true
+  },
+  {
+    id: 35,
+    name: "MLB TV",
+    status: "ACTIVO",
+    ads: false,
+    stream: "https://jmp2.uk/plu-5e66968a70f34c0007d050be.m3u8",
+    geoRestriction: "NONE",
+    useProxy: true
+  },
 
 ];
