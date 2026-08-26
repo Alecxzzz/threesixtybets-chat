@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { redeemCode } from "../services/api";
+import { redeemCode, refreshSession } from "../services/api";
+import Modal from "./Modal";
 
 const PLANS = [
   { price: "$5", days: "15 dias", label: "PREMIUM" },
@@ -30,12 +31,18 @@ const PAYMENT_METHODS = [
   },
 ];
 
-function Credits({ session }) {
+function Credits({ session, onSessionRefresh }) {
   const [copied, setCopied] = useState("");
   const [code, setCode] = useState("");
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Estado del modal de notificacion
+  const [modal, setModal] = useState({
+    open: false,
+    variant: "success",
+    title: "",
+    message: "",
+  });
 
   async function copyValue(value, name) {
     await navigator.clipboard.writeText(value);
@@ -45,11 +52,14 @@ function Credits({ session }) {
 
   async function redeem(event) {
     event.preventDefault();
-    setMessage("");
-    setError("");
 
     if (!code.trim()) {
-      setError("Escribe tu codigo de canjeo.");
+      setModal({
+        open: true,
+        variant: "error",
+        title: "Falta el codigo",
+        message: "Escribe tu codigo de canjeo para continuar.",
+      });
       return;
     }
 
@@ -57,11 +67,40 @@ function Credits({ session }) {
     try {
       const result = await redeemCode(session, code.trim().toUpperCase());
       setCode("");
-      setMessage(
-        `Has agregado ${result.days_added} dias a tu cuenta, actualiza para que se te agreguen!`,
-      );
+
+      // Recargar la sesion para que los dias se actualicen al instante
+      // (sin necesidad de que el usuario actualice la pagina).
+      try {
+        const updated = await refreshSession(session);
+        if (onSessionRefresh) onSessionRefresh(updated);
+      } catch {
+        // Si falla la recarga, no importa: el canje ya se hizo.
+      }
+
+      setModal({
+        open: true,
+        variant: "success",
+        title: "✅ Codigo canjeado",
+        message: `Se acreditaron ${result.days_added} dias a tu cuenta. Ya puedes usar todos los modelos, estadisticas y TV.`,
+      });
     } catch (error) {
-      setError(error.message || "No se pudo canjear el codigo.");
+      let msg = error.message || "No se pudo canjear el codigo.";
+
+      // "Failed to fetch" = el backend no respondio (CORS, caido, o sin internet)
+      if (msg === "Failed to fetch") {
+        msg =
+          "No se pudo conectar con el servidor. Esto puede ser por:\n" +
+          "• El servidor esta reiniciandose (espera 30s e intenta de nuevo)\n" +
+          "• Problema de conexion a internet\n" +
+          "• Bloqueo del navegador (CORS)";
+      }
+
+      setModal({
+        open: true,
+        variant: "error",
+        title: "No se pudo canjear",
+        message: msg,
+      });
     } finally {
       setLoading(false);
     }
@@ -121,12 +160,19 @@ function Credits({ session }) {
           <button type="submit" disabled={loading}>
             {loading ? "Canjeando..." : "Canjear"}
           </button>
-          {message && <p className="auth-notice">{message}</p>}
-          {error && <p className="auth-error">{error}</p>}
         </form>
       </div>
+
+      <Modal
+        open={modal.open}
+        variant={modal.variant}
+        title={modal.title}
+        message={modal.message}
+        onClose={() => setModal((m) => ({ ...m, open: false }))}
+      />
     </section>
   );
 }
 
 export default Credits;
+

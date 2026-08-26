@@ -135,14 +135,35 @@ export async function sendChatMessage({ mensaje, modelo }) {
   return readText(res);
 }
 
-export async function redeemCode(session, redeemCode) {
-  const res = await fetch(`${API_URL}/redeem`, {
-    method: "POST",
-    headers: authHeaders(session),
-    body: JSON.stringify({ redeem_code: redeemCode }),
-  });
+export async function redeemCode(session, code) {
+  const attempt = async () => {
+    const res = await fetch(`${API_URL}/redeem`, {
+      method: "POST",
+      headers: authHeaders(session),
+      body: JSON.stringify({ redeem_code: code }),
+    });
 
-  return readJson(res);
+    return readJson(res);
+  };
+
+  // Retry automatico: el backend (hosting gratuito) puede estar dormido o
+  // reiniciandose. Hacer hasta 3 intentos con delay creciente evita el
+  // "Failed to fetch" que ve el usuario cuando el servidor aun no responde.
+  let lastError;
+  for (let i = 0; i < 3; i++) {
+    try {
+      return await attempt();
+    } catch (err) {
+      lastError = err;
+      // 401 (token expirado) o 400 (codigo invalido) no se reintentan.
+      if (err instanceof AuthExpiredError) throw err;
+      if (err.message && err.message.includes("Request failed") && !err.message.includes("Failed to fetch")) throw err;
+      if (i < 2) {
+        await new Promise((r) => setTimeout(r, 2000 + i * 1000));
+      }
+    }
+  }
+  throw lastError;
 }
 
 export async function createAdminKeys(session, payload) {
@@ -177,6 +198,21 @@ export async function fetchLeagues(session) {
   });
 
   return readJson(res);
+}
+
+/**
+ * Recarga los datos del usuario desde el backend (/auth/me) y actualiza
+ * la sesion guardada en localStorage. Devuelve la sesion actualizada.
+ * Se usa despues de canjear un codigo para que los dias se reflejen al instante.
+ */
+export async function refreshSession(session) {
+  const res = await fetch(`${API_URL}/auth/me`, {
+    headers: authHeaders(session),
+  });
+  const user = await readJson(res);
+  const updated = { ...session, user };
+  saveSession(updated);
+  return updated;
 }
 
 export async function fetchSportGames(session, sport, league) {
