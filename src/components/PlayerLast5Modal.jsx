@@ -16,7 +16,8 @@ export default function PlayerLast5Modal({ player, onClose }) {
           player.sport,
           player.id,
           player.season,
-          session
+          session,
+          { league: player.league, teamIds: player.teamIds }
         );
         if (!cancelled) {
           if (result?.error) {
@@ -103,6 +104,11 @@ export default function PlayerLast5Modal({ player, onClose }) {
 
         {data && !loading && !error && (
           <div style={{ overflowX: "auto" }}>
+            {(data.last_5_games?.length || 0) === 0 ? (
+              <div style={{ padding: "20px", textAlign: "center", color: "#8b95a1", fontSize: 13 }}>
+                No hay estadísticas disponibles para este jugador todavía.
+              </div>
+            ) : (
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
               <thead>
                 <tr style={{ color: "#8b95a1" }}>
@@ -130,6 +136,7 @@ export default function PlayerLast5Modal({ player, onClose }) {
                 ))}
               </tbody>
             </table>
+            )}
           </div>
         )}
 

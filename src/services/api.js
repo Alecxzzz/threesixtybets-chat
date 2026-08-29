@@ -253,8 +253,10 @@ export async function fetchAiAnalysis(session, sport, eventId) {
  * @param {object} session - Sesión de usuario (para auth).
  * @returns {Promise<object>} - { player_name, sport, last_5_games: [...] }
  */
-export async function fetchPlayerLast5(sport, playerId, season, session = null) {
+export async function fetchPlayerLast5(sport, playerId, season, session = null, opts = {}) {
   const params = new URLSearchParams({ season: String(season) });
+  if (opts.league) params.set("league", opts.league);
+  if (opts.teamIds && opts.teamIds.length) params.set("team_ids", opts.teamIds.join(","));
   const res = await fetch(
     `${API_URL}/api/player/${sport}/${playerId}/last5?${params}`,
     {

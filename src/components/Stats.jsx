@@ -657,7 +657,9 @@ function GameDetail({ sport, eventId, onBack }) {
                             name: p.name,
                             sport: detail.sport || detail?.sport_key || "soccer",
                             season: detail.season || new Date().getFullYear(),
-                            headshot: p.headshot
+                            headshot: p.headshot,
+                            league: detail.league_code || null,
+                            teamIds: (detail.teams || []).map(t => t.id).filter(Boolean)
                           })}
                           style={{
                             fontWeight: 700,
