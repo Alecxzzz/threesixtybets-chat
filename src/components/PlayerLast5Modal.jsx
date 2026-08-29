@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { fetchPlayerLast5 } from "../services/api";
+import { fetchPlayerLast5, getStoredSession } from "../services/api";
 import Modal from "./Modal";
 
 export default function PlayerLast5Modal({ player, onClose }) {
@@ -11,10 +11,12 @@ export default function PlayerLast5Modal({ player, onClose }) {
     let cancelled = false;
     async function load() {
       try {
+        const session = getStoredSession();
         const result = await fetchPlayerLast5(
           player.sport,
           player.id,
-          player.season
+          player.season,
+          session
         );
         if (!cancelled) {
           if (result?.error) {
@@ -38,7 +40,7 @@ export default function PlayerLast5Modal({ player, onClose }) {
   };
 
   return (
-    <Modal onClose={onClose}>
+    <Modal open={true} onClose={onClose}>
       <div
         style={{
           background: "#0d1117",

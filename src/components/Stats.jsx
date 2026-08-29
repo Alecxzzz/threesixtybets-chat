@@ -304,7 +304,7 @@ function GameDetail({ sport, eventId, onBack }) {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiStarted, setAiStarted] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
-  const [h2hTab, setH2hTab] = useState("h2h"); // "local" | "h2h" | "visitante"
+  const [h2hTab, setH2hTab] = useState("local"); // "local" | "h2h" | "visitante"
 
   useEffect(() => {
     let cancelled = false;
@@ -479,15 +479,15 @@ function GameDetail({ sport, eventId, onBack }) {
           </div>
 
           {/* H2H / Local / Visitante con tabs */}
-          {(h2h.length > 0 || away?.recent_games?.length > 0 || home?.recent_games?.length > 0) && (
+          {(detail?.teams?.length > 0) && (
             <div style={{ marginBottom: 20 }}>
               <h3 style={sectionTitle()}>⚔️ Historial y últimos partidos</h3>
               {/* Tab bar */}
               <div style={{ display: "flex", gap: 4, marginBottom: 10, background: "#0d1117", borderRadius: 8, padding: 3 }}>
                 {[
-                  { key: "local", label: `🏠 ${home?.name || "Local"}`, show: home?.recent_games?.length > 0 },
-                  { key: "h2h", label: "⚔️ H2H", show: h2h.length > 0 },
-                  { key: "visitante", label: `✈️ ${away?.name || "Visitante"}`, show: away?.recent_games?.length > 0 },
+                  { key: "local", label: `🏠 ${home?.name || "Local"}`, show: true },
+                  { key: "h2h", label: "⚔️ H2H", show: true },
+                  { key: "visitante", label: `✈️ ${away?.name || "Visitante"}`, show: true },
                 ].filter(t => t.show).map((t) => (
                   <button
                     key={t.key}
@@ -512,73 +512,85 @@ function GameDetail({ sport, eventId, onBack }) {
               </div>
 
               {/* Contenido de las tabs */}
-              {h2hTab === "h2h" && h2h.length > 0 && (
+              {h2hTab === "h2h" && (
                 <div>
-                  {h2h.map((h, i) => (
+                  {h2h.length > 0 ? h2h.map((h, i) => (
                     <div key={i} style={{ marginBottom: 4 }}>
                       <MiniGame game={h} />
                       <div style={{ fontSize: 11, color: "#566270", textAlign: "center" }}>{formatDate(h.date)} · {h.status}</div>
                     </div>
-                  ))}
+                  )) : (
+                    <div style={{ textAlign: "center", color: "#8b95a1", fontSize: 12, padding: "16px 0" }}>No hay datos H2H disponibles</div>
+                  )}
                 </div>
               )}
 
-              {h2hTab === "local" && home?.recent_games?.length > 0 && (
+              {h2hTab === "local" && (
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: theme.accent, fontWeight: 700, marginBottom: 6 }}>
                     {home?.logo && <img src={home.logo} alt="" width={18} height={18} style={{ objectFit: "contain" }} />}
                     {home?.name}
                     {home?.records?.[0] && <span style={{ fontSize: 11, color: "#8b95a1", fontWeight: 400 }}> · {home.records[0]}</span>}
                   </div>
-                  {home.recent_games.map((r, j) => (
-                    <div key={j} style={{ marginBottom: 4 }}>
-                      <MiniGame game={r} />
-                      <div style={{ fontSize: 11, color: "#566270", textAlign: "center" }}>{formatDate(r.date)} · {r.status}</div>
-                    </div>
-                  ))}
-                  {/* Stats detalladas del local */}
-                  {home?.stats && Object.keys(home.stats).length > 0 && (
-                    <div style={{ marginTop: 10, padding: 10, background: "#0d1117", borderRadius: 8, border: "1px solid #1c232c" }}>
-                      <div style={{ fontSize: 11, color: "#8b95a1", fontWeight: 700, marginBottom: 6 }}>📊 Estadísticas del local</div>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-                        {Object.entries(home.stats).map(([k, v], i) => (
-                          <div key={i} style={{ fontSize: 12, color: "#c9d1d9", display: "flex", justifyContent: "space-between" }}>
-                            <span style={{ color: "#8b95a1" }}>{k}</span>
-                            <span style={{ fontWeight: 700 }}>{v}</span>
+                  {home?.recent_games?.length > 0 ? (
+                    <>
+                      {home.recent_games.map((r, j) => (
+                        <div key={j} style={{ marginBottom: 4 }}>
+                          <MiniGame game={r} />
+                          <div style={{ fontSize: 11, color: "#566270", textAlign: "center" }}>{formatDate(r.date)} · {r.status}</div>
+                        </div>
+                      ))}
+                      {home?.stats && Object.keys(home.stats).length > 0 && (
+                        <div style={{ marginTop: 10, padding: 10, background: "#0d1117", borderRadius: 8, border: "1px solid #1c232c" }}>
+                          <div style={{ fontSize: 11, color: "#8b95a1", fontWeight: 700, marginBottom: 6 }}>📊 Estadísticas del local</div>
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+                            {Object.entries(home.stats).map(([k, v], i) => (
+                              <div key={i} style={{ fontSize: 12, color: "#c9d1d9", display: "flex", justifyContent: "space-between" }}>
+                                <span style={{ color: "#8b95a1" }}>{k}</span>
+                                <span style={{ fontWeight: 700 }}>{v}</span>
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                    </div>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div style={{ textAlign: "center", color: "#8b95a1", fontSize: 12, padding: "16px 0" }}>No hay últimos partidos disponibles para {home?.name || "el equipo local"}</div>
                   )}
                 </div>
               )}
 
-              {h2hTab === "visitante" && away?.recent_games?.length > 0 && (
+              {h2hTab === "visitante" && (
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: theme.accent, fontWeight: 700, marginBottom: 6 }}>
                     {away?.logo && <img src={away.logo} alt="" width={18} height={18} style={{ objectFit: "contain" }} />}
                     {away?.name}
                     {away?.records?.[0] && <span style={{ fontSize: 11, color: "#8b95a1", fontWeight: 400 }}> · {away.records[0]}</span>}
                   </div>
-                  {away.recent_games.map((r, j) => (
-                    <div key={j} style={{ marginBottom: 4 }}>
-                      <MiniGame game={r} />
-                      <div style={{ fontSize: 11, color: "#566270", textAlign: "center" }}>{formatDate(r.date)} · {r.status}</div>
-                    </div>
-                  ))}
-                  {/* Stats detalladas del visitante */}
-                  {away?.stats && Object.keys(away.stats).length > 0 && (
-                    <div style={{ marginTop: 10, padding: 10, background: "#0d1117", borderRadius: 8, border: "1px solid #1c232c" }}>
-                      <div style={{ fontSize: 11, color: "#8b95a1", fontWeight: 700, marginBottom: 6 }}>📊 Estadísticas del visitante</div>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-                        {Object.entries(away.stats).map(([k, v], i) => (
-                          <div key={i} style={{ fontSize: 12, color: "#c9d1d9", display: "flex", justifyContent: "space-between" }}>
-                            <span style={{ color: "#8b95a1" }}>{k}</span>
-                            <span style={{ fontWeight: 700 }}>{v}</span>
+                  {away?.recent_games?.length > 0 ? (
+                    <>
+                      {away.recent_games.map((r, j) => (
+                        <div key={j} style={{ marginBottom: 4 }}>
+                          <MiniGame game={r} />
+                          <div style={{ fontSize: 11, color: "#566270", textAlign: "center" }}>{formatDate(r.date)} · {r.status}</div>
+                        </div>
+                      ))}
+                      {away?.stats && Object.keys(away.stats).length > 0 && (
+                        <div style={{ marginTop: 10, padding: 10, background: "#0d1117", borderRadius: 8, border: "1px solid #1c232c" }}>
+                          <div style={{ fontSize: 11, color: "#8b95a1", fontWeight: 700, marginBottom: 6 }}>📊 Estadísticas del visitante</div>
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+                            {Object.entries(away.stats).map(([k, v], i) => (
+                              <div key={i} style={{ fontSize: 12, color: "#c9d1d9", display: "flex", justifyContent: "space-between" }}>
+                                <span style={{ color: "#8b95a1" }}>{k}</span>
+                                <span style={{ fontWeight: 700 }}>{v}</span>
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                    </div>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div style={{ textAlign: "center", color: "#8b95a1", fontSize: 12, padding: "16px 0" }}>No hay últimos partidos disponibles para {away?.name || "el equipo visitante"}</div>
                   )}
                 </div>
               )}

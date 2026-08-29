@@ -95,61 +95,44 @@ function TV() {
           return;
         }
 
-        // 2) BUFFER_APPEND_ERROR: buffer corrupto/lleno (típico ESPN 1).
-        //     NUNCA se rinde: va ANTES que el catch-all de media error.
-        //     Estrategia: recoverMediaError -> startLoad -> reinicio total -> reload.
-        if (data.details === Hls.ErrorDetails.BUFFER_APPEND_ERROR) {
-          mediaRecoveryAttempts++;
-          if (mediaRecoveryAttempts <= 2) {
-            setPlayerError(
-              `Problema de buffer, recuperando (intento ${mediaRecoveryAttempts})...`
-            );
-            try {
-              hls.recoverMediaError();
-              hls.startLoad();
-              return;
-            } catch {
-              try {
-                hls.startLoad();
-                return;
-              } catch {
-                /* cae al reinicio total */
-              }
-            }
-          }
-          // Reinicio completo del reproductor para el MISMO canal
-          setPlayerError("Reiniciando el canal...");
-          destroyHls();
-          if (!cancelled) setReloadEpoch((e) => e + 1);
-          return;
-        }
-
-        // 3) Errores de media: intentar recuperar antes de rendirse
+        // 2) Errores de media: intentar recuperar antes de rendirse
         //    ESPN 1/3/4 tienen problemas de codificación intermitentes.
-        //    Estrategia: recoverMediaError -> swapAudioCodec -> recoverMediaError
-        if (data.type === Hls.ErrorTypes.MEDIA_ERROR && mediaRecoveryAttempts < 3) {
+        //    BUFFER_APPEND_ERROR (buffer corrupto) también es MEDIA_ERROR.
+        //    Estrategia: recoverMediaError -> swapAudioCodec -> recoverMediaError -> reload
+        if (data.type === Hls.ErrorTypes.MEDIA_ERROR && mediaRecoveryAttempts < 6) {
           mediaRecoveryAttempts++;
+          const isBufferError = data.details === Hls.ErrorDetails.BUFFER_APPEND_ERROR;
+          const prefix = isBufferError ? "Buffer corrupto" : "Problema de codificación";
           const msgs = [
-            "Problema de codificación, recuperando (intento 1)...",
-            "Reiniciando decodificador de audio (intento 2)...",
-            "Recuperando nuevamente (intento 3)...",
+            `${prefix}, recuperando (intento 1)...`,
+            `Reiniciando decodificador (intento 2)...`,
+            `${prefix}, recuperando (intento 3)...`,
+            `Reiniciando decodificador (intento 4)...`,
+            `${prefix}, recuperando (intento 5)...`,
+            `Reiniciando (intento 6)...`,
           ];
           setPlayerError(msgs[mediaRecoveryAttempts - 1]);
           try {
-            if (mediaRecoveryAttempts === 2) {
-              // Segundo intento: intercambiar codec de audio (común en ESPN)
+            if (mediaRecoveryAttempts % 2 === 0) {
+              // Intentos pares: intercambiar codec de audio (común en ESPN)
               const tracks = hls.audioTracks;
               if (tracks && tracks.length > 1) {
                 hls.audioTrack = (hls.audioTrack + 1) % tracks.length;
               }
-              hls.recoverMediaError();
-            } else {
-              hls.recoverMediaError();
             }
+            hls.recoverMediaError();
             return;
           } catch {
-            /* cae al mensaje final */
+            /* cae al siguiente intento o reinicio */
           }
+          // Si falló recoverMediaError, intentar startLoad
+          if (mediaRecoveryAttempts >= 5) {
+            // Reinicio completo del reproductor para el MISMO canal
+            setPlayerError("Reiniciando el canal...");
+            destroyHls();
+            if (!cancelled) setReloadEpoch((e) => e + 1);
+          }
+          return;
         }
 
         // 3) Mensajes específicos
