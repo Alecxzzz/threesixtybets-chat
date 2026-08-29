@@ -50,9 +50,12 @@ function TV() {
         fragLoadingMaxRetry: 8,
         fragLoadingMaxRetryTimeout: 10000,
         // Buffer más grande para estabilidad en streams inestables
-        maxBufferLength: 30,
-        maxMaxBufferLength: 60,
-        maxBufferSize: 60 * 1000 * 1000,
+        // Buffer más pequeño = menos bufferAppendError en móviles
+        maxBufferLength: 20,
+        maxMaxBufferLength: 40,
+        maxBufferSize: 25 * 1000 * 1000,
+        // Flush del buffer viejo: evita que se llene y dé appendError
+        backBufferLength: 15,
         // Backoff exponencial para reintentos
         fragLoadingRetryDelay: 500,
         levelLoadingRetryDelay: 500,
@@ -92,7 +95,36 @@ function TV() {
           return;
         }
 
-        // 2) Errores de media: intentar recuperar antes de rendirse
+        // 2) BUFFER_APPEND_ERROR: buffer corrupto/lleno (típico ESPN 1).
+        //     NUNCA se rinde: va ANTES que el catch-all de media error.
+        //     Estrategia: recoverMediaError -> startLoad -> reinicio total -> reload.
+        if (data.details === Hls.ErrorDetails.BUFFER_APPEND_ERROR) {
+          mediaRecoveryAttempts++;
+          if (mediaRecoveryAttempts <= 2) {
+            setPlayerError(
+              `Problema de buffer, recuperando (intento ${mediaRecoveryAttempts})...`
+            );
+            try {
+              hls.recoverMediaError();
+              hls.startLoad();
+              return;
+            } catch {
+              try {
+                hls.startLoad();
+                return;
+              } catch {
+                /* cae al reinicio total */
+              }
+            }
+          }
+          // Reinicio completo del reproductor para el MISMO canal
+          setPlayerError("Reiniciando el canal...");
+          destroyHls();
+          if (!cancelled) setReloadEpoch((e) => e + 1);
+          return;
+        }
+
+        // 3) Errores de media: intentar recuperar antes de rendirse
         //    ESPN 1/3/4 tienen problemas de codificación intermitentes.
         //    Estrategia: recoverMediaError -> swapAudioCodec -> recoverMediaError
         if (data.type === Hls.ErrorTypes.MEDIA_ERROR && mediaRecoveryAttempts < 3) {
