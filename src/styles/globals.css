@@ -415,7 +415,7 @@ button {
   background: #151922;
 }
 
-.chat-toolbar label {
+.chat-toolbar labeanl {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1039,10 +1039,6 @@ button {
 
   .tool-page {
     padding: 14px;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
-    touch-action: pan-y;
   }
 
   .tool-grid,
@@ -1094,10 +1090,6 @@ button {
 
   .messages {
     padding: 16px 12px;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
-    touch-action: pan-y;
   }
 
   .input-area {
@@ -1115,10 +1107,6 @@ button {
 
   .tool-page {
     padding: 16px 14px;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
-    touch-action: pan-y;
   }
 
   .tool-panel {
@@ -1127,7 +1115,7 @@ button {
 
   .tv-page {
     padding: 16px 14px;
-    padding-bottom: 140px;
+    padding-bottom: 100px;
   }
 
   .header {
@@ -1137,12 +1125,7 @@ button {
   }
 
   .composer {
-    position: sticky;
-    bottom: 0;
-    z-index: 5;
-    background: #0f1117;
     padding-bottom: env(safe-area-inset-bottom);
-    padding-top: 8px;
   }
 
   .bubble {
