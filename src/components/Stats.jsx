@@ -604,6 +604,14 @@ function GameDetail({ sport, eventId, onBack }) {
           Las estadisticas detalladas estan disponibles cuando el partido comience.
         </p>
       )}
+
+      {/* Modal de últimas 5 actuaciones del jugador */}
+      {selectedPlayer && (
+        <PlayerLast5Modal
+          player={selectedPlayer}
+          onClose={() => setSelectedPlayer(null)}
+        />
+      )}
     </div>
     </section>
   );
@@ -778,14 +786,6 @@ function Stats() {
           </div>
         )}
       </div>
-
-      {/* Modal de últimas 5 actuaciones del jugador */}
-      {selectedPlayer && (
-        <PlayerLast5Modal
-          player={selectedPlayer}
-          onClose={() => setSelectedPlayer(null)}
-        />
-      )}
     </section>
   );
 }

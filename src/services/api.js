@@ -271,3 +271,38 @@ export async function fetchPlayerLast5(sport, playerId, season, session = null) 
 
   return readJson(res);
 }
+
+/**
+ * Lista de jugadores clickeables de un partido (boxscore/lineup).
+ */
+export async function fetchGamePlayers(session, sport, gameId, season = 2024) {
+  const params = new URLSearchParams({ season: String(season) });
+  const res = await fetch(
+    `${API_URL}/api/game/${sport}/${gameId}/players?${params}`,
+    { headers: authHeaders(session) }
+  );
+  return readJson(res);
+}
+
+/**
+ * PANEL ADMIN: prueba un m3u8/canal desde el servidor.
+ */
+export async function adminChannelTest(session, url) {
+  const params = new URLSearchParams({ url });
+  const res = await fetch(`${API_URL}/admin/channel-test?${params}`, {
+    headers: authHeaders(session),
+  });
+  return readJson(res);
+}
+
+/**
+ * PANEL ADMIN: borra una key no reclamada.
+ */
+export async function adminDeleteKey(session, code) {
+  const res = await fetch(`${API_URL}/admin/keys/${encodeURIComponent(code)}`, {
+    method: "DELETE",
+    headers: authHeaders(session),
+  });
+  return readJson(res);
+}
+
