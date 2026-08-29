@@ -242,3 +242,32 @@ export async function fetchAiAnalysis(session, sport, eventId) {
 
   return readJson(res);
 }
+
+
+
+/**
+ * Obtiene las últimas 5 actuaciones de un jugador.
+ * @param {string} sport - "mlb" | "football"
+ * @param {string|number} playerId - ID del jugador.
+ * @param {number} season - Temporada (ej. 2024).
+ * @param {object} session - Sesión de usuario (para auth).
+ * @returns {Promise<object>} - { player_name, sport, last_5_games: [...] }
+ */
+export async function fetchPlayerLast5(sport, playerId, season, session = null) {
+  const params = new URLSearchParams({ season: String(season) });
+  const res = await fetch(
+    `${API_URL}/api/player/${sport}/${playerId}/last5?${params}`,
+    {
+      method: "GET",
+      headers: authHeaders(session),
+    }
+  );
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "Error desconocido");
+    console.error("fetchPlayerLast5 error:", errText);
+    return { error: true, message: errText || "Error al cargar estadísticas" };
+  }
+
+  return readJson(res);
+}

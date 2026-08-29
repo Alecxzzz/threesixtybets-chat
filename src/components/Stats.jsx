@@ -5,7 +5,9 @@ import {
   fetchGameDetail,
   fetchLeagues,
   fetchAiAnalysis,
+  fetchPlayerLast5,
 } from "../services/api";
+import PlayerLast5Modal from "./PlayerLast5Modal";
 
 const SPORTS = [
   { key: "soccer", label: "⚽ Futbol" },
@@ -301,6 +303,7 @@ function GameDetail({ sport, eventId, onBack }) {
   const [aiAnalysis, setAiAnalysis] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiStarted, setAiStarted] = useState(false);
+  const [selectedPlayer, setSelectedPlayer] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -552,7 +555,27 @@ function GameDetail({ sport, eventId, onBack }) {
                   <div key={i} style={{ background: "#11161d", border: "1px solid #232a33", borderRadius: 10, padding: 10, display: "flex", gap: 10, alignItems: "center" }}>
                     {p.headshot && <img src={p.headshot} alt="" width={36} height={36} style={{ borderRadius: "50%", objectFit: "cover" }} />}
                     <div>
-                      <div style={{ fontWeight: 700, color: "#e6edf3", fontSize: 13 }}>{p.name}</div>
+                      <div
+                        onClick={() => setSelectedPlayer({
+                          id: p.id,
+                          name: p.name,
+                          sport: detail.sport || detail?.sport_key || "soccer",
+                          season: detail.season || new Date().getFullYear(),
+                          headshot: p.headshot
+                        })}
+                        style={{
+                          fontWeight: 700,
+                          color: "#60a5fa",
+                          fontSize: 13,
+                          cursor: "pointer",
+                          transition: "color .2s"
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.color = "#93c5fd"}
+                        onMouseLeave={(e) => e.currentTarget.style.color = "#60a5fa"}
+                        title="Ver últimas 5 actuaciones"
+                      >
+                        {p.name}
+                      </div>
                       <div style={{ fontSize: 11, color: "#8b95a1" }}>
                         {p.stats.map((s, j) => `${s.name}: ${s.value}`).join(" · ")}
                       </div>
@@ -755,6 +778,14 @@ function Stats() {
           </div>
         )}
       </div>
+
+      {/* Modal de últimas 5 actuaciones del jugador */}
+      {selectedPlayer && (
+        <PlayerLast5Modal
+          player={selectedPlayer}
+          onClose={() => setSelectedPlayer(null)}
+        />
+      )}
     </section>
   );
 }
