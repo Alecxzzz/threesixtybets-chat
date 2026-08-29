@@ -186,7 +186,7 @@ export const channels = [
   },
 
   {
-    id: 23,
+    id: 20,
     name: "TELEMUNDO DEPORTES",
     status: "ACTIVO",
     ads: false,
@@ -195,7 +195,7 @@ export const channels = [
     useProxy: false
   },
   {
-    id: 24,
+    id: 21,
     name: "WIN SPORTS",
     status: "ACTIVO",
     ads: false,
@@ -205,7 +205,7 @@ export const channels = [
   },
 
   {
-    id: 25,
+    id: 22,
     name: "NBC SPORTS",
     status: "ACTIVO",
     ads: false,
@@ -214,7 +214,7 @@ export const channels = [
     useProxy: true
   },
   {
-    id: 26,
+    id: 23,
     name: "NFL CHANNEL",
     status: "ACTIVO",
     ads: false,
@@ -223,7 +223,7 @@ export const channels = [
     useProxy: true
   },
   {
-    id: 27,
+    id: 24,
     name: "GOLAZO NETWORK",
     status: "ACTIVO",
     ads: false,
@@ -232,7 +232,7 @@ export const channels = [
     useProxy: true
   },
   {
-    id: 28,
+    id: 25,
     name: "MOVISTAR DEPORTES",
     status: "ACTIVO",
     ads: false,
@@ -241,7 +241,7 @@ export const channels = [
     useProxy: true
   },
   {
-    id: 29,
+    id: 26,
     name: "TNT SPORTS",
     status: "ACTIVO",
     ads: false,
@@ -250,7 +250,7 @@ export const channels = [
     useProxy: true
   },
   {
-    id: 30,
+    id: 27,
     name: "CANAL AMERICA",
     status: "ACTIVO",
     ads: false,
@@ -259,7 +259,7 @@ export const channels = [
     useProxy: true
   },
   {
-    id: 31,
+    id: 28,
     name: "NBA TV",
     status: "ACTIVO",
     ads: false,
@@ -268,7 +268,7 @@ export const channels = [
     useProxy: true
   },
   {
-    id: 32,
+    id: 29,
     name: "NHL NETWORK",
     status: "ACTIVO",
     ads: false,
@@ -277,16 +277,16 @@ export const channels = [
     useProxy: true
   },
   {
-    id: 33,
+    id: 30,
     name: "DSPORTS",
-    status: "ACTIVO",
+    status: "CAIDO",
     ads: false,
     stream: "http://38.252.215.33:8000/play/a00q/46330021.m3u8",
     geoRestriction: "NONE",
     useProxy: true
   },
   {
-    id: 34,
+    id: 31,
     name: "FOX MEXICO",
     status: "ACTIVO",
     ads: false,
@@ -295,7 +295,7 @@ export const channels = [
     useProxy: true
   },
   {
-    id: 35,
+    id: 32,
     name: "MLB TV",
     status: "ACTIVO",
     ads: false,

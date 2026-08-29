@@ -13,6 +13,7 @@ const SPORTS = [
   { key: "mlb", label: "⚾ MLB" },
   { key: "nfl", label: "🏈 NFL" },
   { key: "tennis", label: "🎾 Tenis" },
+  { key: "mma", label: "🥊 MMA/UFC" },
 ];
 
 const SPORT_THEMES = {
@@ -21,6 +22,7 @@ const SPORT_THEMES = {
   mlb: { grad: "linear-gradient(135deg,#1e3a8a 0%,#2563eb 50%,#172554 100%)", accent: "#60a5fa" },
   nfl: { grad: "linear-gradient(135deg,#312e81 0%,#6d28d9 50%,#1e1b4b 100%)", accent: "#a78bfa" },
   tennis: { grad: "linear-gradient(135deg,#14532d 0%,#65a30d 50%,#052e16 100%)", accent: "#bef264" },
+  mma: { grad: "linear-gradient(135deg,#450a0a 0%,#dc2626 50%,#1c0101 100%)", accent: "#fca5a5" },
 };
 
 const REFRESH_MS = 60_000;
@@ -602,11 +604,12 @@ function Stats() {
       if (!session) return;
       try {
         const result = await fetchLeagues(session);
-        setLeagues(result?.soccer || []);
+        // Cargar las ligas/categorias del deporte activo (si el backend las provee)
+        setLeagues(result?.[sport] || []);
       } catch {}
     }
     loadLeagues();
-  }, []);
+  }, [sport]);
 
   const load = useCallback(async () => {
     const session = getStoredSession();
@@ -682,15 +685,15 @@ function Stats() {
           })}
         </div>
 
-        {/* Selector de liga (solo futbol) */}
-        {sport === "soccer" && leagues.length > 0 && (
+        {/* Selector de liga: disponibles para futbol, tenis y MMA (según backend) */}
+        {leagues.length > 0 && (
           <div style={{ marginTop: 12 }}>
             <select
               value={league || ""}
               onChange={(e) => setLeague(e.target.value || null)}
               style={{
                 width: "100%",
-                maxWidth: 400,
+                maxWidth: 420,
                 padding: "8px 12px",
                 borderRadius: 10,
                 border: "1px solid #232a33",
