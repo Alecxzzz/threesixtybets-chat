@@ -190,7 +190,7 @@ export const channels = [
     name: "TELEMUNDO DEPORTES",
     status: "ACTIVO",
     ads: false,
-    stream: "https://d1rqgw5gocwo9i.cloudfront.net/10009/99951459/hls/master.m3u8?ads.xumo_channelId=99951459&ads.asnw=169843&ads.afid=442535792&ads.sfid=23780352&ads.caid=telemundodeportesahora_linear&ads.csid=xumo_",
+    stream: "https://d1rqgw5gocwo9i.cloudfront.net/manifest/3fec3e5cac39a52b2132f9c66c83dae043dc17d4/prod_default_xumo-nbcu-stitched/6a4c908e-7980-4fcb-93e3-584472a5f9a3/4.m3u8",
     geoRestriction: "NONE",
     useProxy: false
   },
