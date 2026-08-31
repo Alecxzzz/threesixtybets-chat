@@ -135,6 +135,16 @@ export async function sendChatMessage({ mensaje, modelo }) {
   return readText(res);
 }
 
+export async function createPagaditoPayment(session, planCode) {
+  const res = await fetch(`${API_URL}/pagadito/create-payment`, {
+    method: "POST",
+    headers: authHeaders(session),
+    body: JSON.stringify({ plan_code: planCode }),
+  });
+
+  return readJson(res);
+}
+
 export async function redeemCode(session, code) {
   const attempt = async () => {
     const res = await fetch(`${API_URL}/redeem`, {

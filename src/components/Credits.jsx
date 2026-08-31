@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { redeemCode, refreshSession } from "../services/api";
+import { redeemCode, refreshSession, createPagaditoPayment } from "../services/api";
 import Modal from "./Modal";
 
 const PLANS = [
-  { price: "$5", days: "15 dias", label: "PREMIUM" },
-  { price: "$10", days: "30 dias", label: "premium" },
-  { price: "$15", days: "45 dias", label: "premium" },
+  { price: "$5", days: "15 dias", label: "PREMIUM", code: "plan15" },
+  { price: "$10", days: "30 dias", label: "premium", code: "plan30" },
+  { price: "$15", days: "45 dias", label: "premium", code: "plan45" },
 ];
 
 const PAYMENT_METHODS = [
@@ -35,6 +35,7 @@ function Credits({ session, onSessionRefresh }) {
   const [copied, setCopied] = useState("");
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
+  const [buying, setBuying] = useState("");
 
   // Estado del modal de notificacion
   const [modal, setModal] = useState({
@@ -43,6 +44,44 @@ function Credits({ session, onSessionRefresh }) {
     title: "",
     message: "",
   });
+
+  async function buy(plan) {
+    if (!session) {
+      setModal({
+        open: true,
+        variant: "error",
+        title: "Inicia sesion",
+        message: "Debes iniciar sesion para comprar un plan.",
+      });
+      return;
+    }
+
+    setBuying(plan.code);
+    try {
+      const result = await createPagaditoPayment(session, plan.code);
+      if (result?.checkout_url) {
+        window.location.href = result.checkout_url;
+        return;
+      }
+      throw new Error("No se recibio la URL de pago.");
+    } catch (error) {
+      let msg = error.message || "No se pudo iniciar el pago.";
+
+      if (msg === "Failed to fetch") {
+        msg =
+          "No se pudo conectar con el servidor. Espera 30s e intenta de nuevo.";
+      }
+
+      setModal({
+        open: true,
+        variant: "error",
+        title: "No se pudo iniciar el pago",
+        message: msg,
+      });
+    } finally {
+      setBuying("");
+    }
+  }
 
   async function copyValue(value, name) {
     await navigator.clipboard.writeText(value);
@@ -118,6 +157,14 @@ function Credits({ session, onSessionRefresh }) {
               <span>
                 {plan.days} de {plan.label}
               </span>
+              <button
+                type="button"
+                className="plan-buy-btn"
+                disabled={buying === plan.code}
+                onClick={() => buy(plan)}
+              >
+                {buying === plan.code ? "Redirigiendo..." : "Comprar"}
+              </button>
             </div>
           ))}
         </div>
