@@ -45,82 +45,8 @@ function Credits({ session, onSessionRefresh }) {
     message: "",
   });
 
-  // Mensaje de resultado al volver de Pagadito (?payment=success|rejected|...)
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const payment = params.get("payment");
-    if (!payment) return;
-
-    const messages = {
-      success: {
-        variant: "success",
-        title: "¡Pago acreditado!",
-        message:
-          "Tu pago fue aprobado y los dias PREMIUM ya fueron acreditados a tu cuenta. ¡Gracias por tu compra!",
-      },
-      pending: {
-        variant: "premium",
-        title: "Pago pendiente",
-        message:
-          "Tu pago quedo pendiente de confirmacion. Los dias se acreditaran automaticamente cuando Pagadito confirme la transaccion.",
-      },
-      canceled: {
-        variant: "error",
-        title: "Pago cancelado",
-        message: "Cancelaste el pago en Pagadito. No se cobro nada.",
-      },
-      rejected: {
-        variant: "error",
-        title: "Pago rechazado",
-        message:
-          "Pagadito rechazo el pago. Verifica los datos de tu tarjeta e intenta de nuevo.",
-      },
-      expired: {
-        variant: "error",
-        title: "Pago expirado",
-        message: "La transaccion expiro antes de completarse. Intenta de nuevo.",
-      },
-      not_found: {
-        variant: "error",
-        title: "Pago no encontrado",
-        message:
-          "No pudimos identificar tu transaccion. Si ya pagaste, contacta a soporte con el numero de aprobacion de Pagadito.",
-      },
-      error: {
-        variant: "error",
-        title: "Error verificando el pago",
-        message:
-          "Hubo un problema confirmando tu pago con Pagadito. Si ya pagaste, contacta a soporte con el numero de aprobacion.",
-      },
-    };
-
-    const info = messages[payment] || messages.error;
-    setModal({ open: true, ...info });
-
-    // Limpiar la URL para que el mensaje no reaparezca al recargar.
-    params.delete("payment");
-    params.delete("ern");
-    const rest = params.toString();
-    window.history.replaceState(
-      {},
-      "",
-      window.location.pathname + (rest ? `?${rest}` : "")
-    );
-
-    // Si el pago fue aprobado, refrescar el estado premium de la sesion.
-    if (payment === "success") {
-      (async () => {
-        try {
-          const updated = await refreshSession(getStoredSession() || session);
-          if (updated && typeof onSessionRefresh === "function") {
-            onSessionRefresh(updated);
-          }
-        } catch {
-          // Si falla la recarga, el mensaje del modal ya informa el exito.
-        }
-      })();
-    }
-  }, []);
+  // Mensaje de resultado al volver de Pagadito: ahora lo maneja App.jsx
+  // globalmente para que aparezca en cualquier seccion, incluido el chat.
 
   async function buy(plan) {
     if (!session) {
