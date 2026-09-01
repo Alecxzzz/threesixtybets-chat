@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { redeemCode, refreshSession, createPagaditoPayment } from "../services/api";
+import { redeemCode, refreshSession, createPagaditoPayment, getStoredSession } from "../services/api";
 import Modal from "./Modal";
 
 const PLANS = [
@@ -108,8 +108,17 @@ function Credits({ session, onSessionRefresh }) {
     );
 
     // Si el pago fue aprobado, refrescar el estado premium de la sesion.
-    if (payment === "success" && typeof onSessionRefresh === "function") {
-      onSessionRefresh();
+    if (payment === "success") {
+      (async () => {
+        try {
+          const updated = await refreshSession(getStoredSession() || session);
+          if (updated && typeof onSessionRefresh === "function") {
+            onSessionRefresh(updated);
+          }
+        } catch {
+          // Si falla la recarga, el mensaje del modal ya informa el exito.
+        }
+      })();
     }
   }, []);
 
