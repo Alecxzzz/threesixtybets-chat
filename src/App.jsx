@@ -9,7 +9,7 @@ import Credits from "./components/Credits";
 import Stats from "./components/Stats";
 import AdminKeys from "./components/AdminKeys";
 import Modal from "./components/Modal";
-import { clearSession, getStoredSession, signOut as signOutRequest } from "./services/api";
+import { clearSession, getStoredSession, signOut as signOutRequest, refreshSession } from "./services/api";
 
 const PLANS = [
   { price: "", days: "15 dias" },
@@ -44,6 +44,92 @@ function App() {
   function handleSessionRefresh(updated) {
     setSession(updated);
   }
+
+  // Resultado del pago al volver de Pagadito (?payment=success|rejected|...).
+  // Global: el modal aparece en cualquier seccion, incluido el chat principal.
+  const [paymentModal, setPaymentModal] = useState({
+    open: false,
+    variant: "success",
+    title: "",
+    message: "",
+  });
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const payment = params.get("payment");
+    if (!payment) return;
+
+    const messages = {
+      success: {
+        variant: "success",
+        title: "¡Pago acreditado!",
+        message:
+          "Tu pago fue aprobado y los dias PREMIUM ya fueron acreditados a tu cuenta. ¡Gracias por tu compra!",
+      },
+      pending: {
+        variant: "premium",
+        title: "Pago pendiente",
+        message:
+          "Tu pago quedo pendiente de confirmacion. Los dias se acreditaran automaticamente cuando Pagadito confirme la transaccion.",
+      },
+      canceled: {
+        variant: "error",
+        title: "Pago cancelado",
+        message: "Cancelaste el pago en Pagadito. No se cobro nada.",
+      },
+      rejected: {
+        variant: "error",
+        title: "Pago rechazado",
+        message:
+          "Pagadito rechazo el pago. Verifica los datos de tu tarjeta e intenta de nuevo.",
+      },
+      expired: {
+        variant: "error",
+        title: "Pago expirado",
+        message: "La transaccion expiro antes de completarse. Intenta de nuevo.",
+      },
+      not_found: {
+        variant: "error",
+        title: "Pago no encontrado",
+        message:
+          "No pudimos identificar tu transaccion. Si ya pagaste, contacta a soporte con el numero de aprobacion de Pagadito.",
+      },
+      error: {
+        variant: "error",
+        title: "Error verificando el pago",
+        message:
+          "Hubo un problema confirmando tu pago con Pagadito. Si ya pagaste, contacta a soporte con el numero de aprobacion.",
+      },
+    };
+
+    const info = messages[payment] || messages.error;
+    setPaymentModal({ open: true, ...info });
+
+    // Limpiar la URL para que el mensaje no reaparezca al recargar.
+    params.delete("payment");
+    params.delete("ern");
+    const rest = params.toString();
+    window.history.replaceState(
+      {},
+      "",
+      window.location.pathname + (rest ? `?${rest}` : "")
+    );
+
+    // Si el pago fue aprobado, refrescar el estado premium de la sesion.
+    if (payment === "success") {
+      (async () => {
+        try {
+          const stored = getStoredSession();
+          if (stored) {
+            const updated = await refreshSession(stored);
+            if (updated) setSession(updated);
+          }
+        } catch {
+          // Si falla la recarga, el modal ya informa el exito del pago.
+        }
+      })();
+    }
+  }, []);
 
   useEffect(() => {
     if (session && hasAccessExpired(session.user)) {
@@ -101,6 +187,15 @@ function App() {
         {page === "stats" && !hasAccessExpired(session.user) && <Stats />}
         {page === "admin" && session.user.role === "admin" && <AdminKeys session={session} />}
       </main>
+
+      <Modal
+        open={paymentModal.open}
+        variant={paymentModal.variant}
+        title={paymentModal.title}
+        message={paymentModal.message}
+        acceptLabel="Aceptar"
+        onClose={() => setPaymentModal((m) => ({ ...m, open: false }))}
+      />
 
       <Modal
         open={premiumBlocked}

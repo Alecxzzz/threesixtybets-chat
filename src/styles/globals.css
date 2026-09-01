@@ -717,6 +717,21 @@ button {
   font-weight: 700;
 }
 
+.plan-buy-btn {
+  min-height: 40px;
+  border: none;
+  border-radius: 10px;
+  background: #facc15;
+  color: #171303;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.plan-buy-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
 .section-title {
   margin: 0 0 12px;
   font-size: 18px;
