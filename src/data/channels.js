@@ -281,19 +281,11 @@ export const channels = [
     name: "DSPORTS",
     status: "CAIDO",
     ads: false,
-    stream: "http://38.252.215.33:8000/play/a00q/46330021.m3u8",
+    stream: "http://168.228.44.241:9998/play/a0dz/index.m3u8",
     geoRestriction: "NONE",
     useProxy: true
   },
-  {
-    id: 31,
-    name: "FOX MEXICO",
-    status: "ACTIVO",
-    ads: false,
-    stream: "https://jmp2.uk/plu-5a74b8e1e22a61737979c6bf.m3u8",
-    geoRestriction: "NONE",
-    useProxy: true
-  },
+
   {
     id: 32,
     name: "MLB TV",
