@@ -199,7 +199,7 @@ export const channels = [
     name: "WIN SPORTS",
     status: "ACTIVO",
     ads: false,
-    stream: "http://138.121.15.230:9002/WIN-SPORT/index.m3u8",
+    stream: "http://168.228.44.241:9998/play/a03o/index.m3u8",
     geoRestriction: "NONE",
     useProxy: false
   },
