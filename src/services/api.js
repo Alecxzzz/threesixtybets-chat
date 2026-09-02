@@ -253,7 +253,18 @@ export async function fetchAiAnalysis(session, sport, eventId) {
   return readJson(res);
 }
 
+export async function fetchTransactions(session) {
+  const res = await fetch(`${API_URL}/transactions`, {
+    headers: authHeaders(session),
+  });
 
+  return readJson(res);
+}
+
+export function transactionInvoiceUrl(ern, session) {
+  const token = session?.access_token || "";
+  return `${API_URL}/transactions/${encodeURIComponent(ern)}/invoice?token=${encodeURIComponent(token)}`;
+}
 
 /**
  * Obtiene las últimas 5 actuaciones de un jugador.

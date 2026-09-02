@@ -8,6 +8,7 @@ import Auth from "./components/Auth";
 import Credits from "./components/Credits";
 import Stats from "./components/Stats";
 import AdminKeys from "./components/AdminKeys";
+import Transactions from "./components/Transactions";
 import Modal from "./components/Modal";
 import { clearSession, getStoredSession, signOut as signOutRequest, refreshSession } from "./services/api";
 
@@ -186,6 +187,7 @@ function App() {
         {page === "credits" && <Credits session={session} onSessionRefresh={handleSessionRefresh} />}
         {page === "stats" && !hasAccessExpired(session.user) && <Stats />}
         {page === "admin" && session.user.role === "admin" && <AdminKeys session={session} />}
+        {page === "transactions" && <Transactions session={session} />}
       </main>
 
       <Modal

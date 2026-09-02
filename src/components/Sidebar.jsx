@@ -45,6 +45,18 @@ function MenuIcon({ type }) {
     );
   }
 
+  if (type === "transactions") {
+    return (
+      <svg {...common}>
+        <rect x="3" y="4" width="18" height="16" rx="2" />
+        <path d="M3 9h18" />
+        <path d="M7 14h4" />
+        <path d="M7 17h7" />
+        <path d="m14 15 2 2 4-4" />
+      </svg>
+    );
+  }
+
   if (type === "admin") {
     return (
       <svg {...common}>
@@ -71,6 +83,7 @@ function Sidebar({ open, close, page, setPage, user }) {
     { page: "tv", label: "TV", icon: "tv" },
     { page: "credits", label: "Compra y canjeo", icon: "credits" },
     { page: "stats", label: "Estadisticas", icon: "stats" },
+    { page: "transactions", label: "Historial de transacciones", icon: "transactions" },
   ];
 
   if (user?.role === "admin") {
