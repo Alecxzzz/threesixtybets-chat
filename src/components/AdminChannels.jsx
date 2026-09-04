@@ -7,6 +7,7 @@ import {
   adminDeleteChannel,
   adminChannelTest,
 } from "../services/api";
+import { resolveStreamUrl, needsProxy } from "../utils/stream";
 
 const sectionH3 = {
   color: "#e6edf3",
@@ -52,25 +53,35 @@ function AdminChannels({ session }) {
     if (!preview?.channel || preview.channel.type !== "m3u8" || !videoRef.current) return;
     const video = videoRef.current;
     destroyHls();
+    const channel = preview.channel;
+    const viaProxy = preview.forceProxy === true;
+    const alreadyProxied = viaProxy || needsProxy(channel);
+    const streamUrl = resolveStreamUrl(channel, viaProxy);
     if (!Hls.isSupported()) {
-      video.src = preview.channel.stream;
+      video.src = streamUrl;
       return;
     }
     const hls = new Hls({ manifestLoadingMaxRetry: 2, fragLoadingMaxRetry: 3 });
     hlsRef.current = hls;
-    hls.loadSource(preview.channel.stream);
+    hls.loadSource(streamUrl);
     hls.attachMedia(video);
     hls.on(Hls.Events.MANIFEST_PARSED, () => {
       video.play().catch(() => {});
-      setPreview((p) => (p ? { ...p, playing: true } : p));
+      setPreview((p) => (p ? { ...p, playing: true, playerError: "" } : p));
     });
     hls.on(Hls.Events.ERROR, (event, data) => {
-      if (data.fatal) {
-        setPreview((p) => (p ? { ...p, playing: false, playerError: data.details } : p));
+      if (!data.fatal) return;
+      // Reintento automatico via proxy si fallo la red (CORS / mixed content)
+      const isNetwork = data.type === Hls.ErrorTypes.NETWORK_ERROR;
+      if (isNetwork && !alreadyProxied) {
+        console.log("[Preview] fallo de red, reintentando via proxy:", data.details);
+        setPreview((p) => (p ? { ...p, forceProxy: true, playerError: "" } : p));
+        return;
       }
+      setPreview((p) => (p ? { ...p, playing: false, playerError: data.details } : p));
     });
     return () => destroyHls();
-  }, [preview?.channel]);
+  }, [preview?.channel, preview?.forceProxy]);
 
   async function handlePreview(e) {
     e.preventDefault();
@@ -275,11 +286,22 @@ function AdminChannels({ session }) {
           {p.playing && (
             <div style={{ fontSize: 12, color: "#4ade80", marginTop: 6 }}>
               ✅ El video carga correctamente en el reproductor.
+              {p.forceProxy && (
+                <span style={{ color: "#fbbf24" }}>
+                  {" "}
+                  (funciona vía proxy: marca "Usar proxy" antes de agregar el canal)
+                </span>
+              )}
             </div>
           )}
           {p.playerError && (
             <div style={{ fontSize: 12, color: "#fca5a5", marginTop: 6 }}>
               ⚠️ Error del reproductor: {p.playerError}
+              {p.forceProxy && (
+                <div style={{ color: "#8b95a1" }}>
+                  Falló incluso vía proxy. Prueba con otra URL o verifica que el servidor del stream esté activo.
+                </div>
+              )}
             </div>
           )}
         </div>
