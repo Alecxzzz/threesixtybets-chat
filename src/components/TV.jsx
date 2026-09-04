@@ -13,14 +13,23 @@ function TV() {
   const videoRef = useRef(null);
   const hlsRef = useRef(null);
 
-  // Carga los canales desde la BD (solo los ACTIVOS); si falla, usa el archivo estatico.
+  // Carga los canales desde la BD (solo los ACTIVOS) y los combina con los
+  // estaticos de channels.js (los de la BD tienen prioridad por nombre).
   useEffect(() => {
     let active = true;
     fetchChannels(getStoredSession())
       .then((data) => {
         if (active && data?.channels?.length) {
+          const dbNames = new Set(
+            data.channels.map((c) => (c.name || "").trim().toLowerCase())
+          );
+          const estaticos = staticChannels.filter(
+            (c) => !dbNames.has((c.name || "").trim().toLowerCase())
+          );
           setChannels(
-            [...data.channels].sort((a, b) => a.name.localeCompare(b.name))
+            [...data.channels, ...estaticos].sort((a, b) =>
+              a.name.localeCompare(b.name)
+            )
           );
         }
       })
