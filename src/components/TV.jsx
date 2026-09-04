@@ -1,15 +1,34 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import Hls from "hls.js";
-import { channels } from "../data/channels";
+import { channels as staticChannels } from "../data/channels";
 import { resolveStreamUrl, needsProxy } from "../utils/stream";
+import { fetchChannels, getStoredSession } from "../services/api";
 
 function TV() {
+  const [channels, setChannels] = useState(staticChannels);
   const [currentChannel, setCurrentChannel] = useState(null);
   const [playerError, setPlayerError] = useState("");
   const [viaProxy, setViaProxy] = useState(false); // reintento automático
   const [loading, setLoading] = useState(false);
   const videoRef = useRef(null);
   const hlsRef = useRef(null);
+
+  // Carga los canales desde la BD (solo los ACTIVOS); si falla, usa el archivo estatico.
+  useEffect(() => {
+    let active = true;
+    fetchChannels(getStoredSession())
+      .then((data) => {
+        if (active && data?.channels?.length) {
+          setChannels(
+            [...data.channels].sort((a, b) => a.name.localeCompare(b.name))
+          );
+        }
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // Limpia la instancia HLS anterior antes de crear una nueva
   const destroyHls = useCallback(() => {

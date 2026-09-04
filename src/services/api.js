@@ -319,6 +319,61 @@ export async function adminChannelTest(session, url) {
 }
 
 /**
+ * Canales activos para la pagina de TV (usuarios autenticados).
+ */
+export async function fetchChannels(session) {
+  const res = await fetch(`${API_URL}/channels`, {
+    headers: authHeaders(session),
+  });
+  return readJson(res);
+}
+
+/**
+ * PANEL ADMIN: lista todos los canales (activos y apagados).
+ */
+export async function adminListChannels(session) {
+  const res = await fetch(`${API_URL}/admin/channels`, {
+    headers: authHeaders(session),
+  });
+  return readJson(res);
+}
+
+/**
+ * PANEL ADMIN: agrega un canal nuevo.
+ */
+export async function adminCreateChannel(session, channel) {
+  const res = await fetch(`${API_URL}/admin/channels`, {
+    method: "POST",
+    headers: authHeaders(session),
+    body: JSON.stringify(channel),
+  });
+  return readJson(res);
+}
+
+/**
+ * PANEL ADMIN: edita un canal (incluye encender/apagar con status).
+ */
+export async function adminUpdateChannel(session, channelId, fields) {
+  const res = await fetch(`${API_URL}/admin/channels/${encodeURIComponent(channelId)}`, {
+    method: "PUT",
+    headers: authHeaders(session),
+    body: JSON.stringify(fields),
+  });
+  return readJson(res);
+}
+
+/**
+ * PANEL ADMIN: borra un canal.
+ */
+export async function adminDeleteChannel(session, channelId) {
+  const res = await fetch(`${API_URL}/admin/channels/${encodeURIComponent(channelId)}`, {
+    method: "DELETE",
+    headers: authHeaders(session),
+  });
+  return readJson(res);
+}
+
+/**
  * PANEL ADMIN: borra una key no reclamada.
  */
 export async function adminDeleteKey(session, code) {

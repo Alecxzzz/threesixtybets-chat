@@ -6,6 +6,7 @@ import {
   adminChannelTest,
 } from "../services/api";
 import { channels } from "../data/channels";
+import AdminChannels from "./AdminChannels";
 
 function AdminKeys({ session }) {
   const [form, setForm] = useState({
@@ -241,6 +242,9 @@ function AdminKeys({ session }) {
             </div>
           ))}
         </div>
+
+        {/* ===================== GESTION DE CANALES ===================== */}
+        <AdminChannels session={session} />
 
         {/* ===================== TEST DE CANALES ===================== */}
         <h3 style={{ ...sectionH3, marginTop: 28 }}>📺 Test de canales</h3>
