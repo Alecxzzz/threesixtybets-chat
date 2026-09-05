@@ -91,6 +91,10 @@ function TV() {
         // Tolerancia a saltos de buffer (evita congelamiento en ESPN)
         liveSyncDurationCount: 3,
         liveMaxLatencyDurationCount: 6,
+        // Mas reintentos internos antes de declarar bufferAppendError fatal
+        appendErrorMaxRetry: 6,
+        // Ignora discontinuidades menores del servidor (muy comunes en IPTV)
+        nudgeMaxRetry: 10,
         // Ajuste de ancho de banda: empezar con nivel más bajo para carga rápida
         startLevel: -1, // auto: hls.js elige el mejor nivel inicial
       });
@@ -141,6 +145,18 @@ function TV() {
           ];
           setPlayerError(msgs[mediaRecoveryAttempts - 1]);
           try {
+            if (isBufferError) {
+              // bufferAppendError casi siempre es un gap/overlap en el
+              // timeline: saltar al final de lo que ya esta bufferizado
+              // desbloquea el append sin recargar el stream.
+              const b = video.buffered;
+              if (b.length > 0) {
+                const end = b.end(b.length - 1);
+                if (end - video.currentTime > 0.2) {
+                  video.currentTime = end - 0.25;
+                }
+              }
+            }
             if (mediaRecoveryAttempts % 2 === 0) {
               // Intentos pares: intercambiar codec de audio (común en ESPN)
               const tracks = hls.audioTracks;
@@ -164,7 +180,11 @@ function TV() {
         }
 
         // 3) Mensajes específicos
-        if (data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR) {
+        if (data.details === Hls.ErrorDetails.BUFFER_INCOMPATIBLE_CODECS_ERROR) {
+          setPlayerError(
+            "Este canal usa un códec que tu navegador no soporta (ej. HEVC/H.265). Prueba en otro navegador o dispositivo."
+          );
+        } else if (data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR) {
           setPlayerError(
             alreadyProxied
               ? "El servidor del canal no responde el m3u8 (caído, geobloqueado o cambió la URL)."

@@ -85,7 +85,7 @@
     name: "ESPN 2",
     status: "ACTIVO",
     ads: false,
-    stream: "http://190.11.225.124:5000/live/espn_2_hd/playlist.m3u8",
+    stream: "http://168.228.44.241:9997/play/a01c/index.m3u8",
     geoRestriction: "NONE",
     useProxy: false
   },
