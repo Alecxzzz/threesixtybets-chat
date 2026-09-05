@@ -49,7 +49,7 @@
     name: "CBS SPORT GOLAZO",
     status: "ACTIVO",
     ads: false,
-    stream: "https://jmp2.uk/plu-63a0e33a45264d000850ed7e.m3u8",
+    stream: "https://tvsen3.aynaott.com/34fJSjZP/index.m3u8",
     geoRestriction: "NONE",
     useProxy: true
   },
@@ -76,7 +76,7 @@
     name: "ESPN 1",
     status: "ACTIVO",
     ads: false,
-    stream: "http://190.83.2.182:8090/ESPN/index.m3u8",
+    stream: "http://45.167.2.101:8000/play/a0py/index.m3u8",
     geoRestriction: "NONE",
     useProxy: false
   },
