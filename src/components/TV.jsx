@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import Hls from "hls.js";
 import { channels as staticChannels } from "../data/channels";
-import { resolveStreamUrl, needsProxy } from "../utils/stream";
+import { resolveStreamUrl, needsProxy, transcoderUrl } from "../utils/stream";
 import { fetchChannels, getStoredSession } from "../services/api";
 
 function TV() {
@@ -9,6 +9,7 @@ function TV() {
   const [currentChannel, setCurrentChannel] = useState(null);
   const [playerError, setPlayerError] = useState("");
   const [viaProxy, setViaProxy] = useState(false); // reintento automático
+  const [viaTranscoder, setViaTranscoder] = useState(false); // fallback universal
   const [loading, setLoading] = useState(false);
   const videoRef = useRef(null);
   const hlsRef = useRef(null);
@@ -52,8 +53,11 @@ function TV() {
     if (currentChannel.type === "iframe") return;
 
     const video = videoRef.current;
-    const streamUrl = resolveStreamUrl(currentChannel, viaProxy);
-    const alreadyProxied = viaProxy || needsProxy(currentChannel);
+    const rawUrl = (currentChannel?.stream || "").trim();
+    const streamUrl = viaTranscoder
+      ? transcoderUrl(rawUrl, currentChannel.referer)
+      : resolveStreamUrl(currentChannel, viaProxy);
+    const alreadyProxied = viaTranscoder || viaProxy || needsProxy(currentChannel);
     let hls;
     let cancelled = false;
     let mediaRecoveryAttempts = 0;
@@ -127,12 +131,29 @@ function TV() {
           return;
         }
 
+        // 1b) Fallo incluso via proxy (o ya estabamos proxied) ->
+        //     activar el transcodificador universal (H.264/AAC)
+        if (isNetworkError && alreadyProxied && !viaTranscoder) {
+          setPlayerError("Activando transcodificador compatible...");
+          destroyHls();
+          if (!cancelled) setViaTranscoder(true);
+          return;
+        }
+
         // 2) Errores de media: intentar recuperar antes de rendirse
         //    ESPN 1/3/4 tienen problemas de codificación intermitentes.
         //    BUFFER_APPEND_ERROR (buffer corrupto) también es MEDIA_ERROR.
         //    Estrategia: recoverMediaError -> swapAudioCodec -> recoverMediaError -> reload
         if (data.type === Hls.ErrorTypes.MEDIA_ERROR && mediaRecoveryAttempts < 6) {
           mediaRecoveryAttempts++;
+          // Si el buffer sigue rompiendose tras varios intentos, escalar
+          // al transcodificador (repara codecs y timeline de raiz).
+          if (mediaRecoveryAttempts >= 4 && !viaTranscoder) {
+            setPlayerError("Activando transcodificador compatible...");
+            destroyHls();
+            if (!cancelled) setViaTranscoder(true);
+            return;
+          }
           const isBufferError = data.details === Hls.ErrorDetails.BUFFER_APPEND_ERROR;
           const prefix = isBufferError ? "Buffer corrupto" : "Problema de codificación";
           const msgs = [
@@ -217,7 +238,7 @@ function TV() {
       cancelled = true;
       destroyHls();
     };
-  }, [currentChannel, viaProxy, destroyHls]);
+  }, [currentChannel, viaProxy, viaTranscoder, destroyHls]);
 
   // Determinar el sandbox para iframes: bloquear popups pero permitir autoplay
   const getIframeSandbox = (channel) => {
@@ -284,6 +305,7 @@ function TV() {
                   setPlayerError("");
                   setLoading(true);
                   setViaProxy(needsProxy(channel));
+                  setViaTranscoder(false);
                   setCurrentChannel(channel);
                 }}
               >

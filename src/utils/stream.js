@@ -14,6 +14,22 @@ export function toProxyUrl(rawUrl, referer) {
   return url;
 }
 
+/** URL base del backend (para el transcodificador /live). */
+export const API_BASE = (
+  import.meta.env.VITE_API_URL ||
+  "https://site--threesixtybetssz--qytms2wflqbs.code.run"
+).replace(/\/$/, "");
+
+/**
+ * URL del transcodificador universal (H.264/AAC via FFmpeg en el backend).
+ * Tercer fallback del reproductor: reproduce en cualquier navegador.
+ */
+export function transcoderUrl(rawUrl, referer) {
+  let url = `${API_BASE}/live/index.m3u8?url=${encodeURIComponent(rawUrl)}`;
+  if (referer) url += `&referer=${encodeURIComponent(referer)}`;
+  return url;
+}
+
 /**
  * Decide si un canal necesita proxy obligatoriamente:
  * - Si la página está en https y el stream en http -> mixed content (bloqueado).
