@@ -111,6 +111,7 @@ function Transactions({ session }) {
               <th style={styles.th}>Membresia</th>
               <th style={styles.th}>Monto</th>
               <th style={styles.th}>Estado</th>
+              <th style={styles.th}>No. Aprobacion</th>
               <th style={styles.th}>Transaccion</th>
               <th style={styles.th}>Factura</th>
             </tr>
@@ -126,6 +127,7 @@ function Transactions({ session }) {
                 <td style={styles.td}>
                   <span style={badgeStyle(tx.status_label)}>{tx.status_label}</span>
                 </td>
+                <td style={styles.td}>{tx.approval_number || "-"}</td>
                 <td style={{ ...styles.td, maxWidth: 130, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={tx.ern}>
                   {tx.ern}
                 </td>
