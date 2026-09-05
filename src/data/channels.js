@@ -314,5 +314,77 @@
     geoRestriction: "NONE",
     useProxy: false
   },
+  {
+    id: 36,
+    name: "ESPN 5",
+    status: "ACTIVO",
+    ads: false,
+    stream: "http://168.228.44.241:9997/play/a091/index.m3u8",
+    geoRestriction: "NONE",
+    useProxy: true
+  },
+  {
+    id: 37,
+    name: "ESPN 6",
+    status: "ACTIVO",
+    ads: false,
+    stream: "http://168.228.44.241:9997/play/a01f/index.m3u8",
+    geoRestriction: "NONE",
+    useProxy: true
+  },
+  {
+    id: 38,
+    name: "EUROSPORT 1",
+    status: "ACTIVO",
+    ads: false,
+    stream: "http://200.115.120.1:8000/play/ca118/index.m3u8",
+    geoRestriction: "NONE",
+    useProxy: true
+  },
+  {
+    id: 39,
+    name: "EUROSPORT 2",
+    status: "ACTIVO",
+    ads: false,
+    stream: "http://200.115.120.1:8000/play/ca119/index.m3u8",
+    geoRestriction: "NONE",
+    useProxy: true
+  },
+  {
+    id: 40,
+    name: "CLARO SPORTS 2",
+    status: "ACTIVO",
+    ads: false,
+    stream: "http://168.196.127.137:6001/play/a09d/index.m3u8",
+    geoRestriction: "NONE",
+    useProxy: true
+  },
+  {
+    id: 41,
+    name: "FOX SPORTS 2",
+    status: "ACTIVO",
+    ads: false,
+    stream: "http://200.115.120.1:8000/play/ca126/index.m3u8",
+    geoRestriction: "NONE",
+    useProxy: true
+  },
+  {
+    id: 42,
+    name: "USA SPORTS",
+    status: "ACTIVO",
+    ads: false,
+    stream: "https://tvsen3.aynaott.com/dbbcY6NG/index.m3u8",
+    geoRestriction: "NONE",
+    useProxy: true
+  },
+  {
+    id: 43,
+    name: "YES NETWORK (YANKEES)",
+    status: "ACTIVO",
+    ads: false,
+    stream: "http://23.237.104.106:8080/USA_YES_NETWORK/index.m3u8",
+    geoRestriction: "NONE",
+    useProxy: true
+  },
 ];
 

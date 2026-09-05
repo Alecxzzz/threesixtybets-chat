@@ -15,20 +15,21 @@ function TV() {
   const hlsRef = useRef(null);
 
   // Carga los canales desde la BD (solo los ACTIVOS) y los combina con los
-  // estaticos de channels.js (los de la BD tienen prioridad por nombre).
+  // estaticos de channels.js. Los estaticos tienen prioridad: si un canal
+  // existe en ambos, se usa EXACTAMENTE la URL de channels.js.
   useEffect(() => {
     let active = true;
     fetchChannels(getStoredSession())
       .then((data) => {
         if (active && data?.channels?.length) {
-          const dbNames = new Set(
-            data.channels.map((c) => (c.name || "").trim().toLowerCase())
+          const staticNames = new Set(
+            staticChannels.map((c) => (c.name || "").trim().toLowerCase())
           );
-          const estaticos = staticChannels.filter(
-            (c) => !dbNames.has((c.name || "").trim().toLowerCase())
+          const deBD = data.channels.filter(
+            (c) => !staticNames.has((c.name || "").trim().toLowerCase())
           );
           setChannels(
-            [...data.channels, ...estaticos].sort((a, b) =>
+            [...staticChannels, ...deBD].sort((a, b) =>
               a.name.localeCompare(b.name)
             )
           );
