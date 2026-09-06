@@ -58,7 +58,7 @@
     name: "CBS UEFA CHAMPIONS LEAGUE",
     status: "ACTIVO",
     ads: false,
-    stream: "https://jmp2.uk/plu-65ea8b928145cb0008509426.m3u8",
+    stream: "https://stitcher-ipv4.pluto.tv/v2/stitch/embed/hls/channel/65ea8b928145cb0008509426/master.m3u8?deviceType=samsung-tvplus&deviceMake=samsung&deviceModel=samsung&deviceVersion=unknown&appVersion=unknown&deviceLat=0&deviceLon=0&deviceDNT=%7BTARGETOPT%7D&deviceId=%7BPSID%7D&advertisingId=%7BPSID%7D&us_privacy=%7BUS_PRIVACY%7D&samsung_app_domain=%7BAPP_DOMAIN%7D&samsung_app_name=%7BAPP_NAME%7D&profileLimit=&profileFloor=&embedPartner=samsung-tvplus&masterJWTPassthrough=1&authToken=eyJhbGciOiJIUzI1NiIsImtpZCI6IjUwMzI0NzI3LTI1ZGYtNDg3ZC1hNDEzLWVmOGU4MDY5MDc4MSIsInR5cCI6IkpXVCJ9.eyJwYXJ0bmVyIjoic2Ftc3VuZ3R2cGx1cyIsImZlYXR1cmVzIjp7Im11bHRpUG9kQWRzIjp7ImNvaG9ydCI6IiIsImVuYWJsZWQiOnRydWV9LCJzdGl0Y2hlckhsc05nIjp7ImRlbXV4ZWRBdWRpbyI6ImRpc2FibGVkIn0sInN0aXRjaGVySGxzTmdWbGwiOnsiZW5hYmxlZCI6dHJ1ZX0sInN0aXRjaGVyUGFydG5lclNob3dTbGF0ZSI6eyJlbmFibGVkIjp0cnVlfX0sImlzcyI6InNlcnZpY2UtcGFydG5lci1hdXRoLnBsdXRvLnR2Iiwic3ViIjoicHJpOnYxOnBsdXRvOmRldmljZXM6YzJGdGMzVnVaM1IyY0d4MWN3PT0iLCJhdWQiOiIqLnBsdXRvLnR2IiwiZXhwIjoxNzg4NzU4ODQ5LCJpYXQiOjE3ODg2NzI0NDksImp0aSI6IjZlNTlmYzViLTY4OTItNGE1Yi04MTg0LTMwZjBiYWU1MTM0YSJ9.uEXxa161vB9wdcJOH2zeJhuvy_Vq07gFzzwd1Yy3Lp8",
     geoRestriction: "NONE",
     useProxy: true
   },
@@ -247,37 +247,11 @@
     name: "SKY SPORTS PREMIER LEAGUE",
     status: "ACTIVO",
     ads: false,
-    stream: "https://stream.bottledesk.net/p/AAxBRQEBc2c/index.m3u8",
+    stream: "	http://stream.bottledesk.net/p/AAxBRQEBc2c/index.m3u8?token=cm4rdGlKbkpxcVdhZlpuYXJxKzN4NWZYcU1aOXlOeCtxYlNjeDZ5bG1vUERxNEduaVp1UnBxU2VlWmF0ZnRlRGxaMm0wNStDbnJOOXJJM0puSytpbkE9PQ==",
     geoRestriction: "NONE",
     useProxy: false
   },
-  {
-    id: 29,
-    name: "SKY SPORTS TENNIS",
-    status: "ACTIVO",
-    ads: false,
-    stream: "https://cdnlivetv.tv/secure/api/v1/6a288d2a81d8192bb76cc320/playlist.m3u8?token=NmEyODhkMmE4MWQ4MTkyYmI3NmNjMzIwOjE3ODg0MTcwNTIwNDE6Y2RubGl2ZXR2LnR2Ojc1NTY0MjdkMjY0Nzk4YjcuODY2YTNiYTM3N2E4YjdkMzM2OTNjYjQyZTliNGNjYjE0MDhmMTlmM2VmYjA1M2JmMzVmN2EyNWViNjVjYmE1ZA",
-    geoRestriction: "NONE",
-    useProxy: true
-  },
-  {
-    id: 30,
-    name: "SPORTSNET BLUE JAYS",
-    status: "ACTIVO",
-    ads: false,
-    stream: "https://cdnlivetv.tv/secure/api/v1/6a288d2a81d8192bb76cc2a5/playlist.m3u8?token=NmEyODhkMmE4MWQ4MTkyYmI3NmNjMmE1OjE3ODg0MTcwNDc5NjQ6Y2RubGl2ZXR2LnR2OjlkMzhiM2VjZmQ2ZDhkNGMuYjc1OTJkYTc0NzM4ZTk2NDY2NDBkY2U0YzQ1YzQzMTMyYTRmYmY2YWYzMzMxZDZkNTYxM2ZjODdiZWVhZGZkYg",
-    geoRestriction: "NONE",
-    useProxy: true
-  },
-  {
-    id: 31,
-    name: "SPORTSNET DODGERS",
-    status: "ACTIVO",
-    ads: false,
-    stream: "https://cdnlivetv.tv/secure/api/v1/6a288d2a81d8192bb76cc168/playlist.m3u8?token=NmEyODhkMmE4MWQ4MTkyYmI3NmNjMTY4OjE3ODg0MTcwNDUyODg6Y2RubGl2ZXR2LnR2OjdkZWVmNjMwYTMwNWRmZjMuNmRmZmE2ODMwYzhkY2UxMDExMmU3OWEzYjM2YTlkMGU3MDFmZTQ2MjYwMjU3ZTY2MDBmNzViZTljNzg4ZjY2Nw",
-    geoRestriction: "NONE",
-    useProxy: true
-  },
+  
   {
     id: 32,
     name: "TELEMUNDO DEPORTES",
