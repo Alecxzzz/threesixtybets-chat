@@ -1,11 +1,45 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { fetchDashboard } from "../services/api";
 
 /**
  * Dashboard - pagina principal de 3SIXTYBETS.
- * Bienvenida + stats horizontales (pronosticos del dia / acertados por la IA)
- * + picks en carrusel horizontal. Auto-refresco cada 60 segundos.
+ * Hero + stats + efectividad + tabs (Pronosticos del dia / Acertados)
+ * + tarjetas de picks con badges. Auto-refresco cada 60 s.
  */
+
+function ConfianzaBadge({ confianza }) {
+  if (confianza === "ALTA")
+    return <span className="dp-badge b-fuego">🔥 Bomba</span>;
+  if (confianza === "MEDIA")
+    return <span className="dp-badge b-valor">⭐ Valor</span>;
+  if (confianza === "BAJA")
+    return <span className="dp-badge b-suave">Riesgo</span>;
+  return null;
+}
+
+function RingEfectividad({ porcentaje }) {
+  const radio = 34;
+  const circ = 2 * Math.PI * radio;
+  const offset = circ * (1 - Math.min(porcentaje, 100) / 100);
+  return (
+    <div className="dash-ring">
+      <svg width="86" height="86" viewBox="0 0 86 86">
+        <circle cx="43" cy="43" r={radio} className="ring-fondo" />
+        <circle
+          cx="43"
+          cy="43"
+          r={radio}
+          className="ring-progreso"
+          strokeDasharray={circ}
+          strokeDashoffset={offset}
+          transform="rotate(-90 43 43)"
+        />
+      </svg>
+      <span className="dash-ring-num">{porcentaje}%</span>
+    </div>
+  );
+}
+
 export default function Dashboard({ session }) {
   const [data, setData] = useState(null);
   const [vista, setVista] = useState("dia"); // "dia" | "acertados"
@@ -25,65 +59,146 @@ export default function Dashboard({ session }) {
     };
   }, [session]);
 
+  const stats = data?.stats;
+
+  const efectividad = useMemo(() => {
+    if (!stats?.historico_resueltos) return 0;
+    return Math.round((stats.historico_aciertos / stats.historico_resueltos) * 100);
+  }, [stats]);
+
   if (error)
-    return <div className="dash-error">No se pudo cargar el dashboard: {error}</div>;
+    return <div className="dash-error">⚠️ No se pudo cargar el dashboard: {error}</div>;
   if (!data) return <div className="dash-loading">Cargando dashboard...</div>;
 
   const picks =
     vista === "dia" ? data.pronosticos_del_dia || [] : data.pronosticos_acertados || [];
 
+  const scrollPicks = (dir) => {
+    document.getElementById("dash-picks-track")?.scrollBy({ left: dir * 320, behavior: "smooth" });
+  };
+
   return (
     <div className="dashboard">
-      <h1 className="dash-welcome">{data.welcome} 👋</h1>
+      {/* ===== HERO ===== */}
+      <section className="dash-hero">
+        <span className="dash-hero-badge">⚡ Con tecnología de 3SIXTYBETS AI</span>
+        <h1 className="dash-hero-title">Pronóstico del Día</h1>
+        <p className="dash-hero-sub">
+          Picks elegidos por nuestra IA entre los mercados de mayor probabilidad,
+          variando deportes y mercados para buscar siempre el mayor valor.
+        </p>
+      </section>
 
-      <div className="dash-stats">
-        <button
-          className={`dash-stat ${vista === "dia" ? "activa" : ""}`}
-          onClick={() => setVista("dia")}
-        >
-          <span className="dash-stat-num">{data.stats.pronosticos_del_dia}</span>
-          <span className="dash-stat-label">Pronósticos del día</span>
-        </button>
-        <button
-          className={`dash-stat ${vista === "acertados" ? "activa" : ""}`}
-          onClick={() => setVista("acertados")}
-        >
-          <span className="dash-stat-num">
-            {data.stats.pronosticos_acertados_por_la_ia}
+      {/* ===== STATS ===== */}
+      <section className="dash-stats-row">
+        <div className="dash-kpi">
+          <span className="dash-kpi-label">PRONÓSTICOS DEL DÍA</span>
+          <span className="dash-kpi-num">{stats.pronosticos_del_dia}</span>
+          <span className="dash-kpi-foot">
+            {Object.entries(stats.por_deporte || {})
+              .map(([d, n]) => `${d}: ${n}`)
+              .join(" · ") || "esperando análisis de la IA"}
           </span>
-          <span className="dash-stat-label">Pronósticos acertados por la IA</span>
-        </button>
-      </div>
+        </div>
+        <div className="dash-kpi kpi-verde">
+          <span className="dash-kpi-label">ACERTADOS POR LA IA</span>
+          <span className="dash-kpi-num">{stats.pronosticos_acertados_por_la_ia}</span>
+          <span className="dash-kpi-foot">solo se muestran los aciertos</span>
+        </div>
+        <div className="dash-kpi kpi-morado">
+          <span className="dash-kpi-label">EFECTIVIDAD HISTÓRICA</span>
+          <span className="dash-kpi-num">{efectividad}%</span>
+          <span className="dash-kpi-foot">
+            {stats.historico_aciertos} de {stats.historico_resueltos} picks resueltos
+          </span>
+        </div>
+      </section>
 
-      <div className="dash-picks">
+      {/* ===== EFECTIVIDAD ===== */}
+      <section className="dash-efectividad">
+        <h2 className="dash-seccion-titulo">📊 Efectividad de los pronósticos</h2>
+        <div className="dash-efect-card">
+          <RingEfectividad porcentaje={efectividad} />
+          <div className="dash-efect-item">
+            <span className="dash-efect-num">
+              {stats.historico_aciertos} de {stats.historico_resueltos}
+            </span>
+            <span className="dash-efect-label">Picks resueltos</span>
+          </div>
+          <div className="dash-efect-item">
+            <span className="dash-efect-num">{stats.pronosticos_del_dia}</span>
+            <span className="dash-efect-label">Picks de hoy</span>
+          </div>
+        </div>
+        <p className="dash-efect-nota">
+          Resultados históricos de la IA. El rendimiento pasado no garantiza
+          resultados futuros.
+        </p>
+      </section>
+
+      {/* ===== TABS ===== */}
+      <section className="dash-tabs-wrap">
+        <div className="dash-tabs">
+          <button
+            className={`dash-tab ${vista === "dia" ? "activa" : ""}`}
+            onClick={() => setVista("dia")}
+          >
+            Pronósticos del día
+          </button>
+          <button
+            className={`dash-tab ${vista === "acertados" ? "activa" : ""}`}
+            onClick={() => setVista("acertados")}
+          >
+            ✅ Acertados
+          </button>
+        </div>
+        <div className="dash-tabs-nav">
+          <button className="dash-arrow" onClick={() => scrollPicks(-1)}>‹</button>
+          <button className="dash-arrow" onClick={() => scrollPicks(1)}>›</button>
+        </div>
+      </section>
+
+      {/* ===== PICKS ===== */}
+      <section id="dash-picks-track" className="dash-picks">
         {picks.length === 0 && (
           <p className="dash-vacio">
             {vista === "dia"
-              ? "La IA aún no generó pronósticos hoy. Vuelve en unos minutos."
+              ? "🤖 La IA aún está analizando los partidos de hoy. Vuelve en unos minutos."
               : "Aún no hay pronósticos acertados hoy."}
           </p>
         )}
         {picks.map((p) => (
-          <div key={p.id} className="dash-pick">
-            <div className="dash-pick-head">
-              <span className="dash-pick-sport">{p.sportLabel}</span>
+          <article key={p.id} className={`dash-pick ${p.result === "ACIERTO" ? "pick-acierto" : ""}`}>
+            <div className="dp-badges">
+              <ConfianzaBadge confianza={p.confidence} />
               {p.result === "ACIERTO" && (
-                <span className="dash-pick-win">✅ ACIERTO</span>
+                <span className="dp-badge b-acierto">✓ Acertado</span>
               )}
             </div>
-            <div className="dash-pick-event">{p.eventName}</div>
-            <div className="dash-pick-market">
-              <strong>{p.market}</strong>
-              <span className="dash-pick-sel">{p.selection}</span>
+            <div className="dp-evento">
+              <span className="dp-equipo">{p.eventName}</span>
             </div>
-            <div className="dash-pick-foot">
-              {p.odds ? <span>Cuota {p.odds}</span> : null}
-              {p.confidence ? <span>Confianza {p.confidence}</span> : null}
+            <div className="dp-mercado">{p.market}</div>
+            <div className="dp-pie">
+              <span className="dp-pick-sel">{p.selection}</span>
+              {p.odds ? <span className="dp-cuota">cuota {p.odds.toFixed(2)}</span> : null}
             </div>
-            {p.rationale ? <p className="dash-pick-edge">{p.rationale}</p> : null}
-          </div>
+            <div className="dp-foot">
+              <span className="dp-liga">{p.sportLabel}</span>
+              <span className="dp-fecha">Hoy</span>
+            </div>
+          </article>
         ))}
-      </div>
+      </section>
+
+      {/* ===== AVISO ===== */}
+      <footer className="dash-aviso">
+        ⚠️ <strong>Aviso de responsabilidad:</strong> los pronósticos mostrados son
+        estimaciones de modelos predictivos basados en datos históricos. No
+        garantizamos la exactitud de los resultados deportivos. Cualquier decisión
+        tomada basándose en esta información es de absoluta responsabilidad del
+        usuario. Plataforma exclusiva para mayores de 18 años.
+      </footer>
     </div>
   );
 }
