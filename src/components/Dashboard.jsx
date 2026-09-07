@@ -176,7 +176,22 @@ export default function Dashboard({ session }) {
               )}
             </div>
             <div className="dp-evento">
-              <span className="dp-equipo">{p.eventName}</span>
+              <div className="dp-fila-equipo">
+                {p.awayLogo ? (
+                  <img className="dp-logo" src={p.awayLogo} alt="" loading="lazy" />
+                ) : (
+                  <span className="dp-logo dp-logo-fallback">?</span>
+                )}
+                <span className="dp-equipo">{p.awayName || p.eventName}</span>
+              </div>
+              <div className="dp-fila-equipo">
+                {p.homeLogo ? (
+                  <img className="dp-logo" src={p.homeLogo} alt="" loading="lazy" />
+                ) : (
+                  <span className="dp-logo dp-logo-fallback">?</span>
+                )}
+                <span className="dp-equipo">{p.homeName || ""}</span>
+              </div>
             </div>
             <div className="dp-mercado">{p.market}</div>
             <div className="dp-pie">

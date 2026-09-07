@@ -1220,8 +1220,6 @@ button {
   max-width: 1180px;
   margin: 0 auto;
   padding: 22px 20px 40px;
-  overflow-y: auto;
-  scroll-behavior: smooth;
 }
 
 /* ---------- HERO ---------- */
@@ -1475,8 +1473,12 @@ button {
   gap: 14px;
   overflow-x: auto;
   padding-bottom: 10px;
-  scrollbar-width: thin;
-  scrollbar-color: #2b3345 transparent;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.dash-picks::-webkit-scrollbar {
+  display: none;
 }
 
 .dash-pick {
@@ -1630,4 +1632,30 @@ button {
   .dash-stats-row { grid-template-columns: 1fr; }
   .dash-hero-title { font-size: 24px; }
   .dash-efect-card { gap: 20px; flex-wrap: wrap; }
+}
+
+.dp-fila-equipo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dp-logo {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.dp-logo-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #1c2333;
+  color: #5d6577;
+  font-size: 12px;
+  font-weight: 800;
 }
