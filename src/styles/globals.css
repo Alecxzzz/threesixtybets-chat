@@ -1472,13 +1472,23 @@ button {
   display: flex;
   gap: 14px;
   overflow-x: auto;
-  padding-bottom: 10px;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  padding-bottom: 12px;
+  scrollbar-width: thin;
+  scrollbar-color: #6d5df6 #1a2033;
 }
 
 .dash-picks::-webkit-scrollbar {
-  display: none;
+  height: 10px;
+}
+
+.dash-picks::-webkit-scrollbar-track {
+  background: #1a2033;
+  border-radius: 999px;
+}
+
+.dash-picks::-webkit-scrollbar-thumb {
+  background: linear-gradient(90deg, #6d5df6, #5546e0);
+  border-radius: 999px;
 }
 
 .dash-pick {
