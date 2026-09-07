@@ -374,6 +374,16 @@ export async function adminDeleteChannel(session, channelId) {
 }
 
 /**
+ * Dashboard: bienvenida + stats + picks del dia / acertados.
+ */
+export async function fetchDashboard(session) {
+  const res = await fetch(`${API_URL}/dashboard`, {
+    headers: authHeaders(session),
+  });
+  return readJson(res);
+}
+
+/**
  * PANEL ADMIN: borra una key no reclamada.
  */
 export async function adminDeleteKey(session, code) {

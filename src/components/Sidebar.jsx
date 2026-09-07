@@ -11,6 +11,17 @@ function MenuIcon({ type }) {
     "aria-hidden": "true",
   };
 
+  if (type === "dashboard") {
+    return (
+      <svg {...common}>
+        <rect x="3" y="3" width="7" height="9" rx="1.5" />
+        <rect x="14" y="3" width="7" height="5" rx="1.5" />
+        <rect x="14" y="12" width="7" height="9" rx="1.5" />
+        <rect x="3" y="16" width="7" height="5" rx="1.5" />
+      </svg>
+    );
+  }
+
   if (type === "tv") {
     return (
       <svg {...common}>
@@ -79,6 +90,7 @@ function MenuIcon({ type }) {
 
 function Sidebar({ open, close, page, setPage, user }) {
   const items = [
+    { page: "dashboard", label: "Dashboard", icon: "dashboard" },
     { page: "chat", label: "Chat AI", icon: "chat" },
     { page: "tv", label: "TV", icon: "tv" },
     { page: "credits", label: "Compra y canjeo", icon: "credits" },

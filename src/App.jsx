@@ -7,6 +7,7 @@ import TV from "./components/TV";
 import Auth from "./components/Auth";
 import Credits from "./components/Credits";
 import Stats from "./components/Stats";
+import Dashboard from "./components/Dashboard";
 import AdminKeys from "./components/AdminKeys";
 import Transactions from "./components/Transactions";
 import Modal from "./components/Modal";
@@ -33,13 +34,13 @@ function hasAccessExpired(user) {
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [page, setPage] = useState("chat");
+  const [page, setPage] = useState("dashboard");
   const [session, setSession] = useState(getStoredSession);
   const [premiumBlocked, setPremiumBlocked] = useState(false);
 
   function handleAuth(nextSession) {
     setSession(nextSession);
-    setPage("chat");
+    setPage("dashboard");
   }
 
   function handleSessionRefresh(updated) {
@@ -153,11 +154,11 @@ function App() {
     clearSession();
     setSession(null);
     setSidebarOpen(false);
-    setPage("chat");
+    setPage("dashboard");
   }
 
   function guardPage(p) {
-    const restricted = ["chat", "tv", "stats"];
+    const restricted = ["dashboard", "chat", "tv", "stats"];
     if (restricted.includes(p) && hasAccessExpired(session.user)) {
       setPremiumBlocked(true);
       return;
@@ -182,6 +183,7 @@ function App() {
       {sidebarOpen && <div className="overlay" onClick={() => setSidebarOpen(false)} />}
       <main className="main">
         <Header openSidebar={() => setSidebarOpen(true)} user={session.user} onSignOut={signOut} />
+        {page === "dashboard" && !hasAccessExpired(session.user) && <Dashboard session={session} />}
         {page === "chat" && !hasAccessExpired(session.user) && <Chat session={session} />}
         {page === "tv" && !hasAccessExpired(session.user) && <TV />}
         {page === "credits" && <Credits session={session} onSessionRefresh={handleSessionRefresh} />}
