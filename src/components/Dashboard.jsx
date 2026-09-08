@@ -110,10 +110,18 @@ export default function Dashboard({ session }) {
 
   const stats = data?.stats;
 
-  const efectividad = useMemo(() => {
-    if (!stats?.historico_resueltos) return 0;
+  // Efectividad de HOY (coherente con los KPIs); si hoy no hay resueltos,
+  // se muestra la historica etiquetada como tal.
+  const efectividadHoy = stats?.efectividad_hoy;
+  const efectividadHist = useMemo(() => {
+    if (!stats?.historico_resueltos) return null;
     return Math.round((stats.historico_aciertos / stats.historico_resueltos) * 100);
   }, [stats]);
+
+  const usarHoy = efectividadHoy !== null && efectividadHoy !== undefined;
+  const porcentaje = usarHoy ? efectividadHoy : efectividadHist || 0;
+  const resueltosMostrar = usarHoy ? stats.resueltos_hoy : stats?.historico_resueltos || 0;
+  const aciertosMostrar = usarHoy ? stats.pronosticos_acertados_por_la_ia : stats?.historico_aciertos || 0;
 
   if (error)
     return <div className="dash-error">⚠️ No se pudo cargar el dashboard: {error}</div>;
@@ -155,10 +163,10 @@ export default function Dashboard({ session }) {
           <span className="dash-kpi-foot">solo se muestran los aciertos</span>
         </div>
         <div className="dash-kpi kpi-morado">
-          <span className="dash-kpi-label">EFECTIVIDAD HISTÓRICA</span>
-          <span className="dash-kpi-num">{efectividad}%</span>
+          <span className="dash-kpi-label">EFECTIVIDAD {usarHoy ? "DE HOY" : "HISTÓRICA"}</span>
+          <span className="dash-kpi-num">{porcentaje}%</span>
           <span className="dash-kpi-foot">
-            {stats.historico_aciertos} de {stats.historico_resueltos} picks resueltos
+            {aciertosMostrar} de {resueltosMostrar} picks resueltos
           </span>
         </div>
       </section>
@@ -167,21 +175,28 @@ export default function Dashboard({ session }) {
       <section className="dash-efectividad">
         <h2 className="dash-seccion-titulo">📊 Efectividad de los pronósticos</h2>
         <div className="dash-efect-card">
-          <RingEfectividad porcentaje={efectividad} />
+          <RingEfectividad porcentaje={porcentaje} />
           <div className="dash-efect-item">
             <span className="dash-efect-num">
-              {stats.historico_aciertos} de {stats.historico_resueltos}
+              {aciertosMostrar} de {resueltosMostrar}
             </span>
-            <span className="dash-efect-label">Picks resueltos</span>
+            <span className="dash-efect-label">
+              Picks resueltos {usarHoy ? "hoy" : "(histórico)"}
+            </span>
           </div>
           <div className="dash-efect-item">
             <span className="dash-efect-num">{stats.pronosticos_del_dia}</span>
-            <span className="dash-efect-label">Picks de hoy</span>
+            <span className="dash-efect-label">Pendientes de hoy</span>
+          </div>
+          <div className="dash-efect-item">
+            <span className="dash-efect-num">{stats.pronosticos_acertados_por_la_ia}</span>
+            <span className="dash-efect-label">Acertados hoy</span>
           </div>
         </div>
         <p className="dash-efect-nota">
-          Resultados históricos de la IA. El rendimiento pasado no garantiza
-          resultados futuros.
+          {usarHoy
+            ? "Efectividad de los pronosticos resueltos hoy. El rendimiento pasado no garantiza resultados futuros."
+            : "Resultados historicos de la IA. El rendimiento pasado no garantiza resultados futuros."}
         </p>
       </section>
 
