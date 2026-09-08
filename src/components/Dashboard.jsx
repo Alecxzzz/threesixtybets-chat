@@ -40,6 +40,55 @@ function RingEfectividad({ porcentaje }) {
   );
 }
 
+/** Etiqueta inteligente: Hoy / Manana HH:MM / dia de la semana. */
+function etiquetaFecha(eventDate) {
+  if (!eventDate) return "Hoy";
+  const d = new Date(eventDate);
+  if (isNaN(d)) return "Hoy";
+  const hoy = new Date();
+  const dias = Math.floor(
+    (new Date(d.getFullYear(), d.getMonth(), d.getDate()) -
+      new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate())) / 86400000
+  );
+  const hora = d.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+  if (dias === 0) return `Hoy ${hora}`;
+  if (dias === 1) return `Mañana ${hora}`;
+  if (dias > 1 && dias < 7)
+    return `${d.toLocaleDateString("es-ES", { weekday: "long" })} ${hora}`;
+  return d.toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
+}
+
+/** Skeleton premium mientras carga el dashboard. */
+function DashboardSkeleton() {
+  return (
+    <div className="dashboard">
+      <div className="sk sk-hero shimmer" />
+      <div className="dash-stats-row">
+        <div className="sk sk-kpi shimmer" />
+        <div className="sk sk-kpi shimmer" />
+        <div className="sk sk-kpi shimmer" />
+      </div>
+      <div className="sk sk-efect shimmer" />
+      <div className="sk sk-tabs shimmer" />
+      <div className="dash-picks">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="dash-pick">
+            <div className="sk sk-badge shimmer" />
+            <div className="sk sk-linea shimmer" style={{ width: "85%" }} />
+            <div className="sk sk-linea shimmer" style={{ width: "70%" }} />
+            <div className="sk sk-linea shimmer" style={{ width: "55%" }} />
+            <div className="sk sk-linea shimmer" style={{ width: "45%" }} />
+          </div>
+        ))}
+      </div>
+      <div className="dash-cargando">
+        <span className="dash-spinner" />
+        <span>Analizando partidos y calculando valor con IA...</span>
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard({ session }) {
   const [data, setData] = useState(null);
   const [vista, setVista] = useState("dia"); // "dia" | "acertados"
@@ -68,7 +117,7 @@ export default function Dashboard({ session }) {
 
   if (error)
     return <div className="dash-error">⚠️ No se pudo cargar el dashboard: {error}</div>;
-  if (!data) return <div className="dash-loading">Cargando dashboard...</div>;
+  if (!data) return <DashboardSkeleton />;
 
   const picks =
     vista === "dia" ? data.pronosticos_del_dia || [] : data.pronosticos_acertados || [];
@@ -193,14 +242,14 @@ export default function Dashboard({ session }) {
                 <span className="dp-equipo">{p.homeName || ""}</span>
               </div>
             </div>
-            <div className="dp-mercado">{p.market}</div>
+            <div className="dp-mercado">{p.titulo || p.market}</div>
             <div className="dp-pie">
               <span className="dp-pick-sel">{p.selection}</span>
               {p.odds ? <span className="dp-cuota">cuota {p.odds.toFixed(2)}</span> : null}
             </div>
             <div className="dp-foot">
               <span className="dp-liga">{p.sportLabel}</span>
-              <span className="dp-fecha">Hoy</span>
+              <span className="dp-fecha">{etiquetaFecha(p.eventDate)}</span>
             </div>
           </article>
         ))}
