@@ -1752,3 +1752,36 @@ button {
   font-weight: 600;
   color: #a89bff;
 }
+
+/* ---------- STATS ULTIMOS 5 DENTRO DEL PICK ---------- */
+
+.dp-stats {
+  list-style: none;
+  margin: 2px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(124, 108, 255, 0.06);
+  border: 1px solid rgba(124, 108, 255, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.dp-stats li {
+  position: relative;
+  padding-left: 14px;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: #b6bfd0;
+}
+
+.dp-stats li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #6d5df6;
+}

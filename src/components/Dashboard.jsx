@@ -247,6 +247,13 @@ export default function Dashboard({ session }) {
               <span className="dp-pick-sel">{p.selection}</span>
               {p.odds ? <span className="dp-cuota">cuota {p.odds.toFixed(2)}</span> : null}
             </div>
+            {Array.isArray(p.stats) && p.stats.length > 0 && (
+              <ul className="dp-stats">
+                {p.stats.map((s, i) => (
+                  <li key={i}>{s}</li>
+                ))}
+              </ul>
+            )}
             <div className="dp-foot">
               <span className="dp-liga">{p.sportLabel}</span>
               <span className="dp-fecha">{etiquetaFecha(p.eventDate)}</span>
