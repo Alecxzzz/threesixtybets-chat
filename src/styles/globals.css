@@ -122,6 +122,13 @@ button {
   cursor: pointer;
 }
 
+.perfil-btn {
+  color: #a78bfa;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+
 .auth-tabs button {
   border: none;
   border-radius: 8px;

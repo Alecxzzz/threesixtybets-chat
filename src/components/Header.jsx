@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { API_BASE } from "../utils/stream";
 
 function formatExpiry(value) {
   if (!value) return "Sin fecha";
@@ -58,6 +59,14 @@ function Header({ openSidebar, user, onSignOut }) {
             </div>
           )}
         </div>
+        <a
+          className="sign-out-btn perfil-btn"
+          href={`${API_BASE}/perfil`}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Mi perfil
+        </a>
         <button className="sign-out-btn" onClick={onSignOut}>
           Sign out
         </button>
