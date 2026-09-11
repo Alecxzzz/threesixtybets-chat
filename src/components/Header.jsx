@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { API_BASE } from "../utils/stream";
+import { getStoredSession } from "../services/api";
 
 function formatExpiry(value) {
   if (!value) return "Sin fecha";
@@ -26,6 +27,7 @@ function daysLeft(value) {
 
 function Header({ openSidebar, user, onSignOut }) {
   const [accountOpen, setAccountOpen] = useState(false);
+  const [perfilOpen, setPerfilOpen] = useState(false);
   const displayName = user.name || user.username;
 
   return (
@@ -59,18 +61,33 @@ function Header({ openSidebar, user, onSignOut }) {
             </div>
           )}
         </div>
-        <a
-          className="sign-out-btn perfil-btn"
-          href={`${API_BASE}/perfil`}
-          target="_blank"
-          rel="noreferrer"
-        >
+        <button className="sign-out-btn perfil-btn" onClick={() => setPerfilOpen(true)}>
           Mi perfil
-        </a>
+        </button>
         <button className="sign-out-btn" onClick={onSignOut}>
           Sign out
         </button>
       </div>
+
+      {perfilOpen && (
+        <div
+          className="perfil-overlay"
+          onClick={(e) => e.target === e.currentTarget && setPerfilOpen(false)}
+        >
+          <div className="perfil-modal">
+            <div className="perfil-head">
+              <b>Mi perfil</b>
+              <button className="perfil-close" onClick={() => setPerfilOpen(false)}>
+                &times;
+              </button>
+            </div>
+            <iframe
+              title="Mi perfil"
+              src={`${API_BASE}/perfil?token=${encodeURIComponent(getStoredSession()?.access_token || "")}`}
+            />
+          </div>
+        </div>
+      )}
     </header>
   );
 }

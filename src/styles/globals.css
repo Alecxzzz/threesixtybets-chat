@@ -129,6 +129,53 @@ button {
   align-items: center;
 }
 
+.perfil-overlay {
+  position: fixed;
+  inset: 0;
+  background: #000a;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.perfil-modal {
+  background: #141826;
+  border: 1px solid #2a3352;
+  border-radius: 16px;
+  width: min(460px, 94vw);
+  height: min(640px, 88vh);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.perfil-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  color: #a78bfa;
+  border-bottom: 1px solid #232a42;
+}
+
+.perfil-close {
+  background: none;
+  border: none;
+  color: #8b93b5;
+  font-size: 1.4rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.perfil-modal iframe {
+  flex: 1;
+  width: 100%;
+  border: none;
+  background: #0b0d14;
+}
+
 .auth-tabs button {
   border: none;
   border-radius: 8px;
