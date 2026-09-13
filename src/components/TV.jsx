@@ -159,7 +159,7 @@ function TV() {
         const isNetworkError = data.type === Hls.ErrorTypes.NETWORK_ERROR;
         if (isNetworkError && !alreadyProxied && networkRecoveryAttempts < 1) {
           networkRecoveryAttempts++;
-          setPlayerError("Bloqueado por el servidor (CORS). Reintentando vía proxy...");
+          setPlayerError(`Bloqueado por el servidor (CORS). Reintentando vía proxy... [${data.details}]`);
           destroyHls();
           if (!cancelled) setViaProxy(true);
           return;
@@ -239,7 +239,7 @@ function TV() {
         if (reloadAttemptsRef.current < MAX_RELOADS) {
           reloadAttemptsRef.current++;
           const espera = Math.min(2000 * reloadAttemptsRef.current, 8000); // backoff: 2s..8s
-          setPlayerError("Conexión perdida.");
+          setPlayerError(`Conexión perdida. (${data.details})`);
           setTimeout(() => {
             if (!cancelled) {
               destroyHls();
