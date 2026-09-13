@@ -2,17 +2,23 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Test evento directo (hls.js)</title>
+  <title>Probador de eventos (directo, sin proxy)</title>
   <style>
     body { background: #0f1117; color: #ececec; font-family: system-ui; padding: 24px; }
-    #log { white-space: pre-wrap; font-family: monospace; font-size: 12px; color: #9fd; max-height: 300px; overflow: auto; }
+    #list { max-height: 260px; overflow: auto; display: flex; flex-direction: column; gap: 4px; max-width: 720px; }
+    .ev { text-align: left; padding: 8px 12px; background: #202633; border: 1px solid #303847; color: #ececec; border-radius: 8px; cursor: pointer; font-size: 13px; }
+    .ev:hover { background: #263040; }
+    .ev.ok { border-color: #4ade80; }
+    .ev.fail { border-color: #ef4444; }
     video { width: 100%; max-width: 720px; background: #000; border-radius: 12px; }
+    #log { white-space: pre-wrap; font-family: monospace; font-size: 12px; color: #9fd; max-height: 200px; overflow: auto; }
   </style>
 </head>
 <body>
-  <h2>Test: reproducción DIRECTA desde el navegador (sin proxy)</h2>
+  <h2>Probador: los 74 eventos, DIRECTO desde el navegador (sin proxy)</h2>
+  <p>Hacé clic en cada evento para probarlo. Verde = funciona, rojo = falla (con el motivo abajo).</p>
+  <div id="list"></div>
   <video id="v" controls autoplay muted playsinline></video>
-  <p>Log (abre también F12 → Console):</p>
   <div id="log"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
@@ -23,35 +29,53 @@
       console.log("[TEST]", msg);
     };
 
-    // Token fresco generado al cargar la página de la18hd.
-    // Si venció, cambia esta URL por otra de links_scraper.txt.
-    const SRC = "https://y2fzdgxl.fubo18.com:443/espnpremium/mono.m3u8?token=d25281b5e765082f1063b9bcaa0cb1e5542a0d0e-a-1789343234-1789325234";
-
+    let hls = null;
     const video = document.getElementById("v");
-    log("Probando: " + SRC);
 
-    if (Hls.isSupported()) {
-      const hls = new Hls();
+    async function test(ev, btn) {
+      if (hls) { hls.destroy(); hls = null; }
+      video.removeAttribute("src"); video.load();
+      logEl.textContent = "Probando: " + ev.name + "\n" + ev.stream + "\n";
+      btn.classList.remove("ok", "fail");
+
+      const done = (ok, msg) => {
+        btn.classList.add(ok ? "ok" : "fail");
+        log((ok ? "✅ OK" : "❌ " + msg) + "  →  " + ev.name);
+      };
+
+      if (!Hls.isSupported() && !video.canPlayType("application/vnd.apple.mpegurl")) {
+        return done(false, "navegador sin HLS");
+      }
+
+      const timeout = setTimeout(() => done(false, "TIMEOUT (10s sin respuesta)"), 10000);
+      hls = new Hls({ manifestLoadingTimeOut: 8000, manifestLoadingMaxRetry: 1 });
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        log("✅ MANIFIESTO CARGADO — el stream directo FUNCIONA");
-        video.play().catch((e) => log("play() bloqueado: " + e.message));
+        clearTimeout(timeout);
+        video.play().catch(() => {});
+        done(true, "");
       });
-      hls.on(Hls.Events.ERROR, (ev, data) => {
+      hls.on(Hls.Events.ERROR, (e, data) => {
         if (!data.fatal) return;
-        log("❌ ERROR FATAL: " + data.type + " / " + data.details);
-        if (data.details === "manifestLoadError") {
-          log("👉 No se pudo descargar el m3u8. Revisá en la consola si dice");
-          log("   'CORS' o 'blocked' — eso indica el bloqueo exacto.");
+        clearTimeout(timeout);
+        done(false, data.type + " / " + data.details);
+        hls.destroy(); hls = null;
+      });
+      hls.loadSource(ev.stream);
+      hls.attachMedia(video);
+    }
+
+    fetch("./test-events.json")
+      .then((r) => r.json())
+      .then((events) => {
+        const list = document.getElementById("list");
+        for (const ev of events) {
+          const btn = document.createElement("button");
+          btn.className = "ev";
+          btn.textContent = `[${ev.sport}] ${ev.name}`;
+          btn.addEventListener("click", () => test(ev, btn));
+          list.appendChild(btn);
         }
       });
-      hls.loadSource(SRC);
-      hls.attachMedia(video);
-    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      video.src = SRC;
-      video.play().catch((e) => log("play(): " + e.message));
-    } else {
-      log("❌ Este navegador no soporta HLS");
-    }
   </script>
 </body>
 </html>
