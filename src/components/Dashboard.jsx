@@ -259,7 +259,7 @@ export default function Dashboard({ session }) {
             </div>
             <div className="dp-mercado">{p.titulo || p.market}</div>
             <div className="dp-pie">
-              <span className="dp-pick-sel">{p.selection}</span>
+              <span className="dp-pick-sel">{p.porque || p.selection}</span>
               {p.odds ? <span className="dp-cuota">cuota {p.odds.toFixed(2)}</span> : null}
             </div>
             {Array.isArray(p.stats) && p.stats.length > 0 && (
