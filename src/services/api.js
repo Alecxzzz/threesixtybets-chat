@@ -331,6 +331,16 @@ export async function fetchChannels(session) {
 }
 
 /**
+ * Partidos del dia con links vigentes (< 6h), desde la BD.
+ */
+export async function fetchEvents(session) {
+  const res = await fetch(`${API_URL}/events`, {
+    headers: authHeaders(session),
+  });
+  return readJson(res);
+}
+
+/**
  * PANEL ADMIN: lista todos los canales (activos y apagados).
  */
 export async function adminListChannels(session) {

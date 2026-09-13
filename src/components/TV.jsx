@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import Hls from "hls.js";
 import { channels as staticChannels } from "../data/channels";
-import { events as todayEvents } from "../data/events";
+import { events as staticEvents } from "../data/events";
 import { resolveStreamUrl, needsProxy, transcoderUrl } from "../utils/stream";
-import { fetchChannels, getStoredSession } from "../services/api";
+import { fetchChannels, fetchEvents, getStoredSession } from "../services/api";
 
 function TV() {
   const [channels, setChannels] = useState(staticChannels);
+  const [todayEvents, setTodayEvents] = useState(staticEvents);
   const [currentChannel, setCurrentChannel] = useState(null);
   const [playerError, setPlayerError] = useState("");
   const [viaProxy, setViaProxy] = useState(false); // reintento automático
@@ -41,6 +42,22 @@ function TV() {
               a.name.localeCompare(b.name)
             )
           );
+        }
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Carga los eventos del dia desde la BD (scraper -> POST /admin/events).
+  // Prioridad: eventos de la BD si hay; si no, fallback del events.js estatico.
+  useEffect(() => {
+    let active = true;
+    fetchEvents(getStoredSession())
+      .then((data) => {
+        if (active && data?.events?.length) {
+          setTodayEvents(data.events);
         }
       })
       .catch(() => {});
