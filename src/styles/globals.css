@@ -1026,6 +1026,17 @@ button {
   white-space: nowrap;
 }
 
+.events-box-empty .events-live-dot {
+  background: #6b7280;
+  animation: none;
+}
+
+.events-empty-msg {
+  padding: 16px 14px;
+  font-size: 13px;
+  color: #8b93a7;
+}
+
 
 .channels-box h2 {
   margin: 0 0 14px;

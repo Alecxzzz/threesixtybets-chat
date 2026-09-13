@@ -524,7 +524,7 @@ function TV() {
         <div className="channels-box">
           <h2>Canales disponibles</h2>
 
-          {todayEvents.length > 0 && (
+          {todayEvents.length > 0 ? (
             <div className="events-box">
               <div className="events-box-header">
                 <span className="events-live-dot" />
@@ -545,6 +545,16 @@ function TV() {
                     <span className="event-play">Ver ▸</span>
                   </button>
                 ))}
+              </div>
+            </div>
+          ) : (
+            <div className="events-box events-box-empty">
+              <div className="events-box-header">
+                <span className="events-live-dot" />
+                Partidos de hoy
+              </div>
+              <div className="events-empty-msg">
+                No hay partidos programados para hoy.
               </div>
             </div>
           )}
