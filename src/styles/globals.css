@@ -930,6 +930,103 @@ button {
   max-width: 760px;
 }
 
+/* Cuadro compacto de partidos del día (scrolleable) */
+.events-box {
+  margin-bottom: 18px;
+  border: 1px solid #303847;
+  border-radius: 14px;
+  background: #171c26;
+  overflow: hidden;
+}
+
+.events-box-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #4ade80;
+  border-bottom: 1px solid #303847;
+  background: #1c2331;
+}
+
+.events-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  animation: tv-live-pulse 1.4s ease-in-out infinite;
+}
+
+.events-list {
+  max-height: 200px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+}
+
+.event-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #232a38;
+  color: #ececec;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease;
+}
+
+.event-card:last-child {
+  border-bottom: none;
+}
+
+.event-card:hover {
+  background: #263040;
+}
+
+.event-card.selected {
+  background: #1f4738;
+}
+
+.event-sport {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8b93a7;
+  background: #232a38;
+  border-radius: 6px;
+  padding: 4px 8px;
+  white-space: nowrap;
+}
+
+.event-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #ececec;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.event-play {
+  font-size: 12px;
+  font-weight: 700;
+  color: #4ade80;
+  white-space: nowrap;
+}
+
+
 .channels-box h2 {
   margin: 0 0 14px;
   color: #ececec;

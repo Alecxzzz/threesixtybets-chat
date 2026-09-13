@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import Hls from "hls.js";
 import { channels as staticChannels } from "../data/channels";
+import { events as todayEvents } from "../data/events";
 import { resolveStreamUrl, needsProxy, transcoderUrl } from "../utils/stream";
 import { fetchChannels, getStoredSession } from "../services/api";
 
@@ -384,6 +385,30 @@ function TV() {
     setReloadEpoch((e) => e + 1);
   };
 
+  // Convierte un evento del scraper al mismo formato que un canal, para que
+  // se reproduzca en el mismo reproductor (con su referer via proxy).
+  const eventToChannel = (ev) => ({
+    id: ev.id,
+    name: ev.sport ? `${ev.sport.toUpperCase()} · ${ev.name}` : ev.name,
+    status: "ACTIVO",
+    ads: false,
+    stream: ev.stream,
+    type: ev.type || "m3u8",
+    referer: ev.referer,
+    useProxy: true,
+    geoRestriction: "NONE",
+  });
+
+  const playEvent = (ev) => {
+    const ch = eventToChannel(ev);
+    setPlayerError("");
+    setLoading(true);
+    setViaProxy(needsProxy(ch));
+    setViaTranscoder(false);
+    setCurrentChannel(ch);
+  };
+
+
 
 
   return (
@@ -498,6 +523,31 @@ function TV() {
 
         <div className="channels-box">
           <h2>Canales disponibles</h2>
+
+          {todayEvents.length > 0 && (
+            <div className="events-box">
+              <div className="events-box-header">
+                <span className="events-live-dot" />
+                Partidos de hoy
+              </div>
+              <div className="events-list">
+                {todayEvents.map((ev) => (
+                  <button
+                    key={ev.id}
+                    type="button"
+                    className={`event-card ${
+                      currentChannel?.id === ev.id ? "selected" : ""
+                    }`}
+                    onClick={() => playEvent(ev)}
+                  >
+                    <span className="event-sport">{ev.sport}</span>
+                    <span className="event-name">{ev.name}</span>
+                    <span className="event-play">Ver ▸</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="channel-list">
             {channels.map((channel) => (
