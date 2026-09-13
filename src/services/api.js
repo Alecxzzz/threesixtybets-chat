@@ -125,10 +125,12 @@ export async function saveChatMessage(session, message) {
   return readJson(res);
 }
 
-export async function sendChatMessage({ mensaje, modelo }) {
+export async function sendChatMessage({ mensaje, modelo }, session) {
   const res = await fetch(`${API_URL}/chat`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: session
+      ? { ...authHeaders(session) }
+      : { "Content-Type": "application/json" },
     body: JSON.stringify({ mensaje, buscar: true, modelo }),
   });
 

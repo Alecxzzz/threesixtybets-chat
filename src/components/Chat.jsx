@@ -8,17 +8,30 @@ import {
   sendChatMessage,
 } from "../services/api";
 
-const WELCOME_MESSAGE = {
-  role: "ai",
-  text: "Bienvenido. Escribe un partido o una pregunta deportiva. Tus busquedas visibles se guardan por 24 horas.",
-};
+// Saludo de bienvenida ROTATIVO y personalizado con el nombre del usuario.
+const SALUDOS = [
+  (u) => `Bienvenido ${u}, que tienes en mente para hoy?`,
+  (u) => `Hola de nuevo ${u}, que partido analizamos hoy?`,
+  (u) => `${u}, listo para buscar valor en los partidos de hoy?`,
+  (u) => `Que gusto verte ${u}. Preguntame lo que quieras del mundo deportivo.`,
+  (u) => `Adelante ${u}, escribe un partido y te doy el analisis completo.`,
+  (u) => `Hola ${u}, el dia esta lleno de partidos. Cual te interesa?`,
+  (u) => `Bienvenido ${u}, tus analisis y picks te esperan. Que buscamos hoy?`,
+  (u) => `Nos alegra verte ${u}. Cual es el partido de tu interes hoy?`,
+];
+
+function mensajeBienvenida(session) {
+  const usuario = session?.user?.username || "";
+  const saludo = SALUDOS[Math.floor(Math.random() * SALUDOS.length)](usuario);
+  return { role: "ai", text: saludo };
+}
 const MODELS = [
   { id: "you", name: "Demian tipster" },
   { id: "groq", name: "365AI Tipster" },
 ];
 
 function Chat({ session }) {
-  const [messages, setMessages] = useState([WELCOME_MESSAGE]);
+  const [messages, setMessages] = useState(() => [mensajeBienvenida(session)]);
   const [value, setValue] = useState("");
   const [model, setModel] = useState("you");
   const [loading, setLoading] = useState(false);
@@ -33,14 +46,14 @@ function Chat({ session }) {
         const savedMessages = await loadChatMessages(session);
         if (!active) return;
 
-        setMessages(savedMessages.length ? savedMessages : [WELCOME_MESSAGE]);
+        setMessages(savedMessages.length ? savedMessages : [mensajeBienvenida(session)]);
       } catch (error) {
         if (!active) return;
 
         if (error instanceof AuthExpiredError) return;
 
         setMessages([
-          WELCOME_MESSAGE,
+          mensajeBienvenida(session),
           {
             role: "ai",
             text: "No pude cargar tu historial: " + error.message,
@@ -106,7 +119,7 @@ function Chat({ session }) {
         const text = await sendChatMessage({
           mensaje: userMessage.text,
           modelo: model,
-        });
+        }, session);
         const aiMessage = { role: "ai", text };
         await appendAndSave(aiMessage);
         setLoading(false);
