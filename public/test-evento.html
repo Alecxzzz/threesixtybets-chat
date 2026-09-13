@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Test evento directo (hls.js)</title>
+  <style>
+    body { background: #0f1117; color: #ececec; font-family: system-ui; padding: 24px; }
+    #log { white-space: pre-wrap; font-family: monospace; font-size: 12px; color: #9fd; max-height: 300px; overflow: auto; }
+    video { width: 100%; max-width: 720px; background: #000; border-radius: 12px; }
+  </style>
+</head>
+<body>
+  <h2>Test: reproducción DIRECTA desde el navegador (sin proxy)</h2>
+  <video id="v" controls autoplay muted playsinline></video>
+  <p>Log (abre también F12 → Console):</p>
+  <div id="log"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
+  <script>
+    const logEl = document.getElementById("log");
+    const log = (msg) => {
+      logEl.textContent += msg + "\n";
+      console.log("[TEST]", msg);
+    };
+
+    // Token fresco generado al cargar la página de la18hd.
+    // Si venció, cambia esta URL por otra de links_scraper.txt.
+    const SRC = "https://y2fzdgxl.fubo18.com:443/espnpremium/mono.m3u8?token=d25281b5e765082f1063b9bcaa0cb1e5542a0d0e-a-1789343234-1789325234";
+
+    const video = document.getElementById("v");
+    log("Probando: " + SRC);
+
+    if (Hls.isSupported()) {
+      const hls = new Hls();
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        log("✅ MANIFIESTO CARGADO — el stream directo FUNCIONA");
+        video.play().catch((e) => log("play() bloqueado: " + e.message));
+      });
+      hls.on(Hls.Events.ERROR, (ev, data) => {
+        if (!data.fatal) return;
+        log("❌ ERROR FATAL: " + data.type + " / " + data.details);
+        if (data.details === "manifestLoadError") {
+          log("👉 No se pudo descargar el m3u8. Revisá en la consola si dice");
+          log("   'CORS' o 'blocked' — eso indica el bloqueo exacto.");
+        }
+      });
+      hls.loadSource(SRC);
+      hls.attachMedia(video);
+    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+      video.src = SRC;
+      video.play().catch((e) => log("play(): " + e.message));
+    } else {
+      log("❌ Este navegador no soporta HLS");
+    }
+  </script>
+</body>
+</html>
