@@ -18,6 +18,8 @@ function TV() {
   const videoRef = useRef(null);
   const hlsRef = useRef(null);
   const playerBoxRef = useRef(null);
+  const reloadAttemptsRef = useRef(0); // intentos de reconexión automática
+  const lastChannelKeyRef = useRef(null);
 
   // Carga los canales desde la BD (solo los ACTIVOS) y los combina con los
   // estaticos de channels.js. Los estaticos tienen prioridad: si un canal
@@ -69,6 +71,13 @@ function TV() {
     let mediaRecoveryAttempts = 0;
     let networkRecoveryAttempts = 0;
 
+    // Reset del contador de reconexiones cuando se cambia de canal
+    const channelKey = `${currentChannel.id || currentChannel.name}`;
+    if (lastChannelKeyRef.current !== channelKey) {
+      lastChannelKeyRef.current = channelKey;
+      reloadAttemptsRef.current = 0;
+    }
+
     setLoading(true);
     console.log("[TV] cargando:", streamUrl, alreadyProxied ? "(proxy)" : "(directo)");
 
@@ -116,6 +125,7 @@ function TV() {
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         setPlayerError("");
         setLoading(false);
+        reloadAttemptsRef.current = 0; // conexión exitosa: reinicia el contador
         video.play().catch((err) => {
           console.log("Autoplay bloqueado:", err);
         });
@@ -161,14 +171,13 @@ function TV() {
             return;
           }
           const isBufferError = data.details === Hls.ErrorDetails.BUFFER_APPEND_ERROR;
-          const prefix = isBufferError ? "Buffer corrupto" : "Problema de codificación";
           const msgs = [
-            `${prefix}, recuperando (intento 1)...`,
-            `Reiniciando decodificador (intento 2)...`,
-            `${prefix}, recuperando (intento 3)...`,
-            `Reiniciando decodificador (intento 4)...`,
-            `${prefix}, recuperando (intento 5)...`,
-            `Reiniciando (intento 6)...`,
+            "Problema técnico.",
+            "Problema técnico.",
+            "Problema técnico.",
+            "Problema técnico.",
+            "Problema técnico.",
+            "Problema técnico.",
           ];
           setPlayerError(msgs[mediaRecoveryAttempts - 1]);
           try {
@@ -206,7 +215,23 @@ function TV() {
           return;
         }
 
-        // 3) Mensajes específicos
+        // 3) Auto-reconexión: un canal en vivo que se corta debe reintentarse
+        //    solo (ej. el servidor deja de responder el m3u8 a media emisión).
+        const MAX_RELOADS = 5;
+        if (reloadAttemptsRef.current < MAX_RELOADS) {
+          reloadAttemptsRef.current++;
+          const espera = Math.min(2000 * reloadAttemptsRef.current, 8000); // backoff: 2s..8s
+          setPlayerError("Conexión perdida.");
+          setTimeout(() => {
+            if (!cancelled) {
+              destroyHls();
+              setReloadEpoch((e) => e + 1);
+            }
+          }, espera);
+          return;
+        }
+
+        // 4) Mensajes específicos (ya se agotaron los reintentos)
         if (data.details === Hls.ErrorDetails.BUFFER_INCOMPATIBLE_CODECS_ERROR) {
           setPlayerError(
             "Este canal usa un códec que tu navegador no soporta (ej. HEVC/H.265). Prueba en otro navegador o dispositivo."
@@ -245,6 +270,38 @@ function TV() {
       destroyHls();
     };
   }, [currentChannel, viaProxy, viaTranscoder, reloadEpoch, destroyHls]);
+
+  // Vigilante anti-congelamiento: si la imagen se queda quieta (stream cortado
+  // sin error reportado por hls.js), fuerza la reconexión del mismo canal.
+  useEffect(() => {
+    if (!currentChannel || currentChannel.type === "iframe") return;
+    let lastTime = -1;
+    let staleCount = 0;
+    const id = setInterval(() => {
+      const video = videoRef.current;
+      if (!video) return;
+      // Si está pausado o bufferizando, no es un congelamiento
+      if (video.paused || video.readyState < 3) {
+        lastTime = video.currentTime;
+        return;
+      }
+      if (video.currentTime === lastTime) {
+        staleCount++;
+        if (staleCount >= 3) {
+          // ~15 segundos sin avanzar
+          staleCount = 0;
+          console.log("[TV] Watchdog: stream congelado, reconectando...");
+          setPlayerError("El stream se congeló.");
+          setReloadEpoch((e) => e + 1);
+          return;
+        }
+      } else {
+        staleCount = 0;
+      }
+      lastTime = video.currentTime;
+    }, 5000);
+    return () => clearInterval(id);
+  }, [currentChannel, reloadEpoch]);
 
   // Determinar el sandbox para iframes: bloquear popups pero permitir autoplay
   const getIframeSandbox = (channel) => {
@@ -316,6 +373,17 @@ function TV() {
       console.log("Fullscreen no disponible:", err);
     }
   };
+
+  // Recarga manual del canal: resetea los intentos y reinicia el player
+  const reloadChannel = () => {
+    setPlayerError("");
+    setLoading(true);
+    reloadAttemptsRef.current = 0;
+    setViaProxy(needsProxy(currentChannel));
+    setViaTranscoder(false);
+    setReloadEpoch((e) => e + 1);
+  };
+
 
 
   return (
@@ -410,7 +478,20 @@ function TV() {
             </div>
 
             {playerError && (
-              <p style={{ color: "red", marginTop: "10px" }}>{playerError}</p>
+              <div className="tv-error-row">
+                <p className="tv-error-text">{playerError}</p>
+                <button
+                  type="button"
+                  className="tv-reload-btn"
+                  onClick={reloadChannel}
+                  title="Recargar el canal"
+                >
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                    <path d="M17.65 6.35A7.96 7.96 0 0 0 12 4a8 8 0 1 0 8 8h-2a6 6 0 1 1-6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                  </svg>
+                  Recargar canal
+                </button>
+              </div>
             )}
           </div>
         )}
