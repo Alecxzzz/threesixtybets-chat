@@ -386,7 +386,11 @@ function TV() {
   };
 
   // Convierte un evento del scraper al mismo formato que un canal, para que
-  // se reproduzca en el mismo reproductor (con su referer via proxy).
+  // se reproduzca en el mismo reproductor.
+  // IMPORTANTE: sin proxy. El host del stream (fubo18.com) bloquea IPs de
+  // datacenter, así que el backend NO puede traerlo — pero el navegador del
+  // usuario sí. Se intenta directo primero; si diera CORS, el reproductor
+  // reintenta via proxy solo.
   const eventToChannel = (ev) => ({
     id: ev.id,
     name: ev.sport ? `${ev.sport.toUpperCase()} · ${ev.name}` : ev.name,
@@ -395,7 +399,7 @@ function TV() {
     stream: ev.stream,
     type: ev.type || "m3u8",
     referer: ev.referer,
-    useProxy: true,
+    useProxy: false,
     geoRestriction: "NONE",
   });
 
