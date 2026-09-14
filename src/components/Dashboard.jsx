@@ -90,7 +90,7 @@ function DashboardSkeleton() {
   );
 }
 
-export default function Dashboard({ session }) {
+export default function Dashboard({ session, onIrACreditos }) {
   const [data, setData] = useState(null);
   const [vista, setVista] = useState("dia"); // "dia" | "acertados"
   const [error, setError] = useState(null);
@@ -236,7 +236,47 @@ export default function Dashboard({ session }) {
               : "Aún no hay pronósticos acertados hoy."}
           </p>
         )}
-        {picks.map((p) => (
+        {picks.map((p) =>
+          p.bloqueado ? (
+            <article key={p.id} className="dash-pick pick-bloqueado">
+              <div className="dp-badges">
+                <span className="dp-badge b-locked">🔒 Premium</span>
+              </div>
+              <div className="dp-evento">
+                <div className="dp-fila-equipo">
+                  {p.awayLogo ? (
+                    <img className="dp-logo" src={p.awayLogo} alt="" loading="lazy" />
+                  ) : (
+                    <span className="dp-logo dp-logo-fallback">?</span>
+                  )}
+                  <span className="dp-equipo">{p.awayName || p.eventName}</span>
+                </div>
+                <div className="dp-fila-equipo">
+                  {p.homeLogo ? (
+                    <img className="dp-logo" src={p.homeLogo} alt="" loading="lazy" />
+                  ) : (
+                    <span className="dp-logo dp-logo-fallback">?</span>
+                  )}
+                  <span className="dp-equipo">{p.homeName || ""}</span>
+                </div>
+              </div>
+              <div className="dp-mercado dp-bloqueado-txt">
+                La IA ya eligio su apuesta para este partido 🔒
+              </div>
+              <div className="dp-foot">
+                <span className="dp-liga">{p.sportLabel}</span>
+                <span className="dp-fecha">{etiquetaFecha(p.eventDate)}</span>
+              </div>
+              <button
+                type="button"
+                className="dp-unlock"
+                onClick={onIrACreditos}
+                title="Ver planes"
+              >
+                🔓 Desbloquear con Premium
+              </button>
+            </article>
+          ) : (
           <article key={p.id} className={`dash-pick ${p.result === "ACIERTO" ? "pick-acierto" : ""}`}>
             <div className="dp-badges">
               <ConfianzaBadge confianza={p.confidence} />
@@ -279,7 +319,8 @@ export default function Dashboard({ session }) {
               <span className="dp-fecha">{etiquetaFecha(p.eventDate)}</span>
             </div>
           </article>
-        ))}
+          )
+        )}
       </section>
 
       {/* ===== AVISO ===== */}

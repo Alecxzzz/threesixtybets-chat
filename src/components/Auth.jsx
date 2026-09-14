@@ -30,7 +30,7 @@ function Auth({ onAuth }) {
     const password = form.password;
     const redeemCode = form.redeemCode.trim().toUpperCase();
 
-    if (!username || !password || (isSignUp && !redeemCode)) {
+    if (!username || !password) {
       setError("Completa todos los campos.");
       return;
     }
@@ -69,8 +69,8 @@ function Auth({ onAuth }) {
           <p className="auth-kicker">3SIXTYBETS AI</p>
           <h1>{isSignUp ? "Crea tu cuenta" : "Bienvenido de vuelta"}</h1>
           <p>
-            Accede al chat de inteligencia deportiva y guarda tu historial de
-            picks con tu usuario y una key activa.
+            Crea tu cuenta GRATIS y desbloquea el acceso completo a los picks
+            de IA, estadisticas y la TV cuando quieras.
           </p>
         </div>
 
@@ -115,13 +115,17 @@ function Auth({ onAuth }) {
 
           {isSignUp && (
             <label>
-              Codigo de canjeo
+              Codigo de canjeo (opcional)
               <input
                 value={form.redeemCode}
                 onChange={(e) => updateField("redeemCode", e.target.value)}
                 autoComplete="off"
                 placeholder="SIXTYBETS-XXXX-XXXX"
               />
+              <span className="auth-hint">
+                Sin codigo entras GRATIS con picks limitados. Con codigo, tu
+                membresia se activa de una.
+              </span>
             </label>
           )}
 

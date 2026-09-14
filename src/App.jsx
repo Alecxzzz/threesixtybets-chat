@@ -134,12 +134,6 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (session && hasAccessExpired(session.user)) {
-      setPage("credits");
-    }
-  }, []);
-
-  useEffect(() => {
     function expireSession() {
       setSession(null);
       setSidebarOpen(false);
@@ -158,7 +152,9 @@ function App() {
   }
 
   function guardPage(p) {
-    const restricted = ["dashboard", "chat", "tv", "stats"];
+    // El dashboard es freemium (2 picks gratis + candados); chat, tv y stats
+    // siguen siendo solo premium.
+    const restricted = ["chat", "tv", "stats"];
     if (restricted.includes(p) && hasAccessExpired(session.user)) {
       setPremiumBlocked(true);
       return;
@@ -183,7 +179,15 @@ function App() {
       {sidebarOpen && <div className="overlay" onClick={() => setSidebarOpen(false)} />}
       <main className="main">
         <Header openSidebar={() => setSidebarOpen(true)} user={session.user} onSignOut={signOut} />
-        {page === "dashboard" && !hasAccessExpired(session.user) && <Dashboard session={session} />}
+        {page === "dashboard" && (
+          <Dashboard
+            session={session}
+            onIrACreditos={() => {
+              setSidebarOpen(false);
+              setPage("credits");
+            }}
+          />
+        )}
         {page === "chat" && !hasAccessExpired(session.user) && <Chat session={session} />}
         {page === "tv" && !hasAccessExpired(session.user) && <TV />}
         {page === "credits" && <Credits session={session} onSessionRefresh={handleSessionRefresh} />}
