@@ -52,6 +52,61 @@ function SoloPremium({ onIrACreditos }) {
   );
 }
 
+// TV gratis: 1 minuto de visualizacion total por cuenta (persistente,
+// no se resetea recargando), con contador visible; luego paywall.
+const TV_FREE_MS = 60_000;
+
+function obtenerTiempoGratisTV() {
+  try {
+    const first = Number(localStorage.getItem("tv_free_first_visit") || 0);
+    if (!first) {
+      localStorage.setItem("tv_free_first_visit", String(Date.now()));
+      return TV_FREE_MS;
+    }
+    return Math.max(TV_FREE_MS - (Date.now() - first), 0);
+  } catch {
+    return TV_FREE_MS;
+  }
+}
+
+function formatSegundos(ms) {
+  const s = Math.ceil(ms / 1000);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+
+function TVGratis({ onIrACreditos }) {
+  const [restante, setRestante] = useState(obtenerTiempoGratisTV);
+
+  useEffect(() => {
+    if (restante <= 0) return undefined;
+    const id = setInterval(() => setRestante(obtenerTiempoGratisTV()), 1000);
+    return () => clearInterval(id);
+  }, [restante > 0]);
+
+  if (restante <= 0) {
+    return <SoloPremium onIrACreditos={onIrACreditos} />;
+  }
+
+  return (
+    <div style={{ position: "relative" }}>
+      <TV />
+      <div
+        style={{
+          position: "absolute", top: 12, right: 16, zIndex: 30,
+          background: "rgba(0,0,0,0.78)", border: "1px solid #facc15",
+          borderRadius: 10, padding: "8px 14px", color: "#facc15",
+          fontWeight: 800, fontSize: 14, textAlign: "center",
+        }}
+      >
+        ⏳ Vista gratuita: {formatSegundos(restante)}
+        <div style={{ fontWeight: 400, fontSize: 11, color: "#cbd5e1", marginTop: 2 }}>
+          Al terminar necesitas Premium
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function hasAccessExpired(user) {
   if (!user?.access_expires_at) return true;
   // La BD guarda UTC sin sufijo: sin la "Z", JS lo interpretaria como
@@ -226,7 +281,7 @@ function App() {
         )}
         {page === "tv" && (
           hasAccessExpired(session.user)
-            ? <SoloPremium onIrACreditos={() => setPage("credits")} />
+            ? <TVGratis onIrACreditos={() => setPage("credits")} />
             : <TV />
         )}
         {page === "credits" && <Credits session={session} onSessionRefresh={handleSessionRefresh} />}
