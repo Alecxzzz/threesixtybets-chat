@@ -25,6 +25,33 @@ const PAYMENT_METHODS = [
   { icon: "/payments/binance.png", name: "BINANCE ID", value: "555983259 - A HollyWoodAlecxz" },
 ];
 
+function SoloPremium({ onIrACreditos }) {
+  return (
+    <div style={{
+      display: "flex", flexDirection: "column", alignItems: "center",
+      justifyContent: "center", minHeight: "60vh", gap: 14, textAlign: "center", padding: 20,
+    }}>
+      <div style={{ fontSize: 52 }}>🔒</div>
+      <h2 style={{ margin: 0, color: "#ececec" }}>Función exclusiva de Premium</h2>
+      <p style={{ margin: 0, color: "#8b95a1", maxWidth: 420 }}>
+        Esta sección (chat ilimitado, TV en vivo y estadisticas) es solo para
+        miembros Premium. Desbloqueala pagando con tarjeta o canjeando un codigo.
+      </p>
+      <button
+        type="button"
+        onClick={onIrACreditos}
+        style={{
+          marginTop: 6, padding: "12px 22px", border: "1px solid #4ade80",
+          borderRadius: 10, background: "rgba(74, 222, 128, 0.12)", color: "#4ade80",
+          fontWeight: 800, fontSize: 14, cursor: "pointer",
+        }}
+      >
+        ⭐ Ver planes y desbloquear
+      </button>
+    </div>
+  );
+}
+
 function hasAccessExpired(user) {
   if (!user?.access_expires_at) return true;
   const d = new Date(user.access_expires_at);
@@ -188,10 +215,22 @@ function App() {
             }}
           />
         )}
-        {page === "chat" && !hasAccessExpired(session.user) && <Chat session={session} />}
-        {page === "tv" && !hasAccessExpired(session.user) && <TV />}
+        {page === "chat" && (
+          hasAccessExpired(session.user)
+            ? <SoloPremium onIrACreditos={() => setPage("credits")} />
+            : <Chat session={session} />
+        )}
+        {page === "tv" && (
+          hasAccessExpired(session.user)
+            ? <SoloPremium onIrACreditos={() => setPage("credits")} />
+            : <TV />
+        )}
         {page === "credits" && <Credits session={session} onSessionRefresh={handleSessionRefresh} />}
-        {page === "stats" && !hasAccessExpired(session.user) && <Stats />}
+        {page === "stats" && (
+          hasAccessExpired(session.user)
+            ? <SoloPremium onIrACreditos={() => setPage("credits")} />
+            : <Stats />
+        )}
         {page === "admin" && session.user.role === "admin" && <AdminKeys session={session} />}
         {page === "transactions" && <Transactions session={session} />}
       </main>
