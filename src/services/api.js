@@ -341,6 +341,18 @@ export async function fetchEvents(session) {
 }
 
 /**
+ * Token FRESCO de un partido: el backend pide la pagina del evento en el
+ * momento del clic y extrae el playbackURL vigente.
+ */
+export async function eventResolve(session, pageUrl) {
+  const params = new URLSearchParams({ url: pageUrl });
+  const res = await fetch(`${API_URL}/event-resolve?${params}`, {
+    headers: authHeaders(session),
+  });
+  return readJson(res);
+}
+
+/**
  * PANEL ADMIN: lista todos los canales (activos y apagados).
  */
 export async function adminListChannels(session) {

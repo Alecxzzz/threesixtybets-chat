@@ -3,7 +3,7 @@ import Hls from "hls.js";
 import { channels as staticChannels } from "../data/channels";
 import { events as staticEvents } from "../data/events";
 import { resolveStreamUrl, needsProxy, transcoderUrl } from "../utils/stream";
-import { fetchChannels, fetchEvents, getStoredSession } from "../services/api";
+import { fetchChannels, fetchEvents, eventResolve, getStoredSession } from "../services/api";
 
 function TV() {
   const [channels, setChannels] = useState(staticChannels);
@@ -402,28 +402,39 @@ function TV() {
     setReloadEpoch((e) => e + 1);
   };
 
-  // Convierte un evento del scraper al mismo formato que un canal, para que
-  // se reproduzca en el mismo reproductor.
-  // IMPORTANTE: sin proxy. El host del stream (fubo18.com) bloquea IPs de
-  // datacenter, así que el backend NO puede traerlo — pero el navegador del
-  // usuario sí. Se intenta directo primero; si diera CORS, el reproductor
-  // reintenta via proxy solo.
-  const eventToChannel = (ev) => ({
-    id: ev.id,
-    name: ev.sport ? `${ev.sport.toUpperCase()} · ${ev.name}` : ev.name,
-    status: "ACTIVO",
-    ads: false,
-    stream: ev.stream,
-    type: ev.type || "m3u8",
-    referer: ev.referer,
-    useProxy: false,
-    geoRestriction: "NONE",
-  });
-
-  const playEvent = (ev) => {
-    const ch = eventToChannel(ev);
+  // Al hacer clic en un partido: pide al backend el playbackURL FRESCO de la
+  // pagina del canal (la fuente invalida tokens viejos, asi que el m3u8
+  // guardado en la BD puede estar muerto). Si la resolucion falla, usa el
+  // m3u8 guardado como fallback. Reproduccion DIRECTA en el navegador (el
+  // host del stream bloquea IPs de datacenter, el proxy no puede traerlo).
+  const playEvent = async (ev) => {
     setPlayerError("");
     setLoading(true);
+    let url = (ev.stream || "").trim();
+    if (ev.referer) {
+      try {
+        const res = await eventResolve(getStoredSession(), ev.referer);
+        if (res?.url) url = res.url;
+      } catch (err) {
+        console.log("[TV] event-resolve fallo, uso el link guardado:", err?.message);
+      }
+    }
+    if (!url) {
+      setLoading(false);
+      setPlayerError("Este partido no tiene stream disponible.");
+      return;
+    }
+    const ch = {
+      id: ev.id,
+      name: ev.sport ? `${ev.sport.toUpperCase()} · ${ev.name}` : ev.name,
+      status: "ACTIVO",
+      ads: false,
+      stream: url,
+      type: ev.type || "m3u8",
+      referer: ev.referer,
+      useProxy: false,
+      geoRestriction: "NONE",
+    };
     setViaProxy(needsProxy(ch));
     setViaTranscoder(false);
     setCurrentChannel(ch);
