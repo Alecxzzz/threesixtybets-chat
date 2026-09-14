@@ -122,7 +122,11 @@ export default function Dashboard({ session }) {
   const usarHoy = efectividadHoy !== null && efectividadHoy !== undefined;
   const porcentaje = usarHoy ? efectividadHoy : efectividadHist || 0;
   const resueltosMostrar = usarHoy ? stats.resueltos_hoy : stats?.historico_resueltos || 0;
-  const aciertosMostrar = usarHoy ? stats.pronosticos_acertados_por_la_ia : stats?.historico_aciertos || 0;
+  // Coherencia: en modo HOY, aciertos de HOY (los de ayer no entran en el
+  // denominador de resueltos_hoy; mostrarlos aqui daba "14 de 6").
+  const aciertosMostrar = usarHoy
+    ? (stats.aciertos_hoy ?? stats.pronosticos_acertados_por_la_ia)
+    : stats?.historico_aciertos || 0;
 
   if (error)
     return <div className="dash-error">⚠️ No se pudo cargar el dashboard: {error}</div>;
