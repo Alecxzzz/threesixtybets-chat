@@ -45,6 +45,14 @@ export default function PagosAceptados() {
         </span>
         <span ref={badgeRef} className="pagos-pagadito" title="Comercio certificado por Pagadito" />
       </div>
+      <a
+        className="pagos-track-link"
+        href="https://site--threesixtybetssz--qytms2wflqbs.code.run/track"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        📊 Ver el track record completo de la IA
+      </a>
     </div>
   );
 }

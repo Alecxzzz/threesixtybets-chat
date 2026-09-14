@@ -887,6 +887,20 @@ button {
   height: 36px !important;
 }
 
+.pagos-track-link {
+  color: #4ade80;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  border-bottom: 1px dashed rgba(74, 222, 128, 0.5);
+  padding-bottom: 2px;
+  transition: opacity 0.15s ease;
+}
+
+.pagos-track-link:hover {
+  opacity: 0.8;
+}
+
 .tv-controls-bar {
   position: absolute;
   left: 0;
