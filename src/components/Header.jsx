@@ -124,7 +124,14 @@ function PerfilPanel({ onClose }) {
       .finally(() => setCargando(false));
   }, []);
 
-  const exp = info?.access_expires_at ? new Date(info.access_expires_at) : null;
+  // La BD guarda UTC sin sufijo: agregar "Z" para parsear correcto.
+  const expRaw = info?.access_expires_at
+    ? (() => {
+        const s = String(info.access_expires_at).replace(" ", "T");
+        return /[zZ+]/.test(s) ? s : s + "Z";
+      })()
+    : null;
+  const exp = expRaw ? new Date(expRaw) : null;
   const ilimitado = exp && exp.getFullYear() >= 9999;
   const dias = exp && !ilimitado ? Math.max(Math.ceil((exp - new Date()) / 86400000), 0) : 0;
 

@@ -54,7 +54,11 @@ function SoloPremium({ onIrACreditos }) {
 
 function hasAccessExpired(user) {
   if (!user?.access_expires_at) return true;
-  const d = new Date(user.access_expires_at);
+  // La BD guarda UTC sin sufijo: sin la "Z", JS lo interpretaria como
+  // hora local y las cuentas gratis recien creadas parecerian premium
+  // por varias horas (bug de zona horaria).
+  const raw = String(user.access_expires_at).replace(" ", "T");
+  const d = new Date(/[zZ+]/.test(raw) ? raw : raw + "Z");
   if (d.getFullYear() >= 9999) return false;
   return d.getTime() < Date.now();
 }
