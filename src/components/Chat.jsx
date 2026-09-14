@@ -77,7 +77,18 @@ function Chat({ session }) {
     try {
       await saveChatMessage(session, message);
     } catch (error) {
-      if (error instanceof AuthExpiredError) return;
+      if (error instanceof AuthExpiredError) return false;
+
+      if ((error?.message || "").toLowerCase().includes("limite gratuito")) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "ai",
+            text: "🔒 Alcanzaste el limite gratuito del chat (2 conversaciones). Ve a la seccion Creditos y desbloquea Premium para continuar charlando con la IA.",
+          },
+        ]);
+        return false;
+      }
 
       setMessages((prev) => [
         ...prev,
@@ -87,6 +98,7 @@ function Chat({ session }) {
         },
       ]);
     }
+    return true;
   }
 
   // Detecta los errores que vale la pena reintentar: timeout de You.com,
@@ -110,7 +122,12 @@ function Chat({ session }) {
     const userMessage = { role: "user", text: value.trim() };
     setValue("");
     setLoading(true);
-    await appendAndSave(userMessage);
+    const guardado = await appendAndSave(userMessage);
+    if (guardado === false) {
+      // Limite gratuito alcanzado: no gastamos la IA.
+      setLoading(false);
+      return;
+    }
 
     const MAX_ATTEMPTS = 3;
 
@@ -132,6 +149,18 @@ function Chat({ session }) {
         if (lastAttempt || !isRetryableError(error)) {
           setLoading(false);
           setRetrying(false);
+
+          if ((error?.message || "").toLowerCase().includes("limite gratuito")) {
+            setMessages((prev) => [
+              ...prev,
+              {
+                role: "ai",
+                text: "🔒 Alcanzaste el limite gratuito del chat (2 conversaciones). Ve a la seccion Creditos y desbloquea Premium para continuar.",
+              },
+            ]);
+            return;
+          }
+
           const isFailFetch = error?.message === "Failed to fetch";
           setMessages((prev) => [
             ...prev,
