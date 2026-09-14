@@ -807,6 +807,86 @@ button {
   height: 100%;
 }
 
+/* ===== Pagos aceptados (bajo el aviso del dashboard) ===== */
+.pagos-aceptados {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 20px 20px;
+  margin-top: 14px;
+}
+
+.pagos-titulo {
+  color: #aab4c3;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pagos-logos {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.pagos-logos img {
+  height: 34px;
+  width: auto;
+  border-radius: 8px;
+  display: block;
+}
+
+.pagos-tarjeta {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pg-visa {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 32px;
+  border-radius: 6px;
+  background: #1a1f71;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.02em;
+}
+
+.pg-mc {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pg-mc svg {
+  display: block;
+}
+
+.pg-mc-txt {
+  color: #aab4c3;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pagos-pagadito {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+}
+
+.pagos-pagadito img {
+  height: 36px !important;
+}
+
 .tv-controls-bar {
   position: absolute;
   left: 0;

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { fetchDashboard } from "../services/api";
+import PagosAceptados from "./PagosAceptados";
 
 /**
  * Dashboard - pagina principal de 3SIXTYBETS.
@@ -284,6 +285,7 @@ export default function Dashboard({ session }) {
         garantizamos la exactitud de los resultados deportivos. Cualquier decisión
         tomada basándose en esta información es de absoluta responsabilidad del
         usuario. Plataforma exclusiva para mayores de 18 años.
+        <PagosAceptados />
       </footer>
     </div>
   );
