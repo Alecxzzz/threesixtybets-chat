@@ -238,10 +238,10 @@ function App() {
   }
 
   function guardPage(p) {
-    // El dashboard es freemium (2 picks gratis + candados); chat, tv y stats
-    // siguen siendo solo premium.
-    const restricted = ["chat", "tv", "stats"];
-    if (restricted.includes(p) && hasAccessExpired(session.user)) {
+    // Freemium: dashboard (2 picks + candados), chat (2 conversaciones, se
+    // aplica dentro de Chat) y TV (1 minuto con contador, TVGratis). Solo
+    // "stats" queda bloqueada en la navegacion.
+    if (p === "stats" && hasAccessExpired(session.user)) {
       setPremiumBlocked(true);
       return;
     }
