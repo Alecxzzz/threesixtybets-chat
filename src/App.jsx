@@ -88,11 +88,14 @@ function TVGratis({ onIrACreditos }) {
   }
 
   return (
-    <div style={{ position: "relative" }}>
+    <div style={{
+      position: "relative", flex: 1, minHeight: 0,
+      display: "flex", flexDirection: "column", minWidth: 0,
+    }}>
       <TV />
       <div
         style={{
-          position: "absolute", top: 12, right: 16, zIndex: 30,
+          position: "absolute", top: 12, right: 16, zIndex: 30, pointerEvents: "none",
           background: "rgba(0,0,0,0.78)", border: "1px solid #facc15",
           borderRadius: 10, padding: "8px 14px", color: "#facc15",
           fontWeight: 800, fontSize: 14, textAlign: "center",
