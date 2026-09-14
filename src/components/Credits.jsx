@@ -3,9 +3,9 @@ import { redeemCode, refreshSession, createPagaditoPayment, getStoredSession } f
 import Modal from "./Modal";
 
 const PLANS = [
-  { price: "$5", days: "15 dias", label: "PREMIUM", code: "plan15" },
-  { price: "$10", days: "30 dias", label: "premium", code: "plan30" },
-  { price: "$15", days: "45 dias", label: "premium", code: "plan45" },
+  { price: "$10", days: "15 dias", label: "PREMIUM", code: "plan15" },
+  { price: "$15", days: "30 dias", label: "premium", code: "plan30" },
+  { price: "$25", days: "60 dias", label: "premium", code: "plan60" },
 ];
 
 const PAYMENT_METHODS = [

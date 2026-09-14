@@ -14,9 +14,9 @@ import Modal from "./components/Modal";
 import { clearSession, getStoredSession, signOut as signOutRequest, refreshSession } from "./services/api";
 
 const PLANS = [
-  { price: "", days: "15 dias" },
-  { price: "", days: "30 dias" },
-  { price: "", days: "45 dias" },
+  { price: "$10", days: "15 dias" },
+  { price: "$15", days: "30 dias" },
+  { price: "$25", days: "60 dias" },
 ];
 const PAYMENT_METHODS = [
   { icon: "/payments/usdt.png", name: "USDT BEP20", value: "0xc80245be011abd92d58404943f9f34b769177a79" },

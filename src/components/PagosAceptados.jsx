@@ -31,6 +31,8 @@ export default function PagosAceptados() {
       <div className="pagos-logos">
         <img src="/payments/usdt.png" alt="USDT (BEP20)" title="USDT (BEP20)" />
         <img src="/payments/btc.png" alt="Bitcoin (BEP20)" title="BTC (BEP20)" />
+        <img src="/payments/ltc.png" alt="Litecoin (BEP20)" title="LTC (BEP20)" />
+        <img src="/payments/binance.png" alt="Binance ID" title="Binance Pay / ID" />
         <span className="pagos-tarjeta" title="Tarjetas Visa / Mastercard (via Pagadito)">
           <span className="pg-visa">VISA</span>
           <span className="pg-mc" aria-label="Mastercard">
