@@ -40,9 +40,9 @@
     name: "CANAL AMERICA",
     status: "ACTIVO",
     ads: false,
-    stream: "http://38.252.215.33:8000/play/a006/index.m3u8",
+    stream: "https://prepublish.f.qaotic.net/a07/americahls-100056/playlist_720p.m3u8",
     geoRestriction: "NONE",
-    useProxy: true
+    useProxy: false
   },
   {
     id: 6,
@@ -85,7 +85,7 @@
     name: "DSPORTS 1",
     status: "ACTIVO",
     ads: false,
-    stream: "http://38.252.215.33:8000/play/a00q/index.m3u8",
+    stream: "http://138.121.113.175:8000/play/a0cj/index.m3u8",
     geoRestriction: "NONE",
     useProxy: false
   },
@@ -94,7 +94,7 @@
     name: "DSPORTS 2",
     status: "ACTIVO",
     ads: false,
-    stream: "http://38.252.215.33:8000/play/a00r/index.m3u8",
+    stream: "http://138.121.113.175:8000/play/a0ca/index.m3u8",
     geoRestriction: "NONE",
     useProxy: false
   },
