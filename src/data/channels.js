@@ -533,6 +533,15 @@ export const channels = [
     useProxy: false
   },
   {
+    id: 78,
+    name: "SPORTSNET LA (DODGERS)",
+    status: "ACTIVO",
+    ads: false,
+    stream: `${CDN_API_BASE}/tv/cdnlivetv/Sportsnet%20LA/us`,
+    geoRestriction: "NONE",
+    useProxy: false
+  },
+  {
     id: 59,
     name: "SPORTSNET ONE",
     status: "ACTIVO",
