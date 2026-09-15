@@ -4,7 +4,10 @@
 // CDN_API_BASE: déjalo vacío si el frontend se sirve desde el MISMO dominio que el
 // backend (Northflank). Si el frontend vive en otro dominio (ej. Vercel), pon aquí
 // la URL pública del backend, ej: "https://tu-servicio.northflank.app"
-const CDN_API_BASE = "";
+// CDN_API_BASE: URL del backend. Usa la misma variable VITE_API_URL del proyecto;
+// si no está definida, cae al dominio de producción de Northflank.
+const CDN_API_BASE =
+  import.meta.env.VITE_API_URL || "https://site--threesixtybetssz--qytms2wflqbs.code.run";
 
 export const channels = [
   {
