@@ -153,6 +153,15 @@
     useProxy: true
   },
   {
+    id: 46,
+    name: "ESPN DEPORTES",
+    status: "ACTIVO",
+    ads: false,
+    stream: "http://168.228.44.241:9998/play/a0dz/index.m3u8",
+    geoRestriction: "NONE",
+    useProxy: false
+  },
+  {
     id: 18,
     name: "ESPN USA",
     status: "ACTIVO",
