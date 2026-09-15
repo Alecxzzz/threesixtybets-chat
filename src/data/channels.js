@@ -1,4 +1,12 @@
-﻿export const channels = [
+﻿// CDN LIVE TV (dinámicos): los canales de cdnlivetv.tv NO llevan token fijo en el
+// stream — el backend resuelve el token fresco en cada sintonizada vía
+// /tv/cdnlivetv/{canal}/{codigo} y entrega el stream por el /hls-proxy existente.
+// CDN_API_BASE: déjalo vacío si el frontend se sirve desde el MISMO dominio que el
+// backend (Northflank). Si el frontend vive en otro dominio (ej. Vercel), pon aquí
+// la URL pública del backend, ej: "https://tu-servicio.northflank.app"
+const CDN_API_BASE = "";
+
+export const channels = [
   {
     id: 1,
     name: "ANALISTAS TV (EN INGLES)",
@@ -265,9 +273,9 @@
     name: "MLB TV",
     status: "ACTIVO",
     ads: false,
-    stream: "https://cdnlivetv.tv/secure/api/v1/6a288d2881d8192bb76cb5cf/playlist.m3u8?token=NmEyODhkMjg4MWQ4MTkyYmI3NmNiNWNmOjE3ODg0NTMwNDg1ODc6Y2RubGl2ZXR2LnR2OjE2ZjU4MGY4MWZhODVjYWYuNDUwOWMwNjE4ZDY4Zjg5ZTVhNzFhZDY5OTVkYTUzNTczYjVmZThkNzlhMjE3ZGU1MWE3YjY4MDVkN2QxYTQyNg",
+    stream: `${CDN_API_BASE}/tv/cdnlivetv/MLB%20Network/us`,
     geoRestriction: "NONE",
-    useProxy: true
+    useProxy: false
   },
   {
     id: 29,
@@ -418,8 +426,278 @@
     name: "YES NETWORK (YANKEES)",
     status: "ACTIVO",
     ads: false,
-    stream: "http://23.237.104.106:8080/USA_YES_NETWORK/index.m3u8",
+    stream: `${CDN_API_BASE}/tv/cdnlivetv/Yes%20Network/us`,
     geoRestriction: "NONE",
-    useProxy: true
+    useProxy: false
+  },
+  {
+    id: 48,
+    name: "TNT SPORTS CHILE",
+    status: "ACTIVO",
+    ads: false,
+    stream: `${CDN_API_BASE}/tv/cdnlivetv/TNT%20Sports/cl`,
+    geoRestriction: "NONE",
+    useProxy: false
+  },
+  {
+    id: 49,
+    name: "TNT (USA)",
+    status: "ACTIVO",
+    ads: false,
+    stream: `${CDN_API_BASE}/tv/cdnlivetv/TNT/us`,
+    geoRestriction: "NONE",
+    useProxy: false
+  },
+  {
+    id: 50,
+    name: "BEIN SPORTS USA",
+    status: "ACTIVO",
+    ads: false,
+    stream: `${CDN_API_BASE}/tv/cdnlivetv/beIN%20SPORTS/us`,
+    geoRestriction: "NONE",
+    useProxy: false
+  },
+  {
+    id: 51,
+    name: "BEIN SPORTS 1 USA",
+    status: "ACTIVO",
+    ads: false,
+    stream: `${CDN_API_BASE}/tv/cdnlivetv/beIN%20SPORTS%201/us`,
+    geoRestriction: "NONE",
+    useProxy: false
+  },
+  {
+    id: 52,
+    name: "BEIN SPORTS 2 USA",
+    status: "ACTIVO",
+    ads: false,
+    stream: `${CDN_API_BASE}/tv/cdnlivetv/beIN%20SPORTS%202/us`,
+    geoRestriction: "NONE",
+    useProxy: false
+  },
+  {
+    id: 53,
+    name: "BEIN SPORTS 3 USA",
+    status: "ACTIVO",
+    ads: false,
+    stream: `${CDN_API_BASE}/tv/cdnlivetv/beIN%20SPORTS%203/us`,
+    geoRestriction: "NONE",
+    useProxy: false
+  },
+  {
+    id: 54,
+    name: "NESN (BOSTON)",
+    status: "ACTIVO",
+    ads: false,
+    stream: `${CDN_API_BASE}/tv/cdnlivetv/NESN/us`,
+    geoRestriction: "NONE",
+    useProxy: false
+  },
+  {
+    id: 55,
+    name: "SPORTSNET NEW YORK (METS)",
+    status: "ACTIVO",
+    ads: false,
+    stream: `${CDN_API_BASE}/tv/cdnlivetv/SportsNet%20New%20York/us`,
+    geoRestriction: "NONE",
+    useProxy: false
+  },
+  {
+    id: 56,
+    name: "PREMIERE 1 (BRASIL)",
+    status: "ACTIVO",
+    ads: false,
+    stream: `${CDN_API_BASE}/tv/cdnlivetv/Premiere%201/br`,
+    geoRestriction: "NONE",
+    useProxy: false
+  },
+  {
+    id: 57,
+    name: "SPORTSNET 360",
+    status: "ACTIVO",
+    ads: false,
+    stream: `${CDN_API_BASE}/tv/cdnlivetv/Sportsnet%20360/ca`,
+    geoRestriction: "NONE",
+    useProxy: false
+  },
+  {
+    id: 58,
+    name: "SPORTSNET EAST",
+    status: "ACTIVO",
+    ads: false,
+    stream: `${CDN_API_BASE}/tv/cdnlivetv/Sportsnet%20East/ca`,
+    geoRestriction: "NONE",
+    useProxy: false
+  },
+  {
+    id: 59,
+    name: "SPORTSNET ONE",
+    status: "ACTIVO",
+    ads: false,
+    stream: `${CDN_API_BASE}/tv/cdnlivetv/Sportsnet%20One/ca`,
+    geoRestriction: "NONE",
+    useProxy: false
+  },
+  {
+    id: 60,
+    name: "SPORTSNET ONTARIO",
+    status: "ACTIVO",
+    ads: false,
+    stream: `${CDN_API_BASE}/tv/cdnlivetv/Sportsnet%20Ontario/ca`,
+    geoRestriction: "NONE",
+    useProxy: false
+  },
+  {
+    id: 61,
+    name: "SPORTSNET WEST",
+    status: "ACTIVO",
+    ads: false,
+    stream: `${CDN_API_BASE}/tv/cdnlivetv/Sportsnet%20West/ca`,
+    geoRestriction: "NONE",
+    useProxy: false
+  },
+  {
+    id: 62,
+    name: "SPORTSNET WORLD",
+    status: "ACTIVO",
+    ads: false,
+    stream: `${CDN_API_BASE}/tv/cdnlivetv/Sportsnet%20World/ca`,
+    geoRestriction: "NONE",
+    useProxy: false
+  },
+  {
+    id: 63,
+    name: "TSN 1",
+    status: "ACTIVO",
+    ads: false,
+    stream: `${CDN_API_BASE}/tv/cdnlivetv/TSN%201/ca`,
+    geoRestriction: "NONE",
+    useProxy: false
+  },
+  {
+    id: 64,
+    name: "TSN 2",
+    status: "ACTIVO",
+    ads: false,
+    stream: `${CDN_API_BASE}/tv/cdnlivetv/TSN%202/ca`,
+    geoRestriction: "NONE",
+    useProxy: false
+  },
+  {
+    id: 65,
+    name: "TSN 3",
+    status: "ACTIVO",
+    ads: false,
+    stream: `${CDN_API_BASE}/tv/cdnlivetv/TSN%203/ca`,
+    geoRestriction: "NONE",
+    useProxy: false
+  },
+  {
+    id: 66,
+    name: "TSN 4",
+    status: "ACTIVO",
+    ads: false,
+    stream: `${CDN_API_BASE}/tv/cdnlivetv/TSN%204/ca`,
+    geoRestriction: "NONE",
+    useProxy: false
+  },
+  {
+    id: 67,
+    name: "TSN 5",
+    status: "ACTIVO",
+    ads: false,
+    stream: `${CDN_API_BASE}/tv/cdnlivetv/TSN%205/ca`,
+    geoRestriction: "NONE",
+    useProxy: false
+  },
+  {
+    id: 68,
+    name: "SKY SPORTS ACTION",
+    status: "ACTIVO",
+    ads: false,
+    stream: `${CDN_API_BASE}/tv/cdnlivetv/Sky%20Sports%20Action/gb`,
+    geoRestriction: "NONE",
+    useProxy: false
+  },
+  {
+    id: 69,
+    name: "SKY SPORTS ARENA",
+    status: "ACTIVO",
+    ads: false,
+    stream: `${CDN_API_BASE}/tv/cdnlivetv/Sky%20Sports%20Arena/gb`,
+    geoRestriction: "NONE",
+    useProxy: false
+  },
+  {
+    id: 70,
+    name: "SKY SPORTS CRICKET",
+    status: "ACTIVO",
+    ads: false,
+    stream: `${CDN_API_BASE}/tv/cdnlivetv/Sky%20Sports%20Cricket/gb`,
+    geoRestriction: "NONE",
+    useProxy: false
+  },
+  {
+    id: 71,
+    name: "SKY SPORTS F1",
+    status: "ACTIVO",
+    ads: false,
+    stream: `${CDN_API_BASE}/tv/cdnlivetv/Sky%20Sports%20F1/gb`,
+    geoRestriction: "NONE",
+    useProxy: false
+  },
+  {
+    id: 72,
+    name: "SKY SPORTS FOOTBALL",
+    status: "ACTIVO",
+    ads: false,
+    stream: `${CDN_API_BASE}/tv/cdnlivetv/Sky%20Sports%20Football/gb`,
+    geoRestriction: "NONE",
+    useProxy: false
+  },
+  {
+    id: 73,
+    name: "SKY SPORTS GOLF",
+    status: "ACTIVO",
+    ads: false,
+    stream: `${CDN_API_BASE}/tv/cdnlivetv/Sky%20Sports%20Golf/gb`,
+    geoRestriction: "NONE",
+    useProxy: false
+  },
+  {
+    id: 74,
+    name: "SKY SPORTS MAIN EVENT",
+    status: "ACTIVO",
+    ads: false,
+    stream: `${CDN_API_BASE}/tv/cdnlivetv/Sky%20Sports%20Main%20Event/gb`,
+    geoRestriction: "NONE",
+    useProxy: false
+  },
+  {
+    id: 75,
+    name: "SKY SPORTS MIX",
+    status: "ACTIVO",
+    ads: false,
+    stream: `${CDN_API_BASE}/tv/cdnlivetv/Sky%20Sports%20Mix/gb`,
+    geoRestriction: "NONE",
+    useProxy: false
+  },
+  {
+    id: 76,
+    name: "SKY SPORTS RACING",
+    status: "ACTIVO",
+    ads: false,
+    stream: `${CDN_API_BASE}/tv/cdnlivetv/Sky%20Sports%20Racing/gb`,
+    geoRestriction: "NONE",
+    useProxy: false
+  },
+  {
+    id: 77,
+    name: "SKY SPORTS TENNIS",
+    status: "ACTIVO",
+    ads: false,
+    stream: `${CDN_API_BASE}/tv/cdnlivetv/Sky%20Sports%20Tennis/gb`,
+    geoRestriction: "NONE",
+    useProxy: false
   }
 ];
