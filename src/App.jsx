@@ -12,6 +12,9 @@ import AdminKeys from "./components/AdminKeys";
 import Transactions from "./components/Transactions";
 import Modal from "./components/Modal";
 import { clearSession, getStoredSession, signOut as signOutRequest, refreshSession } from "./services/api";
+import { sendChatMessage } from "./services/api";
+import Message from "./components/Message";
+import Input from "./components/Input";
 
 const PLANS = [
   { price: "$10", days: "15 dias" },
@@ -81,6 +84,131 @@ function NecesitaCuenta({ onIrAAuth, seccion }) {
         Crear cuenta / Iniciar sesion
       </button>
     </div>
+  );
+}
+
+// CHAT DE INVITADO: 2 mensajes gratis (persistente en el navegador). Al
+// agotarse, se muestra el panel de precios y el acceso a crear cuenta.
+const GUEST_CHAT_MAX = 2;
+const GUEST_CHAT_KEY = "guest_chat_count";
+
+function chatInvitadoUsados() {
+  try {
+    return Number(localStorage.getItem(GUEST_CHAT_KEY) || 0);
+  } catch {
+    return 0;
+  }
+}
+
+function PanelPrecios({ onIrAAuth, plans, metodos }) {
+  return (
+    <div style={{
+      display: "flex", flexDirection: "column", alignItems: "center",
+      gap: 14, padding: 24, maxWidth: 560, margin: "0 auto", textAlign: "center",
+    }}>
+      <div style={{ fontSize: 44 }}>🔒</div>
+      <h2 style={{ margin: 0, color: "#ececec" }}>Agotaste tus 2 chats gratis</h2>
+      <p style={{ margin: 0, color: "#8b95a1" }}>
+        Crea tu cuenta (solo nombre de usuario) para seguir chateando, o
+        desbloquea Premium con uno de estos planes:
+      </p>
+      <button
+        type="button"
+        onClick={onIrAAuth}
+        style={{
+          padding: "12px 22px", border: "1px solid #4ade80",
+          borderRadius: 10, background: "rgba(74, 222, 128, 0.12)", color: "#4ade80",
+          fontWeight: 800, fontSize: 14, cursor: "pointer",
+        }}
+      >
+        👤 Crear cuenta / Iniciar sesion
+      </button>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", width: "100%" }}>
+        {plans.map((plan) => (
+          <div key={plan.price} style={{ flex: "1 1 100px", background: "#1c1510", border: "1px solid #78550f", borderRadius: 10, padding: "12px", textAlign: "center" }}>
+            <div style={{ color: "#fbbf24", fontWeight: 800, fontSize: 20 }}>{plan.price}</div>
+            <div style={{ color: "#cbd5e1", fontSize: 13 }}>{plan.days}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%" }}>
+        {metodos.map((m) => (
+          <div key={m.name} style={{ display: "flex", gap: 10, background: "#1c1510", border: "1px solid #3a2f10", borderRadius: 8, padding: "8px 10px" }}>
+            <img src={m.icon} alt="" width={28} height={28} style={{ objectFit: "contain" }} />
+            <div style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
+              <div style={{ color: "#e6edf3", fontSize: 12, fontWeight: 700 }}>{m.name}</div>
+              <div style={{ color: "#8b95a1", fontSize: 11, overflowWrap: "anywhere" }}>{m.value}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ChatInvitado({ onIrAAuth, plans, metodos }) {
+  const [usados, setUsados] = useState(chatInvitadoUsados);
+  const [messages, setMessages] = useState([
+    {
+      role: "ai",
+      text: "Hola! Puedes probar el chat con la IA 2 veces gratis. Escribeme un partido o pregunta deportiva y te doy el analisis.",
+    },
+  ]);
+  const [value, setValue] = useState("");
+  const [loading, setLoading] = useState(false);
+  const agotado = usados >= GUEST_CHAT_MAX;
+
+  async function send(text) {
+    const msg = text.trim();
+    if (!msg || loading) return;
+    setMessages((prev) => [...prev, { role: "user", text: msg }]);
+    setValue("");
+    setLoading(true);
+    try {
+      // Invitado: sin sesion, el backend responde sin guardar historial.
+      const respuesta = await sendChatMessage({ mensaje: msg, modelo: "you" }, null);
+      setMessages((prev) => [...prev, { role: "ai", text: respuesta }]);
+    } catch (error) {
+      setMessages((prev) => [
+        ...prev,
+        { role: "ai", text: "No pude obtener respuesta: " + error.message },
+      ]);
+    }
+    const n = chatInvitadoUsados() + 1;
+    try {
+      localStorage.setItem(GUEST_CHAT_KEY, String(n));
+    } catch {}
+    setUsados(n);
+    setLoading(false);
+  }
+
+  if (agotado) {
+    return <PanelPrecios onIrAAuth={onIrAAuth} plans={plans} metodos={metodos} />;
+  }
+
+  return (
+    <section className="chat">
+      <div className="messages">
+        {messages.map((m, i) => (
+          <Message key={i} role={m.role} text={m.text} />
+        ))}
+        {loading && (
+          <div className="thinking-card">
+            <div className="thinking-title">Analizando partido</div>
+            <div className="thinking-text">
+              Consultando datos web y preparando el analisis
+              <span className="dots">...</span>
+            </div>
+          </div>
+        )}
+        <p className="auth-hint" style={{ textAlign: "center", margin: "4px 0" }}>
+          Chats gratis restantes: {GUEST_CHAT_MAX - usados} de {GUEST_CHAT_MAX}
+        </p>
+      </div>
+      <div className="composer">
+        <Input value={value} setValue={setValue} onSend={send} loading={loading} />
+      </div>
+    </section>
   );
 }
 
@@ -322,7 +450,11 @@ function App() {
         )}
         {page === "chat" && (
           esInvitado ? (
-            <NecesitaCuenta onIrAAuth={irAAuth} seccion="el chat con la IA" />
+            <ChatInvitado
+              onIrAAuth={irAAuth}
+              plans={PLANS}
+              metodos={PAYMENT_METHODS}
+            />
           ) : hasAccessExpired(session.user) ? (
             <SoloPremium onIrACreditos={() => setPage("credits")} />
           ) : (

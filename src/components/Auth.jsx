@@ -157,10 +157,6 @@ function Auth({ onAuth }) {
           >
             Ver gratis sin cuenta
           </button>
-          <p className="auth-hint" style={{ textAlign: "center", margin: 0 }}>
-            Como invitado ves el dashboard con 2 picks gratis. Para chatear con
-            la IA necesitas crear tu cuenta (nombre de usuario).
-          </p>
         </form>
       </section>
     </main>
