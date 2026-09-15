@@ -1,5 +1,5 @@
-﻿export const channels = [
-  {
+export const channels = [
+{
     id: 1,
     name: "ANALISTAS TV (EN INGLES)",
     status: "ACTIVO",
@@ -8,7 +8,7 @@
     geoRestriction: "NONE",
     useProxy: false
   },
-  {
+{
     id: 2,
     name: "BEIN 1",
     status: "ACTIVO",
@@ -17,7 +17,7 @@
     geoRestriction: "NONE",
     useProxy: false
   },
-  {
+{
     id: 3,
     name: "BEIN SPORTS EXTRA Ñ (español)",
     status: "ACTIVO",
@@ -26,7 +26,7 @@
     geoRestriction: "NONE",
     useProxy: false
   },
-  {
+{
     id: 4,
     name: "BEIN SPORTS XTRA (ingles)",
     status: "ACTIVO",
@@ -35,7 +35,7 @@
     geoRestriction: "NONE",
     useProxy: true
   },
-  {
+{
     id: 5,
     name: "CANAL AMERICA",
     status: "ACTIVO",
@@ -44,7 +44,7 @@
     geoRestriction: "NONE",
     useProxy: true
   },
-  {
+{
     id: 6,
     name: "CBS SPORT GOLAZO",
     status: "ACTIVO",
@@ -53,7 +53,7 @@
     geoRestriction: "NONE",
     useProxy: true
   },
-  {
+{
     id: 7,
     name: "CBS UEFA CHAMPIONS LEAGUE",
     status: "ACTIVO",
@@ -62,7 +62,7 @@
     geoRestriction: "NONE",
     useProxy: true
   },
-  {
+{
     id: 8,
     name: "CLARO SPORTS",
     status: "ACTIVO",
@@ -71,7 +71,16 @@
     geoRestriction: "NONE",
     useProxy: false
   },
-  {
+{
+    id: 40,
+    name: "CLARO SPORTS 2",
+    status: "ACTIVO",
+    ads: false,
+    stream: "http://168.196.127.137:6001/play/a09d/index.m3u8",
+    geoRestriction: "NONE",
+    useProxy: true
+  },
+{
     id: 9,
     name: "ESPN 1",
     status: "ACTIVO",
@@ -80,7 +89,7 @@
     geoRestriction: "NONE",
     useProxy: false
   },
-  {
+{
     id: 10,
     name: "ESPN 2",
     status: "ACTIVO",
@@ -89,7 +98,7 @@
     geoRestriction: "NONE",
     useProxy: false
   },
-  {
+{
     id: 11,
     name: "ESPN 3",
     status: "ACTIVO",
@@ -98,7 +107,7 @@
     geoRestriction: "NONE",
     useProxy: false
   },
-  {
+{
     id: 12,
     name: "ESPN 4",
     status: "ACTIVO",
@@ -107,7 +116,25 @@
     geoRestriction: "NONE",
     useProxy: false
   },
-  {
+{
+    id: 36,
+    name: "ESPN 5",
+    status: "ACTIVO",
+    ads: false,
+    stream: "http://168.228.44.241:9997/play/a091/index.m3u8",
+    geoRestriction: "NONE",
+    useProxy: true
+  },
+{
+    id: 37,
+    name: "ESPN 6",
+    status: "ACTIVO",
+    ads: false,
+    stream: "http://168.228.44.241:9997/play/a01f/index.m3u8",
+    geoRestriction: "NONE",
+    useProxy: true
+  },
+{
     id: 13,
     name: "ESPN USA",
     status: "ACTIVO",
@@ -116,7 +143,25 @@
     geoRestriction: "NONE",
     useProxy: false
   },
-  {
+{
+    id: 38,
+    name: "EUROSPORT 1",
+    status: "ACTIVO",
+    ads: false,
+    stream: "http://200.115.120.1:8000/play/ca118/index.m3u8",
+    geoRestriction: "NONE",
+    useProxy: true
+  },
+{
+    id: 39,
+    name: "EUROSPORT 2",
+    status: "ACTIVO",
+    ads: false,
+    stream: "http://200.115.120.1:8000/play/ca119/index.m3u8",
+    geoRestriction: "NONE",
+    useProxy: true
+  },
+{
     id: 14,
     name: "FOX DEPORTES (ESPAÑOL)",
     status: "ACTIVO",
@@ -125,7 +170,7 @@
     geoRestriction: "NONE",
     useProxy: false
   },
-  {
+{
     id: 15,
     name: "FOX SPORTS",
     status: "ACTIVO",
@@ -134,7 +179,16 @@
     geoRestriction: "NONE",
     useProxy: true
   },
-  {
+{
+    id: 41,
+    name: "FOX SPORTS 2",
+    status: "ACTIVO",
+    ads: false,
+    stream: "http://200.115.120.1:8000/play/ca126/index.m3u8",
+    geoRestriction: "NONE",
+    useProxy: true
+  },
+{
     id: 16,
     name: "FOX SPORTS CENTROAMERICA",
     status: "ACTIVO",
@@ -143,7 +197,7 @@
     geoRestriction: "NONE",
     useProxy: false
   },
-  {
+{
     id: 17,
     name: "FS1 (MLB - NFL Y MAS)",
     status: "ACTIVO",
@@ -152,7 +206,7 @@
     geoRestriction: "NONE",
     useProxy: false
   },
-  {
+{
     id: 18,
     name: "FS2",
     status: "ACTIVO",
@@ -161,7 +215,7 @@
     geoRestriction: "NONE",
     useProxy: false
   },
-  {
+{
     id: 19,
     name: "GOLAZO NETWORK",
     status: "ACTIVO",
@@ -170,7 +224,7 @@
     geoRestriction: "NONE",
     useProxy: true
   },
-  {
+{
     id: 20,
     name: "MLB TV",
     status: "ACTIVO",
@@ -179,7 +233,7 @@
     geoRestriction: "NONE",
     useProxy: true
   },
-  {
+{
     id: 21,
     name: "MOVISTAR DEPORTES",
     status: "ACTIVO",
@@ -188,7 +242,7 @@
     geoRestriction: "NONE",
     useProxy: true
   },
-  {
+{
     id: 22,
     name: "MOVISTAR LIGA DE DEPORTES",
     status: "ACTIVO",
@@ -197,7 +251,7 @@
     geoRestriction: "NONE",
     useProxy: false
   },
-  {
+{
     id: 23,
     name: "NBA TV",
     status: "ACTIVO",
@@ -206,7 +260,7 @@
     geoRestriction: "NONE",
     useProxy: true
   },
-  {
+{
     id: 24,
     name: "NBC SPORTS",
     status: "ACTIVO",
@@ -215,7 +269,7 @@
     geoRestriction: "USA",
     useProxy: true
   },
-  {
+{
     id: 25,
     name: "NFL CHANNEL",
     status: "ACTIVO",
@@ -224,7 +278,7 @@
     geoRestriction: "NONE",
     useProxy: true
   },
-  {
+{
     id: 26,
     name: "NHL NETWORK",
     status: "ACTIVO",
@@ -234,6 +288,15 @@
     useProxy: true
   },
   {
+    id: 44,
+    name: "NYMSPORTS",
+    status: "ACTIVO",
+    ads: false,
+    stream: "https://thm-it-roku.otteravision.com/thm/it/it.m3u8",
+    geoRestriction: "NONE",
+    useProxy: true
+  },
+{
     id: 27,
     name: "SKY SPORTS LALIGA",
     status: "ACTIVO",
@@ -243,6 +306,15 @@
     useProxy: false
   },
   {
+    id: 45,
+    name: "SKY SPORTS NFL",
+    status: "ACTIVO",
+    ads: false,
+    stream: "http://stream.bottledesk.net/p/AQNASgYGemc/index.m3u8",
+    geoRestriction: "NONE",
+    useProxy: false
+  },
+{
     id: 28,
     name: "SKY SPORTS PREMIER LEAGUE",
     status: "ACTIVO",
@@ -251,8 +323,7 @@
     geoRestriction: "NONE",
     useProxy: false
   },
-  
-  {
+{
     id: 32,
     name: "TELEMUNDO DEPORTES",
     status: "ACTIVO",
@@ -262,6 +333,15 @@
     useProxy: false
   },
   {
+    id: 46,
+    name: "TENNIS CHANNEL",
+    status: "ACTIVO",
+    ads: false,
+    stream: "https://cdn-ue1-prod.tsv2.amagi.tv/linear/amg01444-tennischannelth-tennischannelnl-samsungnl/playlist.m3u8",
+    geoRestriction: "NONE",
+    useProxy: true
+  },
+{
     id: 33,
     name: "TUDN",
     status: "ACTIVO",
@@ -270,7 +350,7 @@
     geoRestriction: "NONE",
     useProxy: false
   },
-  {
+{
     id: 34,
     name: "TYC SPORTS",
     status: "ACTIVO",
@@ -279,70 +359,7 @@
     geoRestriction: "NONE",
     useProxy: false
   },
-  {
-    id: 35,
-    name: "WIN SPORTS",
-    status: "ACTIVO",
-    ads: false,
-    stream: "http://168.228.44.241:9998/play/a03o/index.m3u8",
-    geoRestriction: "NONE",
-    useProxy: false
-  },
-  {
-    id: 36,
-    name: "ESPN 5",
-    status: "ACTIVO",
-    ads: false,
-    stream: "http://168.228.44.241:9997/play/a091/index.m3u8",
-    geoRestriction: "NONE",
-    useProxy: true
-  },
-  {
-    id: 37,
-    name: "ESPN 6",
-    status: "ACTIVO",
-    ads: false,
-    stream: "http://168.228.44.241:9997/play/a01f/index.m3u8",
-    geoRestriction: "NONE",
-    useProxy: true
-  },
-  {
-    id: 38,
-    name: "EUROSPORT 1",
-    status: "ACTIVO",
-    ads: false,
-    stream: "http://200.115.120.1:8000/play/ca118/index.m3u8",
-    geoRestriction: "NONE",
-    useProxy: true
-  },
-  {
-    id: 39,
-    name: "EUROSPORT 2",
-    status: "ACTIVO",
-    ads: false,
-    stream: "http://200.115.120.1:8000/play/ca119/index.m3u8",
-    geoRestriction: "NONE",
-    useProxy: true
-  },
-  {
-    id: 40,
-    name: "CLARO SPORTS 2",
-    status: "ACTIVO",
-    ads: false,
-    stream: "http://168.196.127.137:6001/play/a09d/index.m3u8",
-    geoRestriction: "NONE",
-    useProxy: true
-  },
-  {
-    id: 41,
-    name: "FOX SPORTS 2",
-    status: "ACTIVO",
-    ads: false,
-    stream: "http://200.115.120.1:8000/play/ca126/index.m3u8",
-    geoRestriction: "NONE",
-    useProxy: true
-  },
-  {
+{
     id: 42,
     name: "USA SPORTS",
     status: "ACTIVO",
@@ -351,7 +368,16 @@
     geoRestriction: "NONE",
     useProxy: true
   },
-  {
+{
+    id: 35,
+    name: "WIN SPORTS",
+    status: "ACTIVO",
+    ads: false,
+    stream: "http://168.228.44.241:9998/play/a03o/index.m3u8",
+    geoRestriction: "NONE",
+    useProxy: false
+  },
+{
     id: 43,
     name: "YES NETWORK (YANKEES)",
     status: "ACTIVO",
@@ -361,4 +387,3 @@
     useProxy: true
   },
 ];
-
