@@ -49,10 +49,12 @@ async function readText(res) {
 }
 
 function authHeaders(session) {
-  return {
-    Authorization: `Bearer ${session.access_token}`,
-    "Content-Type": "application/json",
-  };
+  const headers = { "Content-Type": "application/json" };
+  // Invitados (sin cuenta): sin Authorization, el backend los trata como guest.
+  if (session?.access_token) {
+    headers.Authorization = `Bearer ${session.access_token}`;
+  }
+  return headers;
 }
 
 export function getStoredSession() {

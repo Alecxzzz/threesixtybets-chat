@@ -52,6 +52,38 @@ function SoloPremium({ onIrACreditos }) {
   );
 }
 
+// Pantalla para invitados: la seccion requiere crear cuenta (nombre de usuario).
+function NecesitaCuenta({ onIrAAuth, seccion }) {
+  return (
+    <div style={{
+      display: "flex", flexDirection: "column", alignItems: "center",
+      justifyContent: "center", minHeight: "60vh", gap: 14, textAlign: "center", padding: 20,
+    }}>
+      <div style={{ fontSize: 52 }}>👤</div>
+      <h2 style={{ margin: 0, color: "#ececec" }}>Crea tu cuenta gratis</h2>
+      <p style={{ margin: 0, color: "#8b95a1", maxWidth: 420 }}>
+        {seccion
+          ? `Para usar ${seccion} necesitas una cuenta.`
+          : "Esta sección requiere una cuenta."}{" "}
+        Registrate solo con tu nombre de usuario (sin contrasena) y podras
+        chatear con la IA. El resto del contenido premium se desbloquea con un
+        plan.
+      </p>
+      <button
+        type="button"
+        onClick={onIrAAuth}
+        style={{
+          marginTop: 6, padding: "12px 22px", border: "1px solid #4ade80",
+          borderRadius: 10, background: "rgba(74, 222, 128, 0.12)", color: "#4ade80",
+          fontWeight: 800, fontSize: 14, cursor: "pointer",
+        }}
+      >
+        Crear cuenta / Iniciar sesion
+      </button>
+    </div>
+  );
+}
+
 // TV gratis: 1 minuto de visualizacion total por cuenta (persistente,
 // no se resetea recargando), con contador visible; luego paywall.
 const TV_FREE_MS = 60_000;
@@ -240,6 +272,17 @@ function App() {
     setPage("dashboard");
   }
 
+  // MODO INVITADO: sin cuenta. Dashboard con 2 picks gratis; chat/TV/stats
+  // piden crear cuenta; pago requiere cuenta.
+  const esInvitado = !!session?.user?.guest;
+
+  function irAAuth() {
+    clearSession();
+    setSession(null);
+    setSidebarOpen(false);
+    setPage("dashboard");
+  }
+
   function guardPage(p) {
     // Freemium: dashboard (2 picks + candados), chat (2 conversaciones, se
     // aplica dentro de Chat) y TV (1 minuto con contador, TVGratis). Solo
@@ -278,23 +321,47 @@ function App() {
           />
         )}
         {page === "chat" && (
-          hasAccessExpired(session.user)
-            ? <SoloPremium onIrACreditos={() => setPage("credits")} />
-            : <Chat session={session} />
+          esInvitado ? (
+            <NecesitaCuenta onIrAAuth={irAAuth} seccion="el chat con la IA" />
+          ) : hasAccessExpired(session.user) ? (
+            <SoloPremium onIrACreditos={() => setPage("credits")} />
+          ) : (
+            <Chat session={session} />
+          )
         )}
         {page === "tv" && (
-          hasAccessExpired(session.user)
-            ? <TVGratis onIrACreditos={() => setPage("credits")} />
-            : <TV />
+          esInvitado ? (
+            <NecesitaCuenta onIrAAuth={irAAuth} seccion="la TV en vivo" />
+          ) : hasAccessExpired(session.user) ? (
+            <TVGratis onIrACreditos={() => setPage("credits")} />
+          ) : (
+            <TV />
+          )
         )}
-        {page === "credits" && <Credits session={session} onSessionRefresh={handleSessionRefresh} />}
+        {page === "credits" && (
+          esInvitado ? (
+            <NecesitaCuenta onIrAAuth={irAAuth} seccion="comprar un plan" />
+          ) : (
+            <Credits session={session} onSessionRefresh={handleSessionRefresh} />
+          )
+        )}
         {page === "stats" && (
-          hasAccessExpired(session.user)
-            ? <SoloPremium onIrACreditos={() => setPage("credits")} />
-            : <Stats />
+          esInvitado ? (
+            <NecesitaCuenta onIrAAuth={irAAuth} seccion="las estadisticas" />
+          ) : hasAccessExpired(session.user) ? (
+            <SoloPremium onIrACreditos={() => setPage("credits")} />
+          ) : (
+            <Stats />
+          )
         )}
         {page === "admin" && session.user.role === "admin" && <AdminKeys session={session} />}
-        {page === "transactions" && <Transactions session={session} />}
+        {page === "transactions" && (
+          esInvitado ? (
+            <NecesitaCuenta onIrAAuth={irAAuth} seccion="las transacciones" />
+          ) : (
+            <Transactions session={session} />
+          )
+        )}
       </main>
 
       <Modal
