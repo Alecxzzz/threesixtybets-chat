@@ -33,7 +33,7 @@
     ads: false,
     stream: "https://bein-beinxtrasports-firetv.amagi.tv/playlist.m3u8",
     geoRestriction: "NONE",
-    useProxy: true
+    useProxy: false
   },
   {
     id: 5,
