@@ -198,6 +198,15 @@
     useProxy: false
   },
   {
+    id: 47,
+    name: "FOX PLUS",
+    status: "ACTIVO",
+    ads: false,
+    stream: "http://168.228.44.241:9998/play/a09b/index.m3u8",
+    geoRestriction: "NONE",
+    useProxy: false
+  },
+  {
     id: 22,
     name: "FOX SPORTS",
     status: "ACTIVO",
