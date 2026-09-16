@@ -1771,9 +1771,9 @@ button {
   flex: 1;
   min-height: 0;
   width: 100%;
-  max-width: 1180px;
+  max-width: none;
   margin: 0 auto;
-  padding: 22px 20px 40px;
+  padding: 22px clamp(20px, 3vw, 44px) 40px;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
@@ -2065,8 +2065,8 @@ button {
 .dash-pick {
   position: relative;
   min-width: 262px;
-  max-width: 262px;
-  flex-shrink: 0;
+  max-width: 460px;
+  flex: 1 0 262px;
   display: flex;
   flex-direction: column;
   gap: 10px;
