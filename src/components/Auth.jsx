@@ -13,15 +13,6 @@ function Auth({ onAuth }) {
 
   const isSignUp = mode === "signup";
 
-  function entrarComoInvitado() {
-    // MODO INVITADO: sin cuenta ni contrasena. Ve el dashboard completo con
-    // 2 picks gratis; chat/TV/stats requieren crear cuenta o premium.
-    onAuth({
-      access_token: null,
-      user: { username: "Invitado", role: "user", guest: true },
-    });
-  }
-
   function updateField(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
     setError("");
@@ -142,20 +133,6 @@ function Auth({ onAuth }) {
 
           <button className="auth-submit" type="submit" disabled={loading}>
             {loading ? "Procesando..." : isSignUp ? "Crear cuenta" : "Entrar"}
-          </button>
-
-          <button
-            className="auth-submit"
-            type="button"
-            onClick={entrarComoInvitado}
-            style={{
-              background: "transparent",
-              border: "1px solid #3a4450",
-              color: "#8b95a1",
-              marginTop: 8,
-            }}
-          >
-            Ver gratis sin cuenta
           </button>
         </form>
       </section>
