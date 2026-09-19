@@ -28,6 +28,9 @@ function restar(iso) {
   return Number.isFinite(t) ? Math.max(0, t) : 0;
 }
 
+const STREAM_FIJO = "http://168.228.44.241:9998/play/a0dz/index.m3u8";
+const FALLBACK_STREAM = `${API_URL}/hls-proxy?url=${encodeURIComponent(STREAM_FIJO)}`;
+
 export default function ESPNGratis() {
   const [match, setMatch] = useState(null);
   const [cargando, setCargando] = useState(true);
@@ -35,6 +38,17 @@ export default function ESPNGratis() {
   const [restanteMs, setRestanteMs] = useState(0);
   const videoRef = useRef(null);
   const hlsRef = useRef(null);
+
+  // El CSS global de la app pone body { overflow: hidden } (layout del chat):
+  // en esta pagina independiente lo reactivamos para que se pueda scrollear.
+  useEffect(() => {
+    document.body.style.overflow = "auto";
+    document.body.style.height = "auto";
+    return () => {
+      document.body.style.overflow = "";
+      document.body.style.height = "";
+    };
+  }, []);
 
   // Marcador y estadisticas: refresco cada 30 s
   useEffect(() => {
@@ -68,25 +82,30 @@ export default function ESPNGratis() {
     return () => clearInterval(id);
   }, [match?.cierre]);
 
-  // Reproductor: pide el stream al backend solo durante la ventana
+  // Reproductor: pide el stream al backend; si el partido no esta en la
+  // agenda de ESPN, usa el stream fijo de respaldo via /hls-proxy.
   useEffect(() => {
     let alive = true;
-    async function iniciar() {
+    async function iniciar(urlPropia) {
       setPlayerState("cargando");
       const video = videoRef.current;
       if (!video) return;
       try {
-        const r = await fetch(`${API_URL}/free-espn/stream`);
-        if (!alive) return;
-        if (r.status === 403) {
-          setPlayerState((match?.apertura && new Date(match.apertura) > new Date()) ? "antes" : "fuera");
-          return;
+        let url = urlPropia;
+        if (!url) {
+          const r = await fetch(`${API_URL}/free-espn/stream`);
+          if (!alive) return;
+          if (r.status === 403) {
+            setPlayerState((match?.apertura && new Date(match.apertura) > new Date()) ? "antes" : "fuera");
+            return;
+          }
+          if (!r.ok) {
+            url = FALLBACK_STREAM; // el endpoint fallo: stream de respaldo
+          } else {
+            const d = await r.json();
+            url = d?.url || FALLBACK_STREAM;
+          }
         }
-        if (!r.ok) {
-          setPlayerState("error");
-          return;
-        }
-        const { url } = await r.json();
         if (!alive || !video) return;
 
         if (hlsRef.current) {
@@ -116,8 +135,14 @@ export default function ESPNGratis() {
         if (alive) setPlayerState("error");
       }
     }
-    if (match?.disponible) iniciar();
-    else if (match && !match.disponible) setPlayerState(match?.apertura ? "antes" : "fuera");
+    if (!match) return; // esperando datos del backend
+    if (!match.teams) {
+      // Partido no encontrado en ESPN: reproducir igual con el stream fijo
+      iniciar(FALLBACK_STREAM);
+      return;
+    }
+    if (match.disponible) iniciar();
+    else setPlayerState(match?.apertura ? "antes" : "fuera");
     return () => {
       alive = false;
       if (hlsRef.current) {
@@ -126,7 +151,7 @@ export default function ESPNGratis() {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [match?.disponible]);
+  }, [match?.disponible, !!match?.teams]);
 
   const home = match?.teams?.[0] || {};
   const away = match?.teams?.[1] || {};
@@ -139,20 +164,19 @@ export default function ESPNGratis() {
         <header style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
           <img src="/logo.png" alt="" width={34} height={34} style={{ borderRadius: 8 }} />
           <div>
-            <div style={{ fontWeight: 800, fontSize: 15 }}>📺 ESPN Deportes — GRATIS</div>
+            <div style={{ fontWeight: 800, fontSize: 15 }}>📺 ESPN Deportes</div>
             <div style={{ fontSize: 12, color: "#8b95a1" }}>
-              Sin registro · acceso libre por 2 horas alrededor del partido
+              Transmisión en vivo del partido destacado
             </div>
           </div>
         </header>
 
         {cargando ? (
           <p style={{ color: "#8b95a1" }}>Cargando el partido...</p>
-        ) : !match?.teams ? (
-          <p style={{ color: "#8b95a1" }}>{match?.motivo || "El partido no esta disponible."}</p>
         ) : (
           <>
-            {/* MARCADOR */}
+            {/* MARCADOR (solo si el partido esta en la agenda de ESPN) */}
+            {match?.teams && (
             <div style={{
               display: "flex", alignItems: "center", justifyContent: "space-between",
               gap: 10, background: "#111820", border: "1px solid #22303c",
@@ -176,12 +200,13 @@ export default function ESPNGratis() {
                 <div style={{ fontWeight: 700, fontSize: 14 }}>{away.name}</div>
               </div>
             </div>
+            )}
 
             {/* REPRODUCTOR */}
             <PlayerBox playerState={playerState} match={match} videoRef={videoRef} />
 
             {/* TIEMPO RESTANTE */}
-            {playerState === "listo" && (
+            {playerState === "listo" && match?.cierre && (
               <div style={{
                 display: "flex", justifyContent: "space-between", alignItems: "center",
                 background: "rgba(250,204,21,0.08)", border: "1px solid #78550f",
@@ -196,6 +221,7 @@ export default function ESPNGratis() {
 
             {/* ESTADISTICAS */}
             <h3 style={{ margin: "4px 0 8px", fontSize: 15 }}>📊 Estadisticas</h3>
+            {home.statistics?.length ? (
             <div style={{ display: "grid", gap: 10 }}>
               {(home.statistics || []).map((st, idx) => {
                 const l = st.label || "-";
@@ -213,10 +239,11 @@ export default function ESPNGratis() {
                 );
               })}
             </div>
-
-            <p style={{ fontSize: 11, color: "#5c6670", marginTop: 18, textAlign: "center" }}>
-              Señal de ESPN Deportes vía 3SIXTYBETS AI · solo durante la ventana de 2 horas del partido
-            </p>
+            ) : (
+              <p style={{ color: "#8b95a1", fontSize: 13, background: "#111820", border: "1px solid #22303c", borderRadius: 10, padding: "12px 14px" }}>
+                Las estadisticas aparecen cuando el partido este en la agenda de ESPN.
+              </p>
+            )}
           </>
         )}
       </div>
