@@ -39,6 +39,9 @@ export default function ESPNGratis() {
   const videoRef = useRef(null);
   const hlsRef = useRef(null);
   const reintentosRef = useRef(0);
+  const opcionesRef = useRef([]);
+  const cambiarOpcionRef = useRef(null);
+  const [opcionActiva, setOpcionActiva] = useState(0);
 
   // El CSS global de la app pone body { overflow: hidden } (layout del chat):
   // en esta pagina independiente lo reactivamos para que se pueda scrollear.
@@ -83,10 +86,25 @@ export default function ESPNGratis() {
     return () => clearInterval(id);
   }, [match?.cierre]);
 
-  // Reproductor: pide el stream al backend; si el partido no esta en la
-  // agenda de ESPN, usa el stream fijo de respaldo via /hls-proxy.
+  // Reproductor: pide al backend hasta 3 senales validadas (Opcion 1/2/3).
+  // Auto-reintento: si la senal muere, prueba la siguiente opcion sola.
   useEffect(() => {
     let alive = true;
+    async function cargarOpciones() {
+      try {
+        const r = await fetch(`${API_URL}/tv-live/stream`);
+        if (!alive) return null;
+        if (r.status === 403) {
+          setPlayerState((match?.apertura && new Date(match.apertura) > new Date()) ? "antes" : "fuera");
+          return null;
+        }
+        if (!r.ok) return null;
+        const d = await r.json();
+        return d?.opciones || (d?.url ? [{ label: "Opción 1", url: d.url }] : null);
+      } catch {
+        return null;
+      }
+    }
     async function iniciar(urlPropia) {
       setPlayerState("cargando");
       const video = videoRef.current;
@@ -94,17 +112,13 @@ export default function ESPNGratis() {
       try {
         let url = urlPropia;
         if (!url) {
-          const r = await fetch(`${API_URL}/tv-live/stream`);
-          if (!alive) return;
-          if (r.status === 403) {
-            setPlayerState((match?.apertura && new Date(match.apertura) > new Date()) ? "antes" : "fuera");
-            return;
-          }
-          if (!r.ok) {
-            url = FALLBACK_STREAM; // el endpoint fallo: stream de respaldo
+          if (opcionesRef.current.length) {
+            url = opcionesRef.current[0].url;
           } else {
-            const d = await r.json();
-            url = d?.url || FALLBACK_STREAM;
+            const ops = await cargarOpciones();
+            if (!alive) return;
+            if (ops) opcionesRef.current = ops;
+            url = opcionesRef.current[0]?.url || FALLBACK_STREAM;
           }
         }
         if (!alive || !video) return;
@@ -124,11 +138,13 @@ export default function ESPNGratis() {
           });
           hls.on(Hls.Events.ERROR, (_e, data) => {
             if (!data?.fatal) return;
-            // El stream puede congelarse/morir (tokens que vencen, upstream
-            // inestable): pedir al backend OTRO stream vivo automaticamente.
-            if (reintentosRef.current < 5) {
+            // Senal congelada/muerta: cambiar SOLO a la siguiente opcion
+            // (el backend entrega opciones validadas en vivo).
+            const idx = opcionesRef.current.findIndex((o) => o.url === url);
+            const siguiente = opcionesRef.current[(idx + 1) % Math.max(1, opcionesRef.current.length)];
+            if (reintentosRef.current < 6 && siguiente) {
               reintentosRef.current += 1;
-              setTimeout(() => { if (alive) iniciar(); }, 3000);
+              setTimeout(() => { if (alive) iniciar(siguiente.url); }, 2500);
             } else {
               setPlayerState("error");
             }
@@ -145,6 +161,16 @@ export default function ESPNGratis() {
         if (alive) setPlayerState("error");
       }
     }
+    function cambiarOpcion(idx) {
+      const op = opcionesRef.current[idx];
+      if (!op) return;
+      reintentosRef.current = 0;
+      setOpcionActiva(idx);
+      iniciar(op.url);
+    }
+    cambiarOpcionRef.current = cambiarOpcion;
+    window.__cambiarSenal = cambiarOpcion;
+
     if (!match) return; // esperando datos del backend
     if (!match.teams) {
       // Partido no encontrado en ESPN: reproducir igual con el stream fijo
@@ -213,7 +239,14 @@ export default function ESPNGratis() {
             )}
 
             {/* REPRODUCTOR */}
-            <PlayerBox playerState={playerState} match={match} videoRef={videoRef} />
+            <PlayerBox
+              playerState={playerState}
+              match={match}
+              videoRef={videoRef}
+              opciones={opcionesRef.current}
+              opcionActiva={opcionActiva}
+              onCambiar={(idx) => cambiarOpcionRef.current?.(idx)}
+            />
 
             {/* TIEMPO RESTANTE */}
             {playerState === "listo" && match?.cierre && (
@@ -261,9 +294,10 @@ export default function ESPNGratis() {
   );
 }
 
-function PlayerBox({ playerState, match, videoRef }) {
+function PlayerBox({ playerState, match, videoRef, opciones = [], opcionActiva = 0, onCambiar }) {
   return (
-    <div style={{ position: "relative", borderRadius: 14, overflow: "hidden", border: "1px solid #22303c", background: "#000", marginBottom: 14 }}>
+    <div style={{ marginBottom: 14 }}>
+    <div style={{ position: "relative", borderRadius: 14, overflow: "hidden", border: "1px solid #22303c", background: "#000" }}>
       <video
         ref={videoRef}
         controls
@@ -310,6 +344,32 @@ function PlayerBox({ playerState, match, videoRef }) {
               </button>
             </>
           )}
+        </div>
+      )}
+      </div>
+
+      {/* SELECTOR DE SENAL: Opcion 1 / 2 / 3 */}
+      {opciones.length > 1 && (
+        <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+          {opciones.map((o, i) => (
+            <button
+              key={o.url || i}
+              type="button"
+              onClick={() => onCambiar?.(i)}
+              style={{
+                padding: "9px 16px",
+                borderRadius: 9,
+                fontWeight: 800,
+                fontSize: 13,
+                cursor: "pointer",
+                border: i === opcionActiva ? "1px solid #4ade80" : "1px solid #3a4450",
+                background: i === opcionActiva ? "rgba(74,222,128,0.15)" : "transparent",
+                color: i === opcionActiva ? "#4ade80" : "#8b95a1",
+              }}
+            >
+              {o.label || `Opción ${i + 1}`}
+            </button>
+          ))}
         </div>
       )}
     </div>
