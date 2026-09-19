@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 
 function cleanText(text) {
-  if (!text) return "";
+  if (typeof text !== "string") return text == null ? "" : String(text);
   // Quitar asteriscos y numerales de markdown
   return text.replace(/\*/g, "").replace(/^#{1,6}\s/gm, "");
 }
@@ -13,25 +13,37 @@ function TypewriterBubble({ text }) {
   const cleaned = cleanText(text);
 
   useEffect(() => {
-    if (!cleaned) return;
+    if (!cleaned) {
+      setDone(true);
+      return;
+    }
     setDisplayed("");
     setDone(false);
     indexRef.current = 0;
 
-    const interval = setInterval(() => {
-      if (indexRef.current < cleaned.length) {
-        // Escribir de a varios caracteres por tick para textos largos
-        const chunk = Math.max(1, Math.floor(cleaned.length / 200));
-        const next = indexRef.current + chunk;
-        setDisplayed(cleaned.slice(0, next));
-        indexRef.current = next;
-      } else {
-        setDone(true);
-        clearInterval(interval);
-      }
-    }, 15);
+    // En Android, si el usuario cambia de pestaña o bloquea el telefono,
+    // los timers se congelan y el tablero queda a medias. Con requestAnimationFrame
+    // + Date.now() el mensaje se completa SIEMPRE al volver a primer plano.
+    let cancelado = false;
+    const duracion = Math.min(6000, cleaned.length * 8);
+    const inicio = performance.now();
 
-    return () => clearInterval(interval);
+    function paso(ahora) {
+      if (cancelado) return;
+      const frac = Math.min(1, (ahora - inicio) / duracion);
+      const hasta = Math.ceil(cleaned.length * frac);
+      setDisplayed(cleaned.slice(0, hasta));
+      if (frac >= 1) {
+        setDone(true);
+        return;
+      }
+      requestAnimationFrame(paso);
+    }
+    requestAnimationFrame(paso);
+
+    return () => {
+      cancelado = true;
+    };
   }, [cleaned]);
 
   return (

@@ -43,10 +43,18 @@ function Chat({ session }) {
 
     async function loadHistory() {
       try {
-        const savedMessages = await loadChatMessages(session);
+        let savedMessages = await loadChatMessages(session);
         if (!active) return;
+        // Blindaje: si el backend devolvio algo inesperado (null, objeto,
+        // string), normalizar a lista para no crashear el render.
+        if (!Array.isArray(savedMessages)) {
+          savedMessages = savedMessages?.messages || savedMessages?.items || [];
+        }
+        if (!Array.isArray(savedMessages)) savedMessages = [];
 
-        setMessages(savedMessages.length ? savedMessages : [mensajeBienvenida(session)]);
+        setMessages(
+          savedMessages.length ? savedMessages : [mensajeBienvenida(session)]
+        );
       } catch (error) {
         if (!active) return;
 
@@ -208,10 +216,10 @@ function Chat({ session }) {
 
         {messages.map((m, i) => (
           <Message
-            key={m.id || i}
-            role={m.role}
-            text={m.text}
-            animate={i === messages.length - 1 && m.role === "ai" && !loading}
+            key={m?.id || `${i}-${String(m?.role || "x")}`}
+            role={m?.role || "ai"}
+            text={typeof m?.text === "string" ? m.text : m?.text?.text || String(m?.text ?? "")}
+            animate={i === messages.length - 1 && m?.role === "ai" && !loading}
           />
         ))}
 
