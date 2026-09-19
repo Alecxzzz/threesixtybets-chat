@@ -55,7 +55,7 @@ export default function ESPNGratis() {
     let alive = true;
     async function cargar() {
       try {
-        const r = await fetch(`${API_URL}/free-espn/match`);
+        const r = await fetch(`${API_URL}/tv-live/match`);
         const d = await r.json();
         if (!alive) return;
         setMatch(d);
@@ -93,7 +93,7 @@ export default function ESPNGratis() {
       try {
         let url = urlPropia;
         if (!url) {
-          const r = await fetch(`${API_URL}/free-espn/stream`);
+          const r = await fetch(`${API_URL}/tv-live/stream`);
           if (!alive) return;
           if (r.status === 403) {
             setPlayerState((match?.apertura && new Date(match.apertura) > new Date()) ? "antes" : "fuera");
@@ -164,7 +164,7 @@ export default function ESPNGratis() {
         <header style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
           <img src="/logo.png" alt="" width={34} height={34} style={{ borderRadius: 8 }} />
           <div>
-            <div style={{ fontWeight: 800, fontSize: 15 }}>📺 ESPN Deportes</div>
+            <div style={{ fontWeight: 800, fontSize: 15 }}>📺 Partido en vivo</div>
             <div style={{ fontSize: 12, color: "#8b95a1" }}>
               Transmisión en vivo del partido destacado
             </div>
@@ -241,7 +241,7 @@ export default function ESPNGratis() {
             </div>
             ) : (
               <p style={{ color: "#8b95a1", fontSize: 13, background: "#111820", border: "1px solid #22303c", borderRadius: 10, padding: "12px 14px" }}>
-                Las estadisticas aparecen cuando el partido este en la agenda de ESPN.
+                Las estadisticas aparecen cuando inicie el partido.
               </p>
             )}
           </>
@@ -266,7 +266,7 @@ function PlayerBox({ playerState, match, videoRef }) {
           alignItems: "center", justifyContent: "center", gap: 8, textAlign: "center",
           background: "rgba(0,0,0,0.75)", padding: 16,
         }}>
-          {playerState === "cargando" && <p>Conectando con ESPN Deportes...</p>}
+          {playerState === "cargando" && <p>Conectando con la senal...</p>}
           {playerState === "antes" && (
             <>
               <div style={{ fontSize: 40 }}>⏳</div>
