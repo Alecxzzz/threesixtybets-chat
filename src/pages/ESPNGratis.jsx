@@ -38,6 +38,7 @@ export default function ESPNGratis() {
   const [restanteMs, setRestanteMs] = useState(0);
   const videoRef = useRef(null);
   const hlsRef = useRef(null);
+  const reintentosRef = useRef(0);
 
   // El CSS global de la app pone body { overflow: hidden } (layout del chat):
   // en esta pagina independiente lo reactivamos para que se pueda scrollear.
@@ -118,10 +119,19 @@ export default function ESPNGratis() {
           hls.loadSource(url);
           hls.attachMedia(video);
           hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            reintentosRef.current = 0; // senal viva: reiniciar el contador
             video.play().catch(() => { /* autoplay bloqueado: el usuario da play */ });
           });
           hls.on(Hls.Events.ERROR, (_e, data) => {
-            if (data?.fatal) setPlayerState("error");
+            if (!data?.fatal) return;
+            // El stream puede congelarse/morir (tokens que vencen, upstream
+            // inestable): pedir al backend OTRO stream vivo automaticamente.
+            if (reintentosRef.current < 5) {
+              reintentosRef.current += 1;
+              setTimeout(() => { if (alive) iniciar(); }, 3000);
+            } else {
+              setPlayerState("error");
+            }
           });
         } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
           video.src = url;
