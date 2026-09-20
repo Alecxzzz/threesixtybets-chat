@@ -18,6 +18,43 @@ function ConfianzaBadge({ confianza }) {
   return null;
 }
 
+/* Texto del pick listo para compartir (copiar o WhatsApp). */
+function textoPick(p) {
+  const lineas = [
+    "🎯 Pick 3SIXTYBETS",
+    p.eventName || [p.awayName, "vs", p.homeName].filter(Boolean).join(" "),
+    `Mercado: ${p.titulo || p.market || "?"}`,
+    `Seleccion: ${p.porque || p.selection || "?"}`,
+  ];
+  if (p.odds) lineas.push(`Cuota: ${p.odds.toFixed(2)}`);
+  return lineas.join("\n");
+}
+
+async function compartirPick(ev, p) {
+  ev.stopPropagation();
+  const t = textoPick(p);
+  try {
+    if (navigator.share) {
+      await navigator.share({ title: "Pick 3SIXTYBETS", text: t });
+      return;
+    }
+  } catch { /* cancelado: no hacer nada */ }
+  try {
+    if (ev.shiftKey) {
+      window.open(`https://wa.me/?text=${encodeURIComponent(t)}`, "_blank");
+      return;
+    }
+    await navigator.clipboard.writeText(t);
+    ev.currentTarget && (ev.currentTarget.textContent = "✓ Copiado");
+    setTimeout(() => {
+      const btn = document.getElementById(`share-${p.id}`);
+      if (btn) btn.textContent = "↗ Compartir";
+    }, 1800);
+  } catch {
+    window.open(`https://wa.me/?text=${encodeURIComponent(t)}`, "_blank");
+  }
+}
+
 function RingEfectividad({ porcentaje }) {
   const radio = 34;
   const circ = 2 * Math.PI * radio;
@@ -318,6 +355,15 @@ export default function Dashboard({ session, onIrACreditos }) {
               <span className="dp-liga">{p.sportLabel}</span>
               <span className="dp-fecha">{etiquetaFecha(p.eventDate)}</span>
             </div>
+            <button
+              type="button"
+              id={`share-${p.id}`}
+              className="dp-share"
+              onClick={(ev) => compartirPick(ev, p)}
+              title="Copiar pick (Shift+clic: abrir WhatsApp)"
+            >
+              ↗ Compartir
+            </button>
           </article>
           )
         )}

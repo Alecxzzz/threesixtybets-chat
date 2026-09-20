@@ -229,14 +229,75 @@ export async function refreshSession(session) {
   return updated;
 }
 
-export async function fetchSportGames(session, sport, league) {
+export async function fetchSportGames(session, sport, league, dia = null) {
   const params = new URLSearchParams({ sport });
   if (league) params.set("league", league);
+  if (dia !== null && dia !== undefined && dia !== "") params.set("dia", String(dia));
   const res = await fetch(`${API_URL}/stats/live?${params}`, {
     headers: authHeaders(session),
   });
 
   return readJson(res);
+}
+
+/* ---- Favoritos (equipos / ligas) ---- */
+
+export async function fetchFavoritos(session) {
+  const res = await fetch(`${API_URL}/favoritos`, {
+    headers: authHeaders(session),
+  });
+
+  return readJson(res);
+}
+
+export async function addFavorito(session, fav) {
+  const res = await fetch(`${API_URL}/favoritos`, {
+    method: "POST",
+    headers: authHeaders(session),
+    body: JSON.stringify(fav),
+  });
+
+  return readJson(res);
+}
+
+export async function removeFavorito(session, tipo, refId) {
+  const res = await fetch(
+    `${API_URL}/favoritos/${encodeURIComponent(tipo)}/${encodeURIComponent(refId)}`,
+    { method: "DELETE", headers: authHeaders(session) },
+  );
+
+  return readJson(res);
+}
+
+/**
+ * Stream SSE de marcadores (/stats/stream). Devuelve el EventSource para
+ * poder cerrarlo en el cleanup del useEffect. Si el navegador no soporta
+ * EventSource o el backend no responde, el caller hace fallback a polling.
+ */
+export function openStatsStream(session, sport, league, onData, onError) {
+  if (typeof EventSource === "undefined") return null;
+  const token = session?.access_token || "";
+  const params = new URLSearchParams({ sport, token });
+  if (league) params.set("league", league);
+  try {
+    const es = new EventSource(`${API_URL}/stats/stream?${params}`);
+    es.onmessage = (ev) => {
+      try {
+        onData(JSON.parse(ev.data));
+      } catch {
+        /* payload parcial: ignorar */
+      }
+    };
+    es.onerror = () => {
+      try {
+        es.close();
+      } catch {}
+      onError?.();
+    };
+    return es;
+  } catch {
+    return null;
+  }
 }
 
 export async function fetchGameDetail(session, sport, eventId) {

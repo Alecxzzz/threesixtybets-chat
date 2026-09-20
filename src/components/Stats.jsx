@@ -7,6 +7,10 @@ import {
   fetchAiAnalysis,
   fetchPlayerLast5,
   fetchStandings,
+  fetchFavoritos,
+  addFavorito,
+  removeFavorito,
+  openStatsStream,
 } from "../services/api";
 import PlayerLast5Modal from "./PlayerLast5Modal";
 
@@ -86,7 +90,7 @@ function LoadingScreen({ sport }) {
 }
 
 /* ---------- Tarjeta de partido ---------- */
-function GameCard({ game, onOpen }) {
+function GameCard({ game, onOpen, esFavorito, onToggleFav }) {
   const live = game.state === "in";
   const theme = SPORT_THEMES[game.sport] || SPORT_THEMES.soccer;
   const hasLines = (game.home_linescores?.length || 0) > 0 && (game.away_linescores?.length || 0) > 0;
@@ -111,7 +115,19 @@ function GameCard({ game, onOpen }) {
     >
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: live ? theme.accent : "#8b95a1" }}>
         <span>{game.league}</span>
-        <span style={{ fontWeight: 600 }}>{statusLabel(game)}</span>
+        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          {onToggleFav && (
+            <span
+              role="button"
+              title={esFavorito ? "Quitar de favoritos" : "Agregar a favoritos"}
+              onClick={(e) => { e.stopPropagation(); onToggleFav(game); }}
+              style={{ cursor: "pointer", fontSize: 14, filter: esFavorito ? "none" : "grayscale(1)", opacity: esFavorito ? 1 : 0.5 }}
+            >
+              ⭐
+            </span>
+          )}
+          <span style={{ fontWeight: 600 }}>{statusLabel(game)}</span>
+        </span>
       </div>
 
       {[game.away, game.home].map((team, i) => (
@@ -418,6 +434,8 @@ function GameDetail({ sport, eventId, onBack }) {
   const [aiStarted, setAiStarted] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [h2hTab, setH2hTab] = useState("local"); // "local" | "h2h" | "visitante"
+  const [favs, setFavs] = useState({}); // clave "equipo:<id>" -> true
+  const [shareCopied, setShareCopied] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -446,6 +464,64 @@ function GameDetail({ sport, eventId, onBack }) {
       loadAi();
     }
   }, [detail, aiStarted]);
+
+  // Cargar favoritos del usuario (para las estrellas del detalle)
+  useEffect(() => {
+    (async () => {
+      const session = getStoredSession();
+      if (!session) return;
+      try {
+        const r = await fetchFavoritos(session);
+        const map = {};
+        for (const f of r?.favoritos || []) {
+          if (f.tipo === "equipo") map[`equipo:${f.ref_id}`] = true;
+        }
+        setFavs(map);
+      } catch {}
+    })();
+  }, []);
+
+  async function toggleFavEquipo(team) {
+    const session = getStoredSession();
+    if (!session || !team?.id) return;
+    const key = `equipo:${team.id}`;
+    try {
+      if (favs[key]) {
+        await removeFavorito(session, "equipo", team.id);
+        setFavs((prev) => { const n = { ...prev }; delete n[key]; return n; });
+      } else {
+        await addFavorito(session, {
+          tipo: "equipo",
+          ref_id: String(team.id),
+          nombre: team.name || team.short_name || "?",
+          sport,
+          logo: team.logo || null,
+        });
+        setFavs((prev) => ({ ...prev, [key]: true }));
+      }
+    } catch {}
+  }
+
+  function textoAnalisis() {
+    if (!aiAnalysis?.analysis) return "";
+    const det = detail || {};
+    const titulo = det.name || [det.away?.name, "vs", det.home?.name].filter(Boolean).join(" ") || "";
+    return `🤖 Análisis IA — ${titulo}\n\n${aiAnalysis.analysis}\n\nvia 3SIXTYBETS`;
+  }
+
+  async function copiarAnalisis() {
+    try {
+      await navigator.clipboard.writeText(textoAnalisis());
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    } catch {}
+  }
+
+  function compartirWhatsapp() {
+    const t = textoAnalisis();
+    if (!t) return;
+    window.open(`https://wa.me/?text=${encodeURIComponent(t)}`, "_blank");
+  }
 
   async function loadAi() {
     const session = getStoredSession();
@@ -582,6 +658,20 @@ function GameDetail({ sport, eventId, onBack }) {
             {!aiLoading && aiAnalysis && (
               <div style={{ background: "#11161d", border: `1px solid ${theme.accent}44`, borderRadius: 10, padding: 14, whiteSpace: "pre-wrap", fontSize: 13, color: "#c9d1d9", lineHeight: 1.6, minHeight: 60 }}>
                 <TypewriterText text={aiAnalysis.analysis} />
+                <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                  <button
+                    onClick={copiarAnalisis}
+                    style={{ flex: 1, padding: "8px 10px", borderRadius: 8, border: "1px solid #232a33", background: "#0d1117", color: shareCopied ? "#34d399" : "#c9d1d9", cursor: "pointer", fontSize: 12 }}
+                  >
+                    {shareCopied ? "✓ Copiado" : "📋 Copiar"}
+                  </button>
+                  <button
+                    onClick={compartirWhatsapp}
+                    style={{ flex: 1, padding: "8px 10px", borderRadius: 8, border: "1px solid #232a33", background: "#0d1117", color: "#c9d1d9", cursor: "pointer", fontSize: 12 }}
+                  >
+                    💬 WhatsApp
+                  </button>
+                </div>
               </div>
             )}
             {!aiLoading && !aiAnalysis && (
@@ -595,6 +685,27 @@ function GameDetail({ sport, eventId, onBack }) {
           {(detail?.teams?.length > 0) && (
             <div style={{ marginBottom: 20 }}>
               <h3 style={sectionTitle()}>⚔️ Historial y últimos partidos</h3>
+              {/* Favoritos rapidos por equipo */}
+              <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+                {[home, away].filter(Boolean).map((t) => (
+                  <button
+                    key={t.id || t.name}
+                    onClick={() => toggleFavEquipo(t)}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 6,
+                      padding: "5px 10px", borderRadius: 999,
+                      border: `1px solid ${favs[`equipo:${t.id}`] ? theme.accent : "#232a33"}`,
+                      background: favs[`equipo:${t.id}`] ? `${theme.accent}18` : "#0d1117",
+                      color: favs[`equipo:${t.id}`] ? theme.accent : "#8b95a1",
+                      cursor: "pointer", fontSize: 12,
+                    }}
+                    title={favs[`equipo:${t.id}`] ? "Quitar de favoritos" : "Seguir equipo"}
+                  >
+                    <span style={{ filter: favs[`equipo:${t.id}`] ? "none" : "grayscale(1)" }}>⭐</span>
+                    {t.short_name || t.name}
+                  </button>
+                ))}
+              </div>
               {/* Tab bar */}
               <div style={{ display: "flex", gap: 4, marginBottom: 10, background: "#0d1117", borderRadius: 8, padding: 3 }}>
                 {[
@@ -861,6 +972,9 @@ function Stats() {
   const [lastUpdate, setLastUpdate] = useState(null);
   const [selected, setSelected] = useState(null);
   const [filter, setFilter] = useState("all"); // all | in | pre | post
+  const [dayFilter, setDayFilter] = useState(null); // null=todo | -1..2
+  const [favs, setFavs] = useState({}); // "equipo:<id>" -> true
+  const [sseActivo, setSseActivo] = useState(false);
 
   useEffect(() => {
     async function loadLeagues() {
@@ -880,7 +994,7 @@ function Stats() {
     if (!session) return;
     setLoading(true);
     try {
-      const result = await fetchSportGames(session, sport, league);
+      const result = await fetchSportGames(session, sport, league, dayFilter);
       setData(result);
       setError(result?.error || null);
       setLastUpdate(new Date());
@@ -889,7 +1003,7 @@ function Stats() {
     } finally {
       setLoading(false);
     }
-  }, [sport, league]);
+  }, [sport, league, dayFilter]);
 
   useEffect(() => {
     setSelected(null);
@@ -897,6 +1011,67 @@ function Stats() {
     const interval = setInterval(load, REFRESH_MS);
     return () => clearInterval(interval);
   }, [load]);
+
+  // Cargar favoritos (para las estrellas y el orden de la lista)
+  useEffect(() => {
+    (async () => {
+      const session = getStoredSession();
+      if (!session) return;
+      try {
+        const r = await fetchFavoritos(session);
+        const map = {};
+        for (const f of r?.favoritos || []) {
+          if (f.tipo === "equipo") map[`equipo:${f.ref_id}`] = true;
+        }
+        setFavs(map);
+      } catch {}
+    })();
+  }, []);
+
+  async function toggleFav(game) {
+    const session = getStoredSession();
+    if (!session) return;
+    // Favorito rapido por equipo visitante (el de arriba de la tarjeta).
+    const team = game?.away;
+    if (!team?.id) return;
+    const key = `equipo:${team.id}`;
+    try {
+      if (favs[key]) {
+        await removeFavorito(session, "equipo", team.id);
+        setFavs((prev) => { const n = { ...prev }; delete n[key]; return n; });
+      } else {
+        await addFavorito(session, {
+          tipo: "equipo",
+          ref_id: String(team.id),
+          nombre: team.name || team.short_name || "?",
+          sport: game.sport || sport,
+          logo: team.logo || null,
+        });
+        setFavs((prev) => ({ ...prev, [key]: true }));
+      }
+    } catch {}
+  }
+
+  // SSE: marcadores que se actualizan solos (15s con partido en vivo).
+  // Si el stream falla (proxy sin buffering, sesion expirada), el polling
+  // de 60s de arriba sigue cubriendo la actualizacion.
+  useEffect(() => {
+    if (selected) return; // en el detalle no hace falta el stream
+    const session = getStoredSession();
+    if (!session) return;
+    const es = openStatsStream(
+      session, sport, league,
+      (data) => {
+        if (!data) return;
+        setData(data);
+        setLastUpdate(new Date());
+        setSseActivo(true);
+      },
+      () => setSseActivo(false),
+    );
+    if (!es) return undefined;
+    return () => { try { es.close(); } catch {} setSseActivo(false); };
+  }, [sport, league, selected]);
 
   if (selected) {
     return <GameDetail sport={selected.sport} eventId={selected.id} onBack={() => setSelected(null)} />;
@@ -912,6 +1087,12 @@ function Stats() {
   if (filter === "in") displayGames = live;
   else if (filter === "pre") displayGames = upcoming;
   else if (filter === "post") displayGames = finished;
+
+  // Favoritos primero (manteniendo el orden en vivo -> hora dentro de cada grupo)
+  if (Object.keys(favs).length > 0) {
+    const esFav = (g) => (favs[`equipo:${g.away?.id}`] || favs[`equipo:${g.home?.id}`]) ? 0 : 1;
+    displayGames = [...displayGames].sort((a, b) => esFav(a) - esFav(b));
+  }
 
   return (
     <section className="tool-page">
@@ -1002,6 +1183,39 @@ function Stats() {
           ))}
         </div>
 
+        {/* Filtro por dia (hora Nicaragua) */}
+        <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+          {[
+            { key: null, label: "🗓️ Todos los dias" },
+            { key: -1, label: "⬅️ Ayer" },
+            { key: 0, label: "Hoy" },
+            { key: 1, label: "Mañana" },
+            { key: 2, label: "Pasado manana" },
+          ].map((d) => (
+            <button
+              key={String(d.key)}
+              onClick={() => setDayFilter(d.key)}
+              style={{
+                padding: "6px 12px",
+                borderRadius: 8,
+                border: `1px solid ${dayFilter === d.key ? (SPORT_THEMES[sport] || SPORT_THEMES.soccer).accent : "#232a33"}`,
+                background: dayFilter === d.key ? "#1c232c" : "transparent",
+                color: dayFilter === d.key ? "#e6edf3" : "#8b95a1",
+                cursor: "pointer",
+                fontSize: 12,
+                fontWeight: dayFilter === d.key ? 700 : 400,
+              }}
+            >
+              {d.label}
+            </button>
+          ))}
+          {sseActivo && (
+            <span style={{ fontSize: 11, color: "#34d399", alignSelf: "center" }}>
+              ● en vivo (stream)
+            </span>
+          )}
+        </div>
+
         {/* Contenido */}
         {loading ? (
           <LoadingScreen sport={sport} />
@@ -1014,7 +1228,13 @@ function Stats() {
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 12, marginTop: 20 }}>
             {displayGames.map((g) => (
-              <GameCard key={g.id} game={g} onOpen={(game) => setSelected({ id: game.id, sport })} />
+              <GameCard
+                key={g.id}
+                game={g}
+                onOpen={(game) => setSelected({ id: game.id, sport })}
+                esFavorito={Boolean(favs[`equipo:${g.away?.id}`] || favs[`equipo:${g.home?.id}`])}
+                onToggleFav={toggleFav}
+              />
             ))}
           </div>
         )}
