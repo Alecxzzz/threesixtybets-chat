@@ -127,14 +127,48 @@ export async function saveChatMessage(session, message) {
   return readJson(res);
 }
 
-export async function sendChatMessage({ mensaje, modelo }, session) {
-  const res = await fetch(`${API_URL}/chat`, {
+// ---- Token de conversacion de chat (anti-abuso de la IA) ----
+// /chat exige un token temporal emitido por /chat/iniciar. Se cachea aqui y
+// expira por inactividad (30 min, renovado en cada mensaje del lado backend).
+let _convToken = null;
+
+async function obtenerConvToken(session) {
+  if (_convToken) return _convToken;
+  const res = await fetch(`${API_URL}/chat/iniciar`, {
     method: "POST",
-    headers: session
-      ? { ...authHeaders(session) }
-      : { "Content-Type": "application/json" },
-    body: JSON.stringify({ mensaje, buscar: true, modelo }),
+    headers: session ? authHeaders(session) : { "Content-Type": "application/json" },
   });
+  const data = await readJson(res);
+  _convToken = data?.conv_token || null;
+  if (!_convToken) throw new Error("No se pudo iniciar la conversacion");
+  return _convToken;
+}
+
+export async function sendChatMessage({ mensaje, modelo }, session) {
+  const convToken = await obtenerConvToken(session);
+  const intento = () =>
+    fetch(`${API_URL}/chat`, {
+      method: "POST",
+      headers: session
+        ? { ...authHeaders(session), "X-Chat-Token": convToken }
+        : { "Content-Type": "application/json", "X-Chat-Token": convToken },
+      body: JSON.stringify({ mensaje, buscar: true, modelo }),
+    });
+
+  let res = await intento();
+  if (res.status === 403) {
+    // Token expirado/invalido (p. ej. la app estuvo en segundo plano):
+    // pedir uno nuevo y reintentar una sola vez.
+    _convToken = null;
+    const nuevo = await obtenerConvToken(session);
+    res = await fetch(`${API_URL}/chat`, {
+      method: "POST",
+      headers: session
+        ? { ...authHeaders(session), "X-Chat-Token": nuevo }
+        : { "Content-Type": "application/json", "X-Chat-Token": nuevo },
+      body: JSON.stringify({ mensaje, buscar: true, modelo }),
+    });
+  }
 
   return readText(res);
 }
