@@ -270,34 +270,12 @@ export async function removeFavorito(session, tipo, refId) {
 }
 
 /**
- * Stream SSE de marcadores (/stats/stream). Devuelve el EventSource para
- * poder cerrarlo en el cleanup del useEffect. Si el navegador no soporta
- * EventSource o el backend no responde, el caller hace fallback a polling.
+ * Stream SSE de marcadores (/stats/stream). RETIRADO: el proxy de produccion
+ * (Northflank) bufferiza la respuesta y los eventos nunca llegan al cliente.
+ * Se conserva el nombre como no-op para no romper imports previos.
  */
-export function openStatsStream(session, sport, league, onData, onError) {
-  if (typeof EventSource === "undefined") return null;
-  const token = session?.access_token || "";
-  const params = new URLSearchParams({ sport, token });
-  if (league) params.set("league", league);
-  try {
-    const es = new EventSource(`${API_URL}/stats/stream?${params}`);
-    es.onmessage = (ev) => {
-      try {
-        onData(JSON.parse(ev.data));
-      } catch {
-        /* payload parcial: ignorar */
-      }
-    };
-    es.onerror = () => {
-      try {
-        es.close();
-      } catch {}
-      onError?.();
-    };
-    return es;
-  } catch {
-    return null;
-  }
+export function openStatsStream(_session, _sport, _league, _onData, _onError) {
+  return null;
 }
 
 export async function fetchGameDetail(session, sport, eventId) {

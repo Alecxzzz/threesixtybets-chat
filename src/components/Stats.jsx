@@ -10,7 +10,6 @@ import {
   fetchFavoritos,
   addFavorito,
   removeFavorito,
-  openStatsStream,
 } from "../services/api";
 import PlayerLast5Modal from "./PlayerLast5Modal";
 
@@ -974,7 +973,6 @@ function Stats() {
   const [filter, setFilter] = useState("all"); // all | in | pre | post
   const [dayFilter, setDayFilter] = useState(null); // null=todo | -1..2
   const [favs, setFavs] = useState({}); // "equipo:<id>" -> true
-  const [sseActivo, setSseActivo] = useState(false);
 
   useEffect(() => {
     async function loadLeagues() {
@@ -1052,26 +1050,9 @@ function Stats() {
     } catch {}
   }
 
-  // SSE: marcadores que se actualizan solos (15s con partido en vivo).
-  // Si el stream falla (proxy sin buffering, sesion expirada), el polling
-  // de 60s de arriba sigue cubriendo la actualizacion.
-  useEffect(() => {
-    if (selected) return; // en el detalle no hace falta el stream
-    const session = getStoredSession();
-    if (!session) return;
-    const es = openStatsStream(
-      session, sport, league,
-      (data) => {
-        if (!data) return;
-        setData(data);
-        setLastUpdate(new Date());
-        setSseActivo(true);
-      },
-      () => setSseActivo(false),
-    );
-    if (!es) return undefined;
-    return () => { try { es.close(); } catch {} setSseActivo(false); };
-  }, [sport, league, selected]);
+  // NOTA: el SSE se retiro: el proxy de Northflank bufferiza el stream y los
+  // eventos no llegan al cliente (verificado en produccion). El polling de
+  // 60s + cache calentado cubre la actualizacion.
 
   if (selected) {
     return <GameDetail sport={selected.sport} eventId={selected.id} onBack={() => setSelected(null)} />;
@@ -1209,11 +1190,6 @@ function Stats() {
               {d.label}
             </button>
           ))}
-          {sseActivo && (
-            <span style={{ fontSize: 11, color: "#34d399", alignSelf: "center" }}>
-              ● en vivo (stream)
-            </span>
-          )}
         </div>
 
         {/* Contenido */}
