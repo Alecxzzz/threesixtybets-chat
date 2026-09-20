@@ -248,6 +248,17 @@ export async function fetchGameDetail(session, sport, eventId) {
   return readJson(res);
 }
 
+/**
+ * Tabla de posiciones de una liga de futbol (grupos por zona + forma last 5).
+ */
+export async function fetchStandings(session, league) {
+  const res = await fetch(`${API_URL}/api/standings/${encodeURIComponent(league)}`, {
+    headers: authHeaders(session),
+  });
+
+  return readJson(res);
+}
+
 export async function fetchAiAnalysis(session, sport, eventId) {
   const params = new URLSearchParams({ sport, event_id: eventId });
   const res = await fetch(`${API_URL}/stats/ai-analysis?${params}`, {

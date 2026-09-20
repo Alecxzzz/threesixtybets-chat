@@ -6,6 +6,7 @@ import {
   fetchLeagues,
   fetchAiAnalysis,
   fetchPlayerLast5,
+  fetchStandings,
 } from "../services/api";
 import PlayerLast5Modal from "./PlayerLast5Modal";
 
@@ -297,6 +298,118 @@ function TypewriterText({ text, speed = 20 }) {
 }
 
 /* ---------- Vista de detalle del partido ---------- */
+/* ---------- Tabla de posiciones de la liga del partido ---------- */
+function TablaPosiciones({ league }) {
+  const [data, setData] = useState(null);
+  const [err, setErr] = useState(false);
+  const [abierta, setAbierta] = useState(false);
+
+  useEffect(() => {
+    if (!league) return;
+    let alive = true;
+    setData(null);
+    setErr(false);
+    (async () => {
+      try {
+        const session = getStoredSession();
+        if (!session) return;
+        const d = await fetchStandings(session, league);
+        if (alive) setData(d);
+      } catch {
+        if (alive) setErr(true);
+      }
+    })();
+    return () => { alive = false; };
+  }, [league]);
+
+  if (!league) return null;
+
+  const grupos = data?.grupos || [];
+
+  // Color de la barra lateral segun la zona de clasificacion
+  function colorZona(nombre) {
+    const n = (nombre || "").toLowerCase();
+    if (n.includes("champions")) return "#22c55e";
+    if (n.includes("europa")) return "#3b82f6";
+    if (n.includes("conference")) return "#8b5cf6";
+    if (n.includes("descenso") || n.includes("relegation")) return "#ef4444";
+    return "#3a4450";
+  }
+
+  function chipForma(res) {
+    const color = res === "W" ? "#16a34a" : res === "L" ? "#dc2626" : "#525252";
+    return (
+      <span key={res + Math.random()} style={{
+        background: color, color: "#fff", borderRadius: 4,
+        fontSize: 9, fontWeight: 800, padding: "2px 4px", minWidth: 14,
+        display: "inline-flex", justifyContent: "center",
+      }}>
+        {res === "W" ? "W" : res === "L" ? "L" : "D"}
+      </span>
+    );
+  }
+
+  return (
+    <div style={{ marginTop: 20 }}>
+      <h3 style={{
+        margin: "0 0 10px", fontSize: 14, fontWeight: 800, color: "#e6edf3",
+      }}>
+        <span>🏆 Tabla de posiciones</span>
+      </h3>
+
+      {err ? (
+        <p style={{ color: "#8b95a1", fontSize: 12 }}>No se pudo cargar la tabla.</p>
+      ) : !data ? (
+        <p style={{ color: "#8b95a1", fontSize: 12 }}>Cargando tabla...</p>
+      ) : !grupos.length ? (
+        <p style={{ color: "#8b95a1", fontSize: 12 }}>No hay tabla disponible para esta liga.</p>
+      ) : (
+        <div style={{ display: "grid", gap: 14 }}>
+          {grupos.map((g, gi) => (
+            <div key={gi}>
+              {g.nombre && g.nombre !== "General" && (
+                <div style={{ color: "#8b95a1", fontSize: 11, fontWeight: 700, marginBottom: 6 }}>
+                  {g.nombre}
+                </div>
+              )}
+              <div style={{ display: "grid", gap: 2 }}>
+                {g.equipos.map((eq, idx) => {
+                  const color = colorZona(eq.nota);
+                  return (
+                    <div key={eq.team + idx} style={{
+                      display: "flex", alignItems: "center", gap: 8,
+                      background: "rgba(17,22,29,0.85)", borderRadius: 6, padding: "5px 8px",
+                      borderLeft: `3px solid ${color}`,
+                    }}>
+                      <span style={{ width: 16, textAlign: "center", color: "#8b95a1", fontSize: 11, fontWeight: 700 }}>{idx + 1}</span>
+                      {eq.logo ? (
+                        <img src={eq.logo} alt="" width={18} height={18} style={{ borderRadius: 3 }} />
+                      ) : <span style={{ width: 18 }} />}
+                      <span style={{ flex: 1, fontSize: 12, color: "#e6edf3", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{eq.team}</span>
+                      <span style={{ width: 20, textAlign: "center", fontSize: 11, color: "#c9d1d9" }}>{eq.pj}</span>
+                      <span style={{ width: 18, textAlign: "center", fontSize: 11, color: "#22c55e" }}>{eq.g}</span>
+                      <span style={{ width: 18, textAlign: "center", fontSize: 11, color: "#c9d1d9" }}>{eq.e}</span>
+                      <span style={{ width: 18, textAlign: "center", fontSize: 11, color: "#f87171" }}>{eq.p}</span>
+                      <span style={{ width: 34, textAlign: "center", fontSize: 11, color: "#c9d1d9" }}>
+                        {eq.dif > 0 ? `+${eq.dif}` : eq.dif}
+                      </span>
+                      <span style={{ width: 40, textAlign: "center", fontSize: 11, color: "#8b95a1" }}>{eq.gf}:{eq.gc}</span>
+                      <span style={{ display: "flex", gap: 2, alignItems: "center" }}>
+                        {(eq.forma || []).map((f, fi) => chipForma(f))}
+                      </span>
+                      <span style={{ width: 24, textAlign: "center", fontSize: 12, fontWeight: 800, color: "#4ade80" }}>{eq.pts}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function GameDetail({ sport, eventId, onBack }) {
   const [detail, setDetail] = useState(null);
   const [error, setError] = useState(null);
@@ -711,6 +824,11 @@ function GameDetail({ sport, eventId, onBack }) {
                 ))}
               </div>
             ))}
+
+          {/* Tabla de posiciones de la liga (solo futbol) */}
+          {sport === "soccer" && (
+            <TablaPosiciones league={detail.league_code || detail.league || null} />
+          )}
         </div>
       </div>
 
