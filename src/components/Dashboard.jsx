@@ -301,19 +301,21 @@ export default function Dashboard({ session, onIrACreditos }) {
     ? (stats.aciertos_hoy ?? stats.pronosticos_acertados_por_la_ia)
     : stats?.historico_aciertos || 0;
 
-  if (error)
-    return <div className="dash-error">⚠️ No se pudo cargar el dashboard: {error}</div>;
-      if (!data) return <DashboardSkeleton />;
-
+  // GOLDEN PICK primero, luego el resto por orden de generacion. IMPORTANTE:
+  // este useMemo va ANTES de los return tempranos (reglas de hooks de React).
   const picks = useMemo(() => {
-    const base = vista === "dia" ? data.pronosticos_del_dia || [] : data.pronosticos_acertados || [];
-    // GOLDEN PICK primero, luego el resto por orden de generacion
+    const base =
+      (vista === "dia" ? data?.pronosticos_del_dia : data?.pronosticos_acertados) || [];
     return [...base].sort((a, b) => {
       if (esGolden(a) && !esGolden(b)) return -1;
       if (!esGolden(a) && esGolden(b)) return 1;
       return 0;
     });
   }, [data, vista]);
+
+  if (error)
+    return <div className="dash-error">⚠️ No se pudo cargar el dashboard: {error}</div>;
+  if (!data) return <DashboardSkeleton />;
 
   const scrollPicks = (dir) => {
     document.getElementById("dash-picks-track")?.scrollBy({ left: dir * 320, behavior: "smooth" });
