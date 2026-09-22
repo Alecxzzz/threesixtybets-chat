@@ -21,17 +21,148 @@ function ConfianzaBadge({ confianza }) {
 /* Texto del pick listo para compartir (copiar o WhatsApp). */
 function textoPick(p) {
   const lineas = [
-    "🎯 Pick 3SIXTYBETS",
+    p.tier === "GOLDEN PICK" ? "GOLDEN PICK 3SIXTYBETS" : "Pick 3SIXTYBETS",
     p.eventName || [p.awayName, "vs", p.homeName].filter(Boolean).join(" "),
     `Mercado: ${p.titulo || p.market || "?"}`,
     `Seleccion: ${p.porque || p.selection || "?"}`,
   ];
-  if (p.odds) lineas.push(`Cuota: ${p.odds.toFixed(2)}`);
+  if (p.odds) lineas.push(`Cuota: ${Number(p.odds).toFixed(2)}`);
+  if (p.tier === "GOLDEN PICK") lineas.push("Doble verificado por IA");
   return lineas.join("\n");
+}
+
+function esGolden(p) {
+  return (
+    (p.tier || "") === "GOLDEN PICK" ||
+    (p.odds != null && Number(p.odds) >= 1.35 && Number(p.odds) <= 1.4)
+  );
+}
+
+function wrapCarta(ctx, text, maxWidth) {
+  const words = String(text || "").split(/\s+/).filter(Boolean);
+  const lines = [];
+  let line = "";
+  for (const w of words) {
+    const t = line ? `${line} ${w}` : w;
+    if (ctx.measureText(t).width > maxWidth && line) {
+      lines.push(line);
+      line = w;
+    } else {
+      line = t;
+    }
+  }
+  if (line) lines.push(line);
+  return lines.slice(0, 4);
+}
+
+function dibujarCartaPick(p) {
+  const golden = esGolden(p);
+  const W = 1080;
+  const H = 1350;
+  const canvas = document.createElement("canvas");
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext("2d");
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, "#0c0f1d");
+  bg.addColorStop(0.55, golden ? "#171a2e" : "#111a2b");
+  bg.addColorStop(1, "#0a0d18");
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+  const acento = golden ? "#f5c542" : "#34d399";
+  ctx.strokeStyle = acento;
+  ctx.lineWidth = 10;
+  ctx.strokeRect(18, 18, W - 36, H - 36);
+  ctx.textAlign = "center";
+  ctx.fillStyle = acento;
+  ctx.font = "800 44px system-ui, sans-serif";
+  ctx.fillText("3SIXTYBETS", W / 2, 140);
+  ctx.fillStyle = "rgba(255,255,255,0.75)";
+  ctx.font = "600 30px system-ui, sans-serif";
+  ctx.fillText("INTELIGENCIA DEPORTIVA", W / 2, 182);
+  ctx.fillStyle = acento;
+  const bw = golden ? 560 : 480;
+  const bh = 84;
+  const bx = (W - bw) / 2;
+  const by = 225;
+  if (ctx.roundRect) {
+    ctx.beginPath();
+    ctx.roundRect(bx, by, bw, bh, 42);
+    ctx.fill();
+  } else {
+    ctx.fillRect(bx, by, bw, bh);
+  }
+  ctx.fillStyle = "#111";
+  ctx.font = "900 46px system-ui, sans-serif";
+  ctx.fillText(golden ? "GOLDEN PICK" : "PICK DEL DIA", W / 2, by + 58);
+  if (golden) {
+    ctx.fillStyle = "#4ade80";
+    ctx.font = "700 30px system-ui, sans-serif";
+    ctx.fillText(p.verificado >= 2 ? "DOBLE VERIFICADO POR IA" : "VERIFICADO POR IA", W / 2, by + 125);
+  }
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "800 52px system-ui, sans-serif";
+  const evLines = wrapCarta(ctx, p.eventName || `${p.awayName || ""} vs ${p.homeName || ""}`, W - 160);
+  evLines.forEach((l, i) => ctx.fillText(l, W / 2, 480 + i * 62));
+  const baseY = 480 + evLines.length * 62;
+  ctx.fillStyle = "rgba(255,255,255,0.65)";
+  ctx.font = "600 32px system-ui, sans-serif";
+  ctx.fillText(`${p.sportLabel || ""}${p.league ? ` · ${p.league}` : ""}`, W / 2, baseY + 30);
+  ctx.fillStyle = acento;
+  ctx.font = "900 60px system-ui, sans-serif";
+  const titLines = wrapCarta(ctx, p.titulo || p.market || "", W - 160);
+  titLines.forEach((l, i) => ctx.fillText(l, W / 2, baseY + 130 + i * 72));
+  const cuotaY = baseY + 130 + titLines.length * 72 + 150;
+  ctx.fillStyle = "rgba(255,255,255,0.7)";
+  ctx.font = "700 34px system-ui, sans-serif";
+  ctx.fillText("CUOTA", W / 2, cuotaY);
+  ctx.fillStyle = "#4ade80";
+  ctx.font = "900 130px system-ui, sans-serif";
+  ctx.fillText(p.odds != null ? String(Number(p.odds).toFixed(2)) : "-", W / 2, cuotaY + 130);
+  ctx.fillStyle = "rgba(255,255,255,0.8)";
+  ctx.font = "600 32px system-ui, sans-serif";
+  ctx.fillText(golden ? "Rango Golden 1.35-1.40" : "3SIXTYBETS AI", W / 2, cuotaY + 190);
+  ctx.fillStyle = "rgba(255,255,255,0.5)";
+  ctx.font = "600 28px system-ui, sans-serif";
+  ctx.fillText("3SIXTYBETS · Juega responsablemente · +18", W / 2, H - 80);
+  return canvas;
 }
 
 async function compartirPick(ev, p) {
   ev.stopPropagation();
+  try {
+    const canvas = dibujarCartaPick(p);
+    const blob = await new Promise((res) => canvas.toBlob(res, "image/png"));
+    const nombre = `pick-3sixtybets-${String(p.eventName || p.id || "pick").replace(/[^\w-]+/g, "-").slice(0, 40)}.png`;
+    if (blob && navigator.canShare) {
+      const file = new File([blob], nombre, { type: "image/png" });
+      if (navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: "Pick 3SIXTYBETS", text: textoPick(p) });
+        return;
+      }
+    }
+    if (blob) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = nombre;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      try {
+        await navigator.clipboard.writeText(textoPick(p));
+      } catch { /* sin portapapeles */ }
+      ev.currentTarget && (ev.currentTarget.textContent = "✓ Foto descargada");
+      setTimeout(() => {
+        const btn = document.getElementById(`share-${p.id}`);
+        if (btn) btn.textContent = "Compartir carta";
+      }, 1800);
+      return;
+    }
+  } catch (e) {
+    if (e && e.name === "AbortError") return;
+  }
   const t = textoPick(p);
   try {
     if (navigator.share) {
@@ -53,6 +184,11 @@ async function compartirPick(ev, p) {
   } catch {
     window.open(`https://wa.me/?text=${encodeURIComponent(t)}`, "_blank");
   }
+}
+
+function GoldenBadge({ p }) {
+  if (!esGolden(p)) return null;
+  return <span className="dp-badge b-golden">GOLDEN PICK</span>;
 }
 
 function RingEfectividad({ porcentaje }) {
@@ -314,9 +450,13 @@ export default function Dashboard({ session, onIrACreditos }) {
               </button>
             </article>
           ) : (
-          <article key={p.id} className={`dash-pick ${p.result === "ACIERTO" ? "pick-acierto" : ""}`}>
+          <article key={p.id} className={`dash-pick${esGolden(p) ? " pick-golden" : ""}${p.result === "ACIERTO" ? " pick-acierto" : ""}`}>
             <div className="dp-badges">
               <ConfianzaBadge confianza={p.confidence} />
+              <GoldenBadge p={p} />
+              {p.verificado >= 2 && (
+                <span className="dp-badge b-verif">x2 verificado</span>
+              )}
               {p.result === "ACIERTO" && (
                 <span className="dp-badge b-acierto">✓ Acertado</span>
               )}
@@ -362,7 +502,7 @@ export default function Dashboard({ session, onIrACreditos }) {
               onClick={(ev) => compartirPick(ev, p)}
               title="Copiar pick (Shift+clic: abrir WhatsApp)"
             >
-              ↗ Compartir
+              📸 Compartir carta
             </button>
           </article>
           )
