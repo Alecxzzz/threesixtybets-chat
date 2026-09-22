@@ -2361,8 +2361,10 @@ button {
   padding: 9px 10px;
   border-radius: 10px;
   border: none;
-  background: linear-gradient(135deg, #facc15, #eab308);
-  color: #111;
+  /* Verde de la marca (el mismo de los botones del header): es el color que
+     combina con la tarjeta. El dorado queda reservado para los GOLDEN PICK. */
+  background: linear-gradient(135deg, #4ade80, #22c55e);
+  color: #07130c;
   font-size: 13px;
   font-weight: 800;
   cursor: pointer;
@@ -2370,8 +2372,18 @@ button {
 }
 
 .dp-share:hover {
-  color: #111;
+  color: #07130c;
   border-color: transparent;
   transform: translateY(-1px);
+}
+
+/* En las tarjetas GOLDEN el boton va en dorado, igual que el borde/badge. */
+.dash-pick.pick-golden .dp-share {
+  background: linear-gradient(135deg, #ffe08a, #f5c542);
+  color: #111;
+}
+
+.dash-pick.pick-golden .dp-share:hover {
+  color: #111;
 }
 

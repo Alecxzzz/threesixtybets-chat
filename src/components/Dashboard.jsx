@@ -55,83 +55,215 @@ function wrapCarta(ctx, text, maxWidth) {
   return lines.slice(0, 4);
 }
 
-function dibujarCartaPick(p) {
+/** Carga un logo sin romper la carta si la imagen falla. */
+function cargarImagen(url) {
+  return new Promise((resolve) => {
+    if (!url) return resolve(null);
+    const img = new Image();
+    // ESPN manda "Access-Control-Allow-Origin: *": se puede dibujar en canvas.
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = url;
+  });
+}
+
+/** Logo circular, igual que .dp-logo en la tarjeta. */
+function dibujarLogo(ctx, img, x, y, tam) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(x + tam / 2, y + tam / 2, tam / 2, 0, Math.PI * 2);
+  ctx.closePath();
+  ctx.clip();
+  ctx.fillStyle = "rgba(255,255,255,0.07)";
+  ctx.fillRect(x, y, tam, tam);
+  if (img) {
+    const escala = Math.max(tam / img.width, tam / img.height);
+    const w = img.width * escala;
+    const h = img.height * escala;
+    ctx.drawImage(img, x + (tam - w) / 2, y + (tam - h) / 2, w, h);
+  } else {
+    ctx.fillStyle = "rgba(255,255,255,0.4)";
+    ctx.font = "700 40px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("?", x + tam / 2, y + tam / 2 + 14);
+    ctx.textAlign = "left";
+  }
+  ctx.restore();
+}
+
+/** Pill (badge) con el mismo look que .dp-badge del dashboard. */
+function dibujarPill(ctx, x, y, texto, fondo, color, borde) {
+  ctx.font = "800 30px system-ui, sans-serif";
+  const w = ctx.measureText(texto).width + 54;
+  const h = 62;
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(x, y, w, h, h / 2);
+  else ctx.rect(x, y, w, h);
+  ctx.fillStyle = fondo;
+  ctx.fill();
+  if (borde) {
+    ctx.strokeStyle = borde;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+  ctx.fillStyle = color;
+  ctx.textAlign = "center";
+  ctx.fillText(texto, x + w / 2, y + h / 2 + 11);
+  ctx.textAlign = "left";
+  return w;
+}
+
+/**
+ * Carta para compartir: replica la tarjeta del dashboard (badges, equipos con
+ * logo, mercado, seleccion, cuota y bullets de stats).
+ */
+async function dibujarCartaPick(p) {
   const golden = esGolden(p);
   const W = 1080;
-  const H = 1350;
+  const H = 1400;
+  const acento = golden ? "#f5c542" : "#4ade80";
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
   const ctx = canvas.getContext("2d");
+
+  // Fondo: mismo degradado que .dash-pick / .pick-golden
   const bg = ctx.createLinearGradient(0, 0, 0, H);
-  bg.addColorStop(0, "#0c0f1d");
-  bg.addColorStop(0.55, golden ? "#171a2e" : "#111a2b");
-  bg.addColorStop(1, "#0a0d18");
+  bg.addColorStop(0, golden ? "#1a1c26" : "#141826");
+  bg.addColorStop(1, "#10131f");
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, W, H);
-  const acento = golden ? "#f5c542" : "#34d399";
-  ctx.strokeStyle = acento;
-  ctx.lineWidth = 10;
-  ctx.strokeRect(18, 18, W - 36, H - 36);
+  if (golden) {
+    const glow = ctx.createLinearGradient(0, 0, 0, 560);
+    glow.addColorStop(0, "rgba(245,197,66,0.16)");
+    glow.addColorStop(1, "rgba(245,197,66,0)");
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, W, 560);
+  }
+  ctx.strokeStyle = golden ? "rgba(245,197,66,0.75)" : "rgba(74,222,128,0.45)";
+  ctx.lineWidth = 8;
+  ctx.strokeRect(16, 16, W - 32, H - 32);
+
+  // Cabecera de marca
   ctx.textAlign = "center";
   ctx.fillStyle = acento;
-  ctx.font = "800 44px system-ui, sans-serif";
-  ctx.fillText("3SIXTYBETS", W / 2, 140);
+  ctx.font = "900 46px system-ui, sans-serif";
+  ctx.fillText("3SIXTYBETS", W / 2, 120);
+  ctx.fillStyle = "rgba(255,255,255,0.7)";
+  ctx.font = "600 28px system-ui, sans-serif";
+  ctx.fillText("SPORTS BETTING INTELLIGENCE", W / 2, 162);
+
+  // Badges (los mismos de la tarjeta: confianza, GOLDEN, verificado)
+  const pillOro = ctx.createLinearGradient(0, 0, 300, 0);
+  pillOro.addColorStop(0, "#ffe08a");
+  pillOro.addColorStop(1, "#f5c542");
+  const pills = [];
+  if (p.confidence === "ALTA")
+    pills.push(["🔥 BOMBA", "rgba(244,63,94,0.16)", "#ffb1c0", "rgba(244,63,94,0.45)"]);
+  else if (p.confidence === "MEDIA")
+    pills.push(["⭐ VALOR", "rgba(124,108,255,0.16)", "#a89bff", "rgba(124,108,255,0.45)"]);
+  else if (p.confidence === "BAJA")
+    pills.push(["RIESGO", "rgba(245,158,11,0.14)", "#fcd34d", "rgba(245,158,11,0.45)"]);
+  if (golden) pills.push(["GOLDEN PICK", pillOro, "#111", "#f5c542"]);
+  if (p.verificado >= 2)
+    pills.push(["x2 VERIFICADO", "rgba(34,197,94,0.16)", "#4ade80", "rgba(34,197,94,0.45)"]);
+  if (p.result === "ACIERTO")
+    pills.push(["✓ ACERTADO", "rgba(34,197,94,0.16)", "#4ade80", "rgba(34,197,94,0.45)"]);
+  let anchoPills = 0;
+  for (const pl of pills) {
+    ctx.font = "800 30px system-ui, sans-serif";
+    anchoPills += ctx.measureText(pl[0]).width + 54 + 14;
+  }
+  let px = (W - (anchoPills - 14)) / 2;
+  for (const pl of pills) {
+    px += dibujarPill(ctx, px, 214, pl[0], pl[1], pl[2], pl[3]) + 14;
+  }
+
+  // Filas de equipos con logo (igual que .dp-evento)
+  const logos = await Promise.all([cargarImagen(p.awayLogo), cargarImagen(p.homeLogo)]);
+  let y = 336;
+  const filas = [
+    { nombre: p.awayName || p.eventName || "", logo: logos[0] },
+    { nombre: p.homeName || "", logo: logos[1] },
+  ];
+  for (const fila of filas) {
+    dibujarLogo(ctx, fila.logo, 92, y, 96);
+    ctx.fillStyle = "#eef1f6";
+    ctx.font = "800 46px system-ui, sans-serif";
+    const lineas = wrapCarta(ctx, fila.nombre, W - 320);
+    lineas.forEach((l, i) => ctx.fillText(l, 216, y + 62 + i * 52));
+    y += Math.max(132, 46 + lineas.length * 52);
+  }
+
+  // Mercado (titulo del pick)
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#97a0b5";
+  ctx.font = "700 36px system-ui, sans-serif";
+  const mercLines = wrapCarta(ctx, p.titulo || p.market || "", W - 200);
+  mercLines.forEach((l, i) => ctx.fillText(l, W / 2, y + 24 + i * 48));
+  y += 24 + mercLines.length * 48 + 44;
+
+  // Seleccion destacada
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "900 54px system-ui, sans-serif";
+  const selLines = wrapCarta(ctx, p.porque || p.selection || "", W - 200);
+  selLines.forEach((l, i) => ctx.fillText(l, W / 2, y + i * 66));
+  y += (selLines.length - 1) * 66 + 40;
+
+  // Cuota grande (como el chip .dp-cuota de la tarjeta)
+  y += 34;
+  ctx.fillStyle = "rgba(255,255,255,0.65)";
+  ctx.font = "800 32px system-ui, sans-serif";
+  ctx.fillText("CUOTA", W / 2, y);
+  ctx.fillStyle = "#4ade80";
+  ctx.font = "900 132px system-ui, sans-serif";
+  ctx.fillText(p.odds != null ? String(Number(p.odds).toFixed(2)) : "-", W / 2, y + 128);
   ctx.fillStyle = "rgba(255,255,255,0.75)";
   ctx.font = "600 30px system-ui, sans-serif";
-  ctx.fillText("INTELIGENCIA DEPORTIVA", W / 2, 182);
-  ctx.fillStyle = acento;
-  const bw = golden ? 560 : 480;
-  const bh = 84;
-  const bx = (W - bw) / 2;
-  const by = 225;
-  if (ctx.roundRect) {
-    ctx.beginPath();
-    ctx.roundRect(bx, by, bw, bh, 42);
-    ctx.fill();
-  } else {
-    ctx.fillRect(bx, by, bw, bh);
+  ctx.fillText(
+    golden ? "GOLDEN PICK · rango 1.35-1.40" : "Seleccionada por 3SIXTYBETS AI",
+    W / 2,
+    y + 176
+  );
+  y += 232;
+
+  // Bullets de estadisticas (los .dp-stats de la tarjeta)
+  if (Array.isArray(p.stats) && p.stats.length) {
+    ctx.textAlign = "left";
+    ctx.font = "600 30px system-ui, sans-serif";
+    for (const stat of p.stats.slice(0, 4)) {
+      if (y > H - 240) break; // no invadir el pie de la carta
+      ctx.fillStyle = "#6d5df6";
+      ctx.beginPath();
+      ctx.arc(108, y - 10, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#b6bfd0";
+      const lineas = wrapCarta(ctx, stat, W - 260);
+      lineas.forEach((l, i) => ctx.fillText(l, 140, y + i * 42));
+      y += Math.max(48, lineas.length * 42 + 8);
+    }
+    ctx.textAlign = "center";
   }
-  ctx.fillStyle = "#111";
-  ctx.font = "900 46px system-ui, sans-serif";
-  ctx.fillText(golden ? "GOLDEN PICK" : "PICK DEL DIA", W / 2, by + 58);
-  if (golden) {
-    ctx.fillStyle = "#4ade80";
-    ctx.font = "700 30px system-ui, sans-serif";
-    ctx.fillText(p.verificado >= 2 ? "DOBLE VERIFICADO POR LOS SERVIDORES" : "VERIFICADO POR LOS SERVIDORES", W / 2, by + 125);
-  }
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "800 52px system-ui, sans-serif";
-  const evLines = wrapCarta(ctx, p.eventName || `${p.awayName || ""} vs ${p.homeName || ""}`, W - 160);
-  evLines.forEach((l, i) => ctx.fillText(l, W / 2, 480 + i * 62));
-  const baseY = 480 + evLines.length * 62;
-  ctx.fillStyle = "rgba(255,255,255,0.65)";
-  ctx.font = "600 32px system-ui, sans-serif";
-  ctx.fillText(`${p.sportLabel || ""}${p.league ? ` · ${p.league}` : ""}`, W / 2, baseY + 30);
-  ctx.fillStyle = acento;
-  ctx.font = "900 60px system-ui, sans-serif";
-  const titLines = wrapCarta(ctx, p.titulo || p.market || "", W - 160);
-  titLines.forEach((l, i) => ctx.fillText(l, W / 2, baseY + 130 + i * 72));
-  const cuotaY = baseY + 130 + titLines.length * 72 + 150;
-  ctx.fillStyle = "rgba(255,255,255,0.7)";
-  ctx.font = "700 34px system-ui, sans-serif";
-  ctx.fillText("CUOTA", W / 2, cuotaY);
-  ctx.fillStyle = "#4ade80";
-  ctx.font = "900 130px system-ui, sans-serif";
-  ctx.fillText(p.odds != null ? String(Number(p.odds).toFixed(2)) : "-", W / 2, cuotaY + 130);
-  ctx.fillStyle = "rgba(255,255,255,0.8)";
-  ctx.font = "600 32px system-ui, sans-serif";
-  ctx.fillText(golden ? "Rango Golden 1.35-1.40" : "3SIXTYBETS AI", W / 2, cuotaY + 190);
-  ctx.fillStyle = "rgba(255,255,255,0.5)";
-  ctx.font = "600 28px system-ui, sans-serif";
-  ctx.fillText("3SIXTYBETS · Juega responsablemente · +18", W / 2, H - 80);
+
+  // Pie: deporte + fecha y aviso legal
+  ctx.fillStyle = "rgba(255,255,255,0.6)";
+  ctx.font = "700 30px system-ui, sans-serif";
+  ctx.fillText(
+    `${p.sportLabel || ""}${p.league ? ` · ${p.league}` : ""}${p.fechaLabel ? ` · ${p.fechaLabel}` : ""}`,
+    W / 2,
+    H - 150
+  );
+  ctx.fillStyle = "rgba(255,255,255,0.45)";
+  ctx.font = "600 26px system-ui, sans-serif";
+  ctx.fillText("3SIXTYBETS · Juega responsablemente · +18", W / 2, H - 90);
   return canvas;
 }
 
 async function compartirPick(ev, p) {
   ev.stopPropagation();
   try {
-    const canvas = dibujarCartaPick(p);
+    const canvas = await dibujarCartaPick(p);
     const blob = await new Promise((res) => canvas.toBlob(res, "image/png"));
     const nombre = `pick-3sixtybets-${String(p.eventName || p.id || "pick").replace(/[^\w-]+/g, "-").slice(0, 40)}.png`;
     if (blob && navigator.canShare) {
