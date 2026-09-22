@@ -553,8 +553,12 @@ export default function Dashboard({ session, onIrACreditos }) {
         )}
         {picks.map((p) =>
           p.bloqueado ? (
-            <article key={p.id} className="dash-pick pick-bloqueado">
+            <article
+              key={p.id}
+              className={`dash-pick pick-bloqueado${p.golden ? " pick-golden" : ""}`}
+            >
               <div className="dp-badges">
+                {p.golden && <span className="dp-badge b-golden">GOLDEN PICK</span>}
                 <span className="dp-badge b-locked">🔒 Premium</span>
               </div>
               <div className="dp-evento">
@@ -576,7 +580,9 @@ export default function Dashboard({ session, onIrACreditos }) {
                 </div>
               </div>
               <div className="dp-mercado dp-bloqueado-txt">
-                La IA ya eligio su apuesta para este partido 🔒
+                {p.golden
+                  ? "GOLDEN PICK verificado x2 · exclusivo Premium 🔒"
+                  : "La IA ya eligio su apuesta para este partido 🔒"}
               </div>
               <div className="dp-foot">
                 <span className="dp-liga">{p.sportLabel}</span>
