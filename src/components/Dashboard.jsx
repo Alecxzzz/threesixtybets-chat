@@ -27,7 +27,7 @@ function textoPick(p) {
     `Seleccion: ${p.porque || p.selection || "?"}`,
   ];
   if (p.odds) lineas.push(`Cuota: ${Number(p.odds).toFixed(2)}`);
-  if (p.tier === "GOLDEN PICK") lineas.push("Doble verificado por IA");
+  if (p.tier === "GOLDEN PICK") lineas.push("Doble verificado por los servidores.");
   return lineas.join("\n");
 }
 
@@ -98,7 +98,7 @@ function dibujarCartaPick(p) {
   if (golden) {
     ctx.fillStyle = "#4ade80";
     ctx.font = "700 30px system-ui, sans-serif";
-    ctx.fillText(p.verificado >= 2 ? "DOBLE VERIFICADO POR IA" : "VERIFICADO POR IA", W / 2, by + 125);
+    ctx.fillText(p.verificado >= 2 ? "DOBLE VERIFICADO POR LOS SERVIDORES" : "VERIFICADO POR LOS SERVIDORES", W / 2, by + 125);
   }
   ctx.fillStyle = "#ffffff";
   ctx.font = "800 52px system-ui, sans-serif";
@@ -303,10 +303,17 @@ export default function Dashboard({ session, onIrACreditos }) {
 
   if (error)
     return <div className="dash-error">⚠️ No se pudo cargar el dashboard: {error}</div>;
-  if (!data) return <DashboardSkeleton />;
+      if (!data) return <DashboardSkeleton />;
 
-  const picks =
-    vista === "dia" ? data.pronosticos_del_dia || [] : data.pronosticos_acertados || [];
+  const picks = useMemo(() => {
+    const base = vista === "dia" ? data.pronosticos_del_dia || [] : data.pronosticos_acertados || [];
+    // GOLDEN PICK primero, luego el resto por orden de generacion
+    return [...base].sort((a, b) => {
+      if (esGolden(a) && !esGolden(b)) return -1;
+      if (!esGolden(a) && esGolden(b)) return 1;
+      return 0;
+    });
+  }, [data, vista]);
 
   const scrollPicks = (dir) => {
     document.getElementById("dash-picks-track")?.scrollBy({ left: dir * 320, behavior: "smooth" });
@@ -317,7 +324,7 @@ export default function Dashboard({ session, onIrACreditos }) {
       {/* ===== HERO ===== */}
       <section className="dash-hero">
         <span className="dash-hero-badge">⚡ Con tecnología de 3SIXTYBETS AI</span>
-        <h1 className="dash-hero-title">Pronóstico del Día</h1>
+        <h1 className="dash-hero-title">Pronósticos del Día</h1>
         <p className="dash-hero-sub">
           Picks elegidos por nuestra IA entre los mercados de mayor probabilidad,
           variando deportes y mercados para buscar siempre el mayor valor.
