@@ -33,6 +33,7 @@ function textoPick(p) {
 
 function esGolden(p) {
   return (
+    p.golden === true ||
     (p.tier || "") === "GOLDEN PICK" ||
     (p.odds != null && Number(p.odds) >= 1.35 && Number(p.odds) <= 1.4)
   );
