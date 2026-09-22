@@ -288,7 +288,7 @@ async function compartirPick(ev, p) {
       ev.currentTarget && (ev.currentTarget.textContent = "✓ Foto descargada");
       setTimeout(() => {
         const btn = document.getElementById(`share-${p.id}`);
-        if (btn) btn.textContent = "Compartir carta";
+        if (btn) btn.textContent = "📸 Compartir carta";
       }, 1800);
       return;
     }
@@ -311,7 +311,7 @@ async function compartirPick(ev, p) {
     ev.currentTarget && (ev.currentTarget.textContent = "✓ Copiado");
     setTimeout(() => {
       const btn = document.getElementById(`share-${p.id}`);
-      if (btn) btn.textContent = "↗ Compartir";
+      if (btn) btn.textContent = "📸 Compartir carta";
     }, 1800);
   } catch {
     window.open(`https://wa.me/?text=${encodeURIComponent(t)}`, "_blank");
