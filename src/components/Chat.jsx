@@ -27,6 +27,7 @@ function mensajeBienvenida(session) {
 }
 const MODELS = [
   { id: "you", name: "Demian tipster" },
+  { id: "gemini", name: "Gemini (gratis)" },
   { id: "groq", name: "365AI Tipster" },
 ];
 
