@@ -1195,6 +1195,19 @@ button {
   border-color: #4ade80;
 }
 
+/* Canal de cdnlivetv que el proveedor tiene saturado ahora mismo.
+   Se atenua y avisa al pasar el cursor en vez de ocultarlo: el cap es
+   dinamico y puede liberarse en cualquier momento. */
+.channel-card.cdn-offline {
+  opacity: 0.45;
+  border-style: dashed;
+}
+
+.channel-card.cdn-offline:hover {
+  opacity: 0.75;
+  background: #3a2f1f;
+}
+
 .active {
   color: #4ade80;
   margin-right: 12px;

@@ -144,6 +144,16 @@ async function obtenerConvToken(session) {
   return _convToken;
 }
 
+// ---- Catálogo de canales cdnlivetv (dinámico) ----
+// El backend consulta https://api.cdnlivetv.tv/api/v1/channels/ y devuelve el
+// catálogo con el estado online/offline en vivo. Evita mantener una lista fija
+// en channels.js que se queda obsoleta (el proveedor capea canales de forma
+// dinámica).
+export async function fetchCdnChannels() {
+  const res = await fetch(`${API_URL}/tv/canales-cdn`);
+  return readJson(res);
+}
+
 export async function sendChatMessage({ mensaje, modelo }, session) {
   const convToken = await obtenerConvToken(session);
   const intento = () =>
