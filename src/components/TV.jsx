@@ -59,12 +59,14 @@ function TV() {
   // Canales de cdnlivetv.tv: el backend devuelve el catalogo completo (~414)
   // con el estado online/offline en vivo. Se agregan al final y NUNCA pisan un
   // canal que ya exista en channels.js o en la BD: esos tienen una URL probada.
+  // Los que el proveedor tiene SATURADOS se descartan: no se muestran, para
+  // no ofrecer al usuario canales que solo van a fallar.
   useEffect(() => {
     let active = true;
     fetchCdnChannels()
       .then((data) => {
         if (!active) return;
-        const catalogo = data?.deportivos || data?.todos || [];
+        const catalogo = data?.deportivos || [];
         if (!catalogo.length) return;
 
         setChannels((prev) => {
@@ -72,7 +74,8 @@ function TV() {
             prev.map((c) => (c.name || "").trim().toLowerCase())
           );
           const nuevos = catalogo
-            .filter((c) => c?.name && !existentes.has(c.name.trim().toLowerCase()))
+            .filter((c) => c?.name && c.online)
+            .filter((c) => !existentes.has(c.name.trim().toLowerCase()))
             .map((c) => ({
               id: `cdn-${c.code}-${c.name}`,
               name: c.name,
@@ -85,7 +88,6 @@ function TV() {
               type: "m3u8",
               geoRestriction: "NONE",
               useProxy: false,
-              cdnOffline: !c.online,
             }));
           if (!nuevos.length) return prev;
           return [...prev, ...nuevos].sort((a, b) =>
@@ -646,12 +648,7 @@ function TV() {
                 key={channel.id}
                 className={`channel-card ${
                   currentChannel?.id === channel.id ? "selected" : ""
-                } ${channel.cdnOffline ? "cdn-offline" : ""}`}
-                title={
-                  channel.cdnOffline
-                    ? "El proveedor tiene este canal saturado ahora mismo. Puede volver a funcionar en unos minutos."
-                    : undefined
-                }
+                }`}
                 onClick={() => {
                   setPlayerError("");
                   setLoading(true);
@@ -663,9 +660,7 @@ function TV() {
                 <span>{channel.name}</span>
 
                 <div>
-                  <b className="active">
-                    ● {channel.cdnOffline ? "SATURADO" : channel.status}
-                  </b>
+                  <b className="active">● {channel.status}</b>
                   <b className="ads">
                     {channel.ads ? "CON ANUNCIOS" : "SIN ANUNCIOS"}
                   </b>
