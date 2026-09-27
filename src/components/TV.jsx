@@ -6,6 +6,7 @@ import { resolveStreamUrl, needsProxy, transcoderUrl, API_BASE } from "../utils/
 import {
   fetchChannels,
   fetchCdnChannels,
+  fetchAgenda,
   fetchEvents,
   eventResolve,
   getStoredSession,
@@ -13,6 +14,8 @@ import {
 
 function TV() {
   const [channels, setChannels] = useState(staticChannels);
+  // Agenda de hoy: partidos con su canal. Es la vista principal de la pagina.
+  const [agenda, setAgenda] = useState([]);
   const [todayEvents, setTodayEvents] = useState(staticEvents);
   const [currentChannel, setCurrentChannel] = useState(null);
   const [playerError, setPlayerError] = useState("");
@@ -94,6 +97,20 @@ function TV() {
             a.name.localeCompare(b.name)
           );
         });
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Agenda de HOY: cada partido con el canal que lo emite. Es la vista
+  // principal; el usuario pulsa el partido y abre el canal directamente.
+  useEffect(() => {
+    let active = true;
+    fetchAgenda()
+      .then((data) => {
+        if (active && data?.partidos?.length) setAgenda(data.partidos);
       })
       .catch(() => {});
     return () => {
@@ -642,6 +659,58 @@ function TV() {
             </div>
           )}
 
+          {agenda.length > 0 && (
+            <div className="agenda-box">
+              <h3>Partidos de hoy · ver en canal</h3>
+              {agenda.map((p, i) => (
+                <div key={`${p.name}-${i}`} className="agenda-card">
+                  <div className="agenda-info">
+                    <span className="agenda-league">
+                      {(p.league || p.sport || "").toUpperCase()}
+                    </span>
+                    <span className="agenda-teams">
+                      {p.away} <b>vs</b> {p.home}
+                    </span>
+                    <span className="agenda-meta">
+                      {p.status}
+                      {p.total ? ` · total ${p.total}` : ""}
+                      {p.linea ? ` · ${p.linea}` : ""}
+                    </span>
+                  </div>
+                  <div className="agenda-channels">
+                    {p.canales.map((c) => (
+                      <button
+                        key={`${c.code}-${c.name}`}
+                        className="agenda-channel-btn"
+                        onClick={() => {
+                          setPlayerError("");
+                          setLoading(true);
+                          setViaProxy(false);
+                          setViaTranscoder(false);
+                          setCurrentChannel({
+                            id: `cdn-${c.code}-${c.name}`,
+                            name: c.name,
+                            status: "ACTIVO",
+                            ads: true,
+                            stream: `${API_BASE}/tv/cdnlivetv/${encodeURIComponent(
+                              c.name
+                            )}/${c.code}`,
+                            type: "m3u8",
+                            geoRestriction: "NONE",
+                            useProxy: false,
+                          });
+                        }}
+                      >
+                        ▶ {c.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <h2>Todos los canales</h2>
           <div className="channel-list">
             {channels.map((channel) => (
               <button

@@ -154,6 +154,14 @@ export async function fetchCdnChannels() {
   return readJson(res);
 }
 
+// Agenda de HOY con el canal de cada partido (backend cruza ESPN + cdnlivetv).
+// Reemplaza a la lista de canales: el usuario ve QUE se juega y pulsa para ver.
+export async function fetchAgenda(sport) {
+  const q = sport ? `?sport=${encodeURIComponent(sport)}` : "";
+  const res = await fetch(`${API_URL}/tv/agenda${q}`);
+  return readJson(res);
+}
+
 export async function sendChatMessage({ mensaje, modelo }, session) {
   const convToken = await obtenerConvToken(session);
   const intento = () =>
