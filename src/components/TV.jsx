@@ -682,28 +682,51 @@ function TV() {
                       <button
                         key={`${c.code}-${c.name}`}
                         className="agenda-channel-btn"
+                        title={
+                          p.fuente === "estimado"
+                            ? "Canal estimado por deporte: la fuente no publica el emisor exacto de este partido."
+                            : "Canal real segun la agenda de la fuente"
+                        }
                         onClick={() => {
                           setPlayerError("");
                           setLoading(true);
                           setViaProxy(false);
                           setViaTranscoder(false);
-                          setCurrentChannel({
-                            id: `cdn-${c.code}-${c.name}`,
-                            name: c.name,
-                            status: "ACTIVO",
-                            ads: true,
-                            stream: `${API_BASE}/tv/cdnlivetv/${encodeURIComponent(
-                              c.name
-                            )}/${c.code}`,
-                            type: "m3u8",
-                            geoRestriction: "NONE",
-                            useProxy: false,
-                          });
+                          // dlive lleva la URL directa; cdnlivetv necesita el
+                          // nombre+codigo para que el backend resuelva el token.
+                          if (c.dlive) {
+                            setCurrentChannel({
+                              id: `dlive-${c.name}`,
+                              name: c.name,
+                              status: "ACTIVO",
+                              ads: true,
+                              stream: c.dlive,
+                              type: "iframe",
+                              geoRestriction: "NONE",
+                              useProxy: false,
+                            });
+                          } else {
+                            setCurrentChannel({
+                              id: `cdn-${c.code}-${c.name}`,
+                              name: c.name,
+                              status: "ACTIVO",
+                              ads: true,
+                              stream: `${API_BASE}/tv/cdnlivetv/${encodeURIComponent(
+                                c.name
+                              )}/${c.code}`,
+                              type: "m3u8",
+                              geoRestriction: "NONE",
+                              useProxy: false,
+                            });
+                          }
                         }}
                       >
                         ▶ {c.name}
                       </button>
                     ))}
+                    {p.fuente === "estimado" && (
+                      <span className="agenda-warn">canal estimado</span>
+                    )}
                   </div>
                 </div>
               ))}
