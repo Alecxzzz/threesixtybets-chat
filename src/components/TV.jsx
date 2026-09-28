@@ -29,7 +29,7 @@ function TV() {
   const videoRef = useRef(null);
   const hlsRef = useRef(null);
   const playerBoxRef = useRef(null);
-  const reloadAttemptsRef = useRef(0); // intentos de reconexión automática
+  const reloadAttemptsRef = useRef(3); // intentos de reconexión automática
   const lastChannelKeyRef = useRef(null);
 
   // Carga los canales desde la BD (solo los ACTIVOS) y los combina con los
@@ -161,7 +161,7 @@ function TV() {
     const channelKey = `${currentChannel.id || currentChannel.name}`;
     if (lastChannelKeyRef.current !== channelKey) {
       lastChannelKeyRef.current = channelKey;
-      reloadAttemptsRef.current = 0;
+      reloadAttemptsRef.current = 3;
     }
 
     setLoading(true);
@@ -307,7 +307,7 @@ function TV() {
         if (reloadAttemptsRef.current < MAX_RELOADS) {
           reloadAttemptsRef.current++;
           const espera = Math.min(2000 * reloadAttemptsRef.current, 8000); // backoff: 2s..8s
-          setPlayerError(`Conexión perdida. (${data.details})`);
+          setPlayerError(`Conexión perdida. ( ${data.details} )`);
           setTimeout(() => {
             if (!cancelled) {
               destroyHls();
