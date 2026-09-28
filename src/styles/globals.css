@@ -1202,6 +1202,16 @@ button {
   font-weight: 600;
 }
 
+.agenda-note {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: #fbbf24;
+  background: #3a2f1f;
+  border: 1px solid #5a4520;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
 .agenda-card {
   display: flex;
   align-items: center;

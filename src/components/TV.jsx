@@ -659,9 +659,52 @@ function TV() {
             </div>
           )}
 
+          {/*
+            Los canales van PRIMERO: son streams directos ya verificados
+            (fubo18, etc.) y siempre reproducen algo. La agenda va despues y
+            solo como referencia: el canal que asigna puede no emitir ese
+            partido, asi que no debe tapar la lista que si funciona.
+          */}
+          <h2>Canales disponibles</h2>
+          <div className="channel-list">
+            {channels.map((channel) => (
+              <button
+                key={channel.id}
+                className={`channel-card ${
+                  currentChannel?.id === channel.id ? "selected" : ""
+                }`}
+                onClick={() => {
+                  setPlayerError("");
+                  setLoading(true);
+                  setViaProxy(needsProxy(channel));
+                  setViaTranscoder(false);
+                  setCurrentChannel(channel);
+                }}
+              >
+                <span>{channel.name}</span>
+
+                <div>
+                  <b className="active">● {channel.status}</b>
+                  <b className="ads">
+                    {channel.ads ? "CON ANUNCIOS" : "SIN ANUNCIOS"}
+                  </b>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          {/*
+            Agenda SOLO como referencia. El canal que sugiere puede no emitir
+            ese partido (es un dato de terceros), asi que se explica en vez de
+            presentarlo como certeza.
+          */}
           {agenda.length > 0 && (
             <div className="agenda-box">
-              <h3>Partidos de hoy · ver en canal</h3>
+              <h3>Partidos de hoy · posibles canales</h3>
+              <p className="agenda-note">
+                El canal sugerido puede no emitir ese partido. Si al abrirlo
+                ves otro evento, prueba con los demás canales de arriba.
+              </p>
               {agenda.map((p, i) => (
                 <div key={`${p.name}-${i}`} className="agenda-card">
                   <div className="agenda-info">
@@ -684,16 +727,14 @@ function TV() {
                         className="agenda-channel-btn"
                         title={
                           p.fuente === "estimado"
-                            ? "Canal estimado por deporte: la fuente no publica el emisor exacto de este partido."
-                            : "Canal real segun la agenda de la fuente"
+                            ? "Canal estimado por deporte: la fuente no publica el emisor de este partido."
+                            : "Canal segun la agenda de la fuente (puede no ser el correcto)."
                         }
                         onClick={() => {
                           setPlayerError("");
                           setLoading(true);
                           setViaProxy(false);
                           setViaTranscoder(false);
-                          // dlive lleva la URL directa; cdnlivetv necesita el
-                          // nombre+codigo para que el backend resuelva el token.
                           if (c.dlive) {
                             setCurrentChannel({
                               id: `dlive-${c.name}`,
@@ -725,41 +766,13 @@ function TV() {
                       </button>
                     ))}
                     {p.fuente === "estimado" && (
-                      <span className="agenda-warn">canal estimado</span>
+                      <span className="agenda-warn">estimado</span>
                     )}
                   </div>
                 </div>
               ))}
             </div>
           )}
-
-          <h2>Todos los canales</h2>
-          <div className="channel-list">
-            {channels.map((channel) => (
-              <button
-                key={channel.id}
-                className={`channel-card ${
-                  currentChannel?.id === channel.id ? "selected" : ""
-                }`}
-                onClick={() => {
-                  setPlayerError("");
-                  setLoading(true);
-                  setViaProxy(needsProxy(channel));
-                  setViaTranscoder(false);
-                  setCurrentChannel(channel);
-                }}
-              >
-                <span>{channel.name}</span>
-
-                <div>
-                  <b className="active">● {channel.status}</b>
-                  <b className="ads">
-                    {channel.ads ? "CON ANUNCIOS" : "SIN ANUNCIOS"}
-                  </b>
-                </div>
-              </button>
-            ))}
-          </div>
         </div>
       </div>
     </section>
