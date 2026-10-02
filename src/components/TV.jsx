@@ -6,7 +6,6 @@ import { resolveStreamUrl, needsProxy, transcoderUrl, API_BASE } from "../utils/
 import {
   fetchChannels,
   fetchCdnChannels,
-  fetchAgenda,
   fetchEvents,
   eventResolve,
   getStoredSession,
@@ -14,8 +13,6 @@ import {
 
 function TV() {
   const [channels, setChannels] = useState(staticChannels);
-  // Agenda de hoy: partidos con su canal. Es la vista principal de la pagina.
-  const [agenda, setAgenda] = useState([]);
   const [todayEvents, setTodayEvents] = useState(staticEvents);
   const [currentChannel, setCurrentChannel] = useState(null);
   const [playerError, setPlayerError] = useState("");
@@ -104,19 +101,7 @@ function TV() {
     };
   }, []);
 
-  // Agenda de HOY: cada partido con el canal que lo emite. Es la vista
-  // principal; el usuario pulsa el partido y abre el canal directamente.
-  useEffect(() => {
-    let active = true;
-    fetchAgenda()
-      .then((data) => {
-        if (active && data?.partidos?.length) setAgenda(data.partidos);
-      })
-      .catch(() => {});
-    return () => {
-      active = false;
-    };
-  }, []);
+
 
   // Carga los eventos del dia desde la BD (scraper -> POST /admin/events).
   // Prioridad: eventos de la BD si hay; si no, fallback del events.js estatico.
@@ -660,10 +645,10 @@ function TV() {
           )}
 
           {/*
-            Los canales van PRIMERO: son streams directos ya verificados
-            (fubo18, etc.) y siempre reproducen algo. La agenda va despues y
-            solo como referencia: el canal que asigna puede no emitir ese
-            partido, asi que no debe tapar la lista que si funciona.
+            Canales directos ya verificados (fubo18, etc.) y siempre
+            reproducen algo. La agenda de partidos se quito de la pagina: el
+            canal que sugeria podia no emitir ese partido y terminaba siendo
+            una lista de opciones que fallaban.
           */}
           <h2>Canales disponibles</h2>
           <div className="channel-list">
@@ -693,86 +678,7 @@ function TV() {
             ))}
           </div>
 
-          {/*
-            Agenda SOLO como referencia. El canal que sugiere puede no emitir
-            ese partido (es un dato de terceros), asi que se explica en vez de
-            presentarlo como certeza.
-          */}
-          {agenda.length > 0 && (
-            <div className="agenda-box">
-              <h3>Partidos de hoy · posibles canales</h3>
-              <p className="agenda-note">
-                El canal sugerido puede no emitir ese partido. Si al abrirlo
-                ves otro evento, prueba con los demás canales de arriba.
-              </p>
-              {agenda.map((p, i) => (
-                <div key={`${p.name}-${i}`} className="agenda-card">
-                  <div className="agenda-info">
-                    <span className="agenda-league">
-                      {(p.league || p.sport || "").toUpperCase()}
-                    </span>
-                    <span className="agenda-teams">
-                      {p.away} <b>vs</b> {p.home}
-                    </span>
-                    <span className="agenda-meta">
-                      {p.status}
-                      {p.total ? ` · total ${p.total}` : ""}
-                      {p.linea ? ` · ${p.linea}` : ""}
-                    </span>
-                  </div>
-                  <div className="agenda-channels">
-                    {p.canales.map((c) => (
-                      <button
-                        key={`${c.code}-${c.name}`}
-                        className="agenda-channel-btn"
-                        title={
-                          p.fuente === "estimado"
-                            ? "Canal estimado por deporte: la fuente no publica el emisor de este partido."
-                            : "Canal segun la agenda de la fuente (puede no ser el correcto)."
-                        }
-                        onClick={() => {
-                          setPlayerError("");
-                          setLoading(true);
-                          setViaProxy(false);
-                          setViaTranscoder(false);
-                          if (c.dlive) {
-                            setCurrentChannel({
-                              id: `dlive-${c.name}`,
-                              name: c.name,
-                              status: "ACTIVO",
-                              ads: true,
-                              stream: c.dlive,
-                              type: "iframe",
-                              geoRestriction: "NONE",
-                              useProxy: false,
-                            });
-                          } else {
-                            setCurrentChannel({
-                              id: `cdn-${c.code}-${c.name}`,
-                              name: c.name,
-                              status: "ACTIVO",
-                              ads: true,
-                              stream: `${API_BASE}/tv/cdnlivetv/${encodeURIComponent(
-                                c.name
-                              )}/${c.code}`,
-                              type: "m3u8",
-                              geoRestriction: "NONE",
-                              useProxy: false,
-                            });
-                          }
-                        }}
-                      >
-                        ▶ {c.name}
-                      </button>
-                    ))}
-                    {p.fuente === "estimado" && (
-                      <span className="agenda-warn">estimado</span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+
         </div>
       </div>
     </section>
