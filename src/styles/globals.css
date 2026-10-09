@@ -807,6 +807,45 @@ button {
   height: 100%;
 }
 
+/* Overlay de carga sobre el cuadro del video (spinner + "Cargando…").
+   Se muestra mientras el estado `loading` del reproductor está activo y
+   desaparece solo cuando el stream empieza a reproducir. */
+.tv-loading-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  pointer-events: none; /* no bloquea los controles del reproductor */
+}
+
+.tv-spinner {
+  width: 46px;
+  height: 46px;
+  border: 4px solid rgba(74, 222, 128, 0.25);
+  border-top-color: #4ade80;
+  border-radius: 50%;
+  animation: tv-spin 0.9s linear infinite;
+}
+
+.tv-loading-text {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #e5edf7;
+}
+
+@keyframes tv-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* ===== Pagos aceptados (bajo el aviso del dashboard) ===== */
 .pagos-aceptados {
   display: flex;

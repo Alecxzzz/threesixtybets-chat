@@ -531,6 +531,12 @@ function TV() {
                     muted={isMuted}
                     style={{ width: "100%", height: "100%" }}
                   />
+                  {loading && (
+                    <div className="tv-loading-overlay" aria-live="polite">
+                      <div className="tv-spinner" />
+                      <span className="tv-loading-text">Cargando…</span>
+                    </div>
+                  )}
                   <div className="tv-controls-bar">
                     <div className="tv-controls-left">
                       <button
