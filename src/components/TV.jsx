@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import Hls from "hls.js";
 import { channels as staticChannels } from "../data/channels";
 import { events as staticEvents } from "../data/events";
-import { resolveStreamUrl, needsProxy, transcoderUrl } from "../utils/stream";
+import { resolveStreamUrl, needsProxy, transcoderUrl, channelSources } from "../utils/stream";
 import {
   fetchChannels,
   fetchEvents,
@@ -17,6 +17,7 @@ function TV() {
   const [playerError, setPlayerError] = useState("");
   const [viaProxy, setViaProxy] = useState(false); // reintento automático
   const [viaTranscoder, setViaTranscoder] = useState(false); // fallback universal
+  const [srcIdx, setSrcIdx] = useState(0); // fuente activa del canal (0=principal, 1+=alternatives)
   const [reloadEpoch, setReloadEpoch] = useState(0); // reinicio completo del player
   const [loading, setLoading] = useState(false);
   const [isMuted, setIsMuted] = useState(true); // arranca en mute para autoplay
@@ -93,11 +94,17 @@ function TV() {
     if (currentChannel.type === "iframe") return;
 
     const video = videoRef.current;
-    const rawUrl = (currentChannel?.stream || "").trim();
+    // Fuentes del canal: principal + alternatives. srcIdx elige cuál se prueba.
+    // Al agotar la cadena directo->proxy->transcoder en una fuente, el handler
+    // de error salta a la siguiente (ver bloque de error fatal).
+    const fuentes = channelSources(currentChannel);
+    const srcActiva = fuentes[Math.min(srcIdx, fuentes.length - 1)] || "";
+    const effChannel = { ...currentChannel, stream: srcActiva };
+    const rawUrl = srcActiva.trim();
     const streamUrl = viaTranscoder
       ? transcoderUrl(rawUrl, currentChannel.referer)
-      : resolveStreamUrl(currentChannel, viaProxy);
-    const alreadyProxied = viaTranscoder || viaProxy || needsProxy(currentChannel);
+      : resolveStreamUrl(effChannel, viaProxy);
+    const alreadyProxied = viaTranscoder || viaProxy || needsProxy(effChannel);
     let hls;
     let cancelled = false;
     let mediaRecoveryAttempts = 0;
@@ -263,7 +270,26 @@ function TV() {
           return;
         }
 
-        // 4) Mensajes específicos (ya se agotaron los reintentos)
+        // 3b) Fuentes alternativas del canal: si se agotó la cadena
+        //     directo->proxy->transcoder en la fuente actual y el canal tiene
+        //     más opciones (alternatives), saltar a la siguiente en vez de
+        //     rendirse. Es el respaldo automático pedido por el usuario.
+        const totalFuentes = channelSources(currentChannel).length;
+        if (srcIdx < totalFuentes - 1) {
+          setPlayerError(
+            `Fuente ${srcIdx + 1} agotada. Probando fuente alternativa ${srcIdx + 2} de ${totalFuentes}...`
+          );
+          destroyHls();
+          if (!cancelled) {
+            reloadAttemptsRef.current = 0; // la nueva fuente arranca con sus propios reintentos
+            setViaProxy(false);
+            setViaTranscoder(false);
+            setSrcIdx((i) => i + 1);
+          }
+          return;
+        }
+
+        // 4) Mensajes específicos (ya se agotaron los reintentos y las fuentes)
         if (data.details === Hls.ErrorDetails.BUFFER_INCOMPATIBLE_CODECS_ERROR) {
           setPlayerError(
             "Este canal usa un códec que tu navegador no soporta (ej. HEVC/H.265). Prueba en otro navegador o dispositivo."
@@ -301,7 +327,7 @@ function TV() {
       cancelled = true;
       destroyHls();
     };
-  }, [currentChannel, viaProxy, viaTranscoder, reloadEpoch, destroyHls]);
+  }, [currentChannel, viaProxy, viaTranscoder, reloadEpoch, srcIdx, destroyHls]);
 
   // Vigilante anti-congelamiento: si la imagen se queda quieta (stream cortado
   // sin error reportado por hls.js), fuerza la reconexión del mismo canal.
@@ -413,6 +439,7 @@ function TV() {
     reloadAttemptsRef.current = 0;
     setViaProxy(needsProxy(currentChannel));
     setViaTranscoder(false);
+    setSrcIdx(0);
     setReloadEpoch((e) => e + 1);
   };
 
@@ -451,6 +478,7 @@ function TV() {
     };
     setViaProxy(needsProxy(ch));
     setViaTranscoder(false);
+    setSrcIdx(0);
     setCurrentChannel(ch);
   };
 
@@ -630,6 +658,7 @@ function TV() {
                   setLoading(true);
                   setViaProxy(needsProxy(channel));
                   setViaTranscoder(false);
+                  setSrcIdx(0);
                   setCurrentChannel(channel);
                 }}
               >

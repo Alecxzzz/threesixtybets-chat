@@ -60,3 +60,19 @@ export function resolveStreamUrl(channel, forceProxy = false) {
   }
   return raw;
 }
+
+/**
+ * Todas las fuentes de un canal EN ORDEN: la principal (stream) y luego las
+ * alternativas (alternatives). El reproductor prueba la principal y, si se
+ * agota la cadena directo->proxy->transcoder, salta a la siguiente fuente.
+ * @param {object} channel
+ * @returns {string[]} URLs no vacías, en orden de preferencia.
+ */
+export function channelSources(channel) {
+  const main = (channel?.stream || "").trim();
+  const alts = Array.isArray(channel?.alternatives)
+    ? channel.alternatives.map((u) => (u || "").trim()).filter(Boolean)
+    : [];
+  return [main, ...alts].filter(Boolean);
+}
+
