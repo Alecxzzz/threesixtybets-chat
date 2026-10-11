@@ -2,10 +2,9 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import Hls from "hls.js";
 import { channels as staticChannels } from "../data/channels";
 import { events as staticEvents } from "../data/events";
-import { resolveStreamUrl, needsProxy, transcoderUrl, API_BASE } from "../utils/stream";
+import { resolveStreamUrl, needsProxy, transcoderUrl } from "../utils/stream";
 import {
   fetchChannels,
-  fetchCdnChannels,
   fetchEvents,
   eventResolve,
   getStoredSession,
@@ -56,50 +55,12 @@ function TV() {
     };
   }, []);
 
-  // Canales de cdnlivetv.tv: el backend devuelve el catalogo completo (~414)
-  // con el estado online/offline en vivo. Se agregan al final y NUNCA pisan un
-  // canal que ya exista en channels.js o en la BD: esos tienen una URL probada.
-  // Los que el proveedor tiene SATURADOS se descartan: no se muestran, para
-  // no ofrecer al usuario canales que solo van a fallar.
-  useEffect(() => {
-    let active = true;
-    fetchCdnChannels()
-      .then((data) => {
-        if (!active) return;
-        const catalogo = data?.deportivos || [];
-        if (!catalogo.length) return;
-
-        setChannels((prev) => {
-          const existentes = new Set(
-            prev.map((c) => (c.name || "").trim().toLowerCase())
-          );
-          const nuevos = catalogo
-            .filter((c) => c?.name && c.online)
-            .filter((c) => !existentes.has(c.name.trim().toLowerCase()))
-            .map((c) => ({
-              id: `cdn-${c.code}-${c.name}`,
-              name: c.name,
-              status: "ACTIVO",
-              ads: true,
-              // El backend resuelve el token fresco y redirige al /hls-proxy.
-              stream: `${API_BASE}/tv/cdnlivetv/${encodeURIComponent(
-                c.name
-              )}/${c.code}`,
-              type: "m3u8",
-              geoRestriction: "NONE",
-              useProxy: false,
-            }));
-          if (!nuevos.length) return prev;
-          return [...prev, ...nuevos].sort((a, b) =>
-            a.name.localeCompare(b.name)
-          );
-        });
-      })
-      .catch(() => {});
-    return () => {
-      active = false;
-    };
-  }, []);
+  // Canales de cdnlivetv.tv: DESACTIVADOS a pedido del usuario (se quitaron
+  // todos los canales CDN). El catalogo dinamico de cdnlivetv.tv YA NO se
+  // solicita ni se inyecta. Se deja el useEffect vacio (no-op) para no romper
+  // el orden de hooks; si algun dia se quiere reactivar, restaurar el bloque
+  // anterior que llamaba a fetchCdnChannels().
+  useEffect(() => {}, []);
 
 
 
