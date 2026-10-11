@@ -11,7 +11,9 @@ import {
 } from "../services/api";
 
 function TV() {
-  const [channels, setChannels] = useState(staticChannels);
+  const [channels, setChannels] = useState(() =>
+    [...staticChannels].sort((a, b) => a.name.localeCompare(b.name))
+  );
   const [todayEvents, setTodayEvents] = useState(staticEvents);
   const [currentChannel, setCurrentChannel] = useState(null);
   const [playerError, setPlayerError] = useState("");
@@ -598,6 +600,35 @@ function TV() {
                 </button>
               </div>
             )}
+          </div>
+        )}
+
+        {currentChannel && channelSources(currentChannel).length > 1 && (
+          <div className="tv-sources">
+            <h3>Opciones del canal</h3>
+            <p className="tv-sources-hint">
+              Si una fuente no carga, toca otra. Se prueba sola si falla.
+            </p>
+            <div className="tv-sources-list">
+              {channelSources(currentChannel).map((_url, i) => (
+                <button
+                  key={`${currentChannel.id || currentChannel.name}-src-${i}`}
+                  type="button"
+                  className={`tv-source-btn ${srcIdx === i ? "active" : ""}`}
+                  onClick={() => {
+                    if (i === srcIdx) return;
+                    setPlayerError("");
+                    setLoading(true);
+                    setViaProxy(false);
+                    setViaTranscoder(false);
+                    setSrcIdx(i);
+                  }}
+                >
+                  Opción {i + 1}
+                  {srcIdx === i && <span className="tv-source-live">● En uso</span>}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
