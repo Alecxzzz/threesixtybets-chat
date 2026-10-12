@@ -3,6 +3,7 @@ import Hls from "hls.js";
 import { channels as staticChannels } from "../data/channels";
 import { events as staticEvents } from "../data/events";
 import { resolveStreamUrl, needsProxy, transcoderUrl, channelSources, channelSourcesDetailed } from "../utils/stream";
+import ChannelLogo from "./ChannelLogo";
 import {
   fetchChannels,
   fetchEvents,
@@ -696,13 +697,13 @@ function TV() {
                   setCurrentChannel(channel);
                 }}
               >
-                <span>{channel.name}</span>
+                <span className="channel-card-name">
+                  <ChannelLogo name={channel.name} />
+                  <span>{channel.name}</span>
+                </span>
 
                 <div>
                   <b className="active">● {channel.status}</b>
-                  <b className="ads">
-                    {channel.ads ? "CON ANUNCIOS" : "SIN ANUNCIOS"}
-                  </b>
                 </div>
               </button>
             ))}

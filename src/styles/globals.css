@@ -2598,4 +2598,35 @@ button {
   font-style: italic;
 }
 
+/* Nombre de canal en la lista: logo a la izquierda + texto */
+.channel-card-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* Logo cuadrado del canal (imagen) */
+.channel-logo {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  object-fit: contain;
+  flex-shrink: 0;
+  background: #10151d;
+  padding: 2px;
+  box-sizing: border-box;
+}
+
+/* Fallback con iniciales cuando no hay logo o la imagen falla */
+.channel-logo--fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.02em;
+}
+
 
