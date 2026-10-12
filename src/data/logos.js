@@ -25,6 +25,20 @@ const ESPN3_LOGO =
 const ESPN4_LOGO =
   "https://upload.wikimedia.org/wikipedia/commons/thumb/7/78/ESPN_4_logo.svg/960px-ESPN_4_logo.svg.png";
 
+// --- Logos provistos por el usuario (URLs directas) ---
+const ANALISTAS_LOGO =
+  "https://mmx.prnewswire.com/media/1201691/SportsGrid_Logo.jpg";
+const BEIN_XTRA_LOGO =
+  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSS-rOqYRADqSGZ2v_ro3oTUdbHjwoVonIH3GiGfFQaag&s=10";
+const CANAL4_NIC_LOGO =
+  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ1gYBwo32__zgjHWbNSSaqVfs9l4Fb2rVYqo0vxIgsEg&s=10";
+const CBS_UCL_LOGO =
+  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTINfb3gF7APg_7a61A8l9VS_8h7fws-IeM5uV5VeWt-w&s";
+const CLARO_SPORTS_LOGO =
+  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSj1wIab7Sn21u76TecNl3MN34Gs-dVlLkHlPv6GBu_yA&s=10";
+const DSPORTS_LOGO =
+  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQPrzUoeTAJtKPbp5LLtEOt--QRr4QwyP38qc0jv9qc2A&s=10";
+
 export const CHANNEL_LOGOS = {
   // ---- ESPN ----
   "ESPN 1": ESPN_WORDMARK,
@@ -41,10 +55,8 @@ export const CHANNEL_LOGOS = {
 
   // ---- beIN Sports ----
   "BEIN 1": TL("united-states/bein-sports-us.png"),
-  "BEIN SPORTS EXTRA Ñ (español)": TL(
-    "united-states/bein-sports-espanol-us.png"
-  ),
-  "BEIN SPORTS XTRA (ingles)": TL("united-states/bein-sports-xtra-us.png"),
+  "BEIN SPORTS EXTRA Ñ (español)": BEIN_XTRA_LOGO,
+  "BEIN SPORTS XTRA (ingles)": BEIN_XTRA_LOGO,
 
   // ---- Fox Sports ----
   "FOX SPORTS": TL("united-states/fox-sports-us.png"),
@@ -77,6 +89,15 @@ export const CHANNEL_LOGOS = {
   "MOVISTAR DEPORTES": TL("spain/deportes-por-movistar-plus-es.png"),
   "MOVISTAR LIGA DE DEPORTES": TL("spain/deportes-2-por-movistar-plus-es.png"),
   "LALIGA TV": TL("spain/dazn-laliga-es.png"),
+
+  // ---- Logos provistos por el usuario ----
+  "ANALISTAS TV (EN INGLES)": ANALISTAS_LOGO,
+  "CBS UEFA CHAMPIONS LEAGUE": CBS_UCL_LOGO,
+  "CLARO SPORTS": CLARO_SPORTS_LOGO,
+  "CLARO SPORTS 2": CLARO_SPORTS_LOGO,
+  "CANAL 4 (JUEGOS MLB)": CANAL4_NIC_LOGO,
+  "DSPORTS 1": DSPORTS_LOGO,
+  "DSPORTS 2": DSPORTS_LOGO,
 };
 
 /**
