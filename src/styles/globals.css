@@ -2592,4 +2592,10 @@ button {
   gap: 4px;
 }
 
+.tv-source-label {
+  font-size: 0.72rem;
+  color: #7f8ca0;
+  font-style: italic;
+}
+
 

@@ -62,17 +62,38 @@ export function resolveStreamUrl(channel, forceProxy = false) {
 }
 
 /**
- * Todas las fuentes de un canal EN ORDEN: la principal (stream) y luego las
- * alternativas (alternatives). El reproductor prueba la principal y, si se
- * agota la cadena directo->proxy->transcoder, salta a la siguiente fuente.
+ * Todas las fuentes de un canal EN ORDEN, con su etiqueta opcional: la
+ * principal (stream) y luego las alternativas (alternatives).
+ * Cada elemento es { url, label }. `label` solo aparece cuando la fuente se
+ * declaró con etiqueta, ej. una alternativa { url, label: "(INGLES)" }, para
+ * mostrarla junto al botón de opción del reproductor.
+ * Las alternativas aceptan string (URL pelada) u objeto { url, label }.
  * @param {object} channel
- * @returns {string[]} URLs no vacías, en orden de preferencia.
+ * @returns {{ url: string, label?: string }[]} en orden de preferencia.
+ */
+export function channelSourcesDetailed(channel) {
+  const out = [];
+  const main = (channel?.stream || "").trim();
+  if (main) out.push({ url: main, label: channel?.streamLabel || undefined });
+  const alts = Array.isArray(channel?.alternatives) ? channel.alternatives : [];
+  for (const alt of alts) {
+    if (typeof alt === "string") {
+      const url = alt.trim();
+      if (url) out.push({ url, label: undefined });
+    } else if (alt && typeof alt === "object" && alt.url) {
+      const url = String(alt.url).trim();
+      if (url) out.push({ url, label: alt.label || undefined });
+    }
+  }
+  return out;
+}
+
+/**
+ * Compatibilidad: solo las URLs de las fuentes, en orden de preferencia.
+ * @param {object} channel
+ * @returns {string[]} URLs no vacías.
  */
 export function channelSources(channel) {
-  const main = (channel?.stream || "").trim();
-  const alts = Array.isArray(channel?.alternatives)
-    ? channel.alternatives.map((u) => (u || "").trim()).filter(Boolean)
-    : [];
-  return [main, ...alts].filter(Boolean);
+  return channelSourcesDetailed(channel).map((s) => s.url);
 }
 

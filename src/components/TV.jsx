@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import Hls from "hls.js";
 import { channels as staticChannels } from "../data/channels";
 import { events as staticEvents } from "../data/events";
-import { resolveStreamUrl, needsProxy, transcoderUrl, channelSources } from "../utils/stream";
+import { resolveStreamUrl, needsProxy, transcoderUrl, channelSources, channelSourcesDetailed } from "../utils/stream";
 import {
   fetchChannels,
   fetchEvents,
@@ -610,7 +610,7 @@ function TV() {
               Si una fuente no carga, toca otra. Se prueba sola si falla.
             </p>
             <div className="tv-sources-list">
-              {channelSources(currentChannel).map((_url, i) => (
+              {channelSourcesDetailed(currentChannel).map((src, i) => (
                 <button
                   key={`${currentChannel.id || currentChannel.name}-src-${i}`}
                   type="button"
@@ -625,6 +625,9 @@ function TV() {
                   }}
                 >
                   Opción {i + 1}
+                  {src.label && (
+                    <span className="tv-source-label"> {src.label}</span>
+                  )}
                   {srcIdx === i && <span className="tv-source-live">● En uso</span>}
                 </button>
               ))}

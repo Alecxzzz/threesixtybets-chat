@@ -18,7 +18,7 @@ export const channels = [
   { id: 8, name: "CLARO SPORTS", status: "ACTIVO", ads: false, stream: "https://d1seb4wyirpp71.cloudfront.net/live/75898381-5c0a-4506-8ce0-98959aed7356/live.isml/live-audio_0=96000-video=2000000.m3u8", type: "m3u8", geoRestriction: "NONE", useProxy: false },
   { id: 40, name: "CLARO SPORTS 2", status: "ACTIVO", ads: false, stream: "http://168.196.127.137:6001/play/a09d/index.m3u8", type: "m3u8", geoRestriction: "NONE", useProxy: true },
   { id: 9, name: "ESPN 1", status: "ACTIVO", ads: false, stream: "https://barinaslive1.boldmss.com/ESPN/ESPN.isml/ESPN.m3u8", type: "m3u8", geoRestriction: "NONE", useProxy: false, alternatives: ["http://38.252.215.33:8000/play/a00j/index.m3u8"] },
-  { id: 10, name: "ESPN 2", status: "ACTIVO", ads: false, stream: "https://barinaslive1.boldmss.com/ESPN_2/ESPN_2.isml/ESPN_2.m3u8", type: "m3u8", geoRestriction: "NONE", useProxy: false, alternatives: ["http://38.252.215.33:8000/play/a00k/index.m3u8", "http://45.228.234.9:8000/play/a05g/index.m3u8"] },
+  { id: 10, name: "ESPN 2", status: "ACTIVO", ads: false, stream: "https://barinaslive1.boldmss.com/ESPN_2/ESPN_2.isml/ESPN_2.m3u8", type: "m3u8", geoRestriction: "NONE", useProxy: false, alternatives: ["http://38.252.215.33:8000/play/a00k/index.m3u8", "http://45.228.234.9:8000/play/a05g/index.m3u8", { url: "http://85.237.89.160:9590/usa-s/ESPN-2-HD/index.m3u8", label: "(INGLES)" }] },
   { id: 12, name: "ESPN 4", status: "ACTIVO", ads: false, stream: "https://barinaslive1.boldmss.com/ESPN_4/ESPN_4.isml/ESPN_4.m3u8", type: "m3u8", geoRestriction: "NONE", useProxy: false, alternatives: ["http://38.252.215.33:8000/play/a00m/index.m3u8", "http://45.228.234.9:8000/play/a05j/index.m3u8"] },
   { id: 36, name: "ESPN 5", status: "ACTIVO", ads: false, stream: "https://barinaslive1.boldmss.com/ESPN_5/ESPN_5.isml/ESPN_5.m3u8", type: "m3u8", geoRestriction: "NONE", useProxy: true, alternatives: ["http://45.228.234.9:8000/play/a05m/index.m3u8", "http://168.228.44.241:9997/play/a091/index.m3u8", "http://38.252.215.33:8000/play/a00n/index.m3u8"] },
   { id: 37, name: "ESPN 6", status: "ACTIVO", ads: false, stream: "https://barinaslive1.boldmss.com/ESPN_6/ESPN_6.isml/ESPN_6.m3u8", type: "m3u8", geoRestriction: "NONE", useProxy: true, alternatives: ["http://45.228.234.9:8000/play/a05i/index.m3u8", "http://168.228.44.241:9997/play/a01f/index.m3u8", "http://38.252.215.33:8000/play/a00o/index.m3u8"] },
@@ -49,6 +49,8 @@ export const channels = [
   { id: 60, name: "ESPN7", status: "ACTIVO", ads: false, stream: "https://barinaslive1.boldmss.com/ESPN_7/ESPN_7.isml/ESPN_7.m3u8", type: "m3u8", geoRestriction: "NONE", useProxy: true, alternatives: ["http://38.252.215.33:8000/play/a00p/index.m3u8"] },
   { id: 61, name: "DSPORTS 1", status: "ACTIVO", ads: false, stream: "http://38.252.215.33:8000/play/a00q/index.m3u8", type: "m3u8", geoRestriction: "NONE", useProxy: true },
   { id: 62, name: "DSPORTS 2", status: "ACTIVO", ads: false, stream: "http://38.252.215.33:8000/play/a00r/index.m3u8", type: "m3u8", geoRestriction: "NONE", useProxy: true },
+  { id: 63, name: "WIN+", status: "ACTIVO", ads: false, stream: "http://186.148.184.22:8000/play/a0ih/index.m3u8", type: "m3u8", geoRestriction: "NONE", useProxy: true },
+  { id: 64, name: "LALIGA TV", status: "ACTIVO", ads: false, stream: "http://190.61.101.11:7050/play/a04g/index.m3u8", type: "m3u8", geoRestriction: "NONE", useProxy: true, alternatives: ["http://186.33.61.182:8000/play/a05q/index.m3u8"] },
 ];
 
 
