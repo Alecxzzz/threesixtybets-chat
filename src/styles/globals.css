@@ -1869,9 +1869,34 @@ button {
     gap: 8px;
   }
 
+  .mv-slot {
+    min-height: 320px;
+  }
+
   .tv-multiview .tv-player {
     max-width: none;
     width: 100%;
+    min-height: 240px;
+    aspect-ratio: 16 / 9;
+  }
+
+  .tv-multiview .tv-player-box {
+    flex: 1;
+    min-height: 320px;
+  }
+
+  .tv-multiview .tv-title {
+    padding: 6px 10px;
+    font-size: 14px;
+  }
+
+  .tv-multiview .tv-controls-bar {
+    padding: 6px;
+  }
+
+  .tv-multiview .tv-ctrl-btn {
+    width: 28px;
+    height: 28px;
   }
 }
 
