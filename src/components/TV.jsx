@@ -4,6 +4,7 @@ import { channels as staticChannels } from "../data/channels";
 import { events as staticEvents } from "../data/events";
 import { resolveStreamUrl, needsProxy, transcoderUrl, channelSources, channelSourcesDetailed } from "../utils/stream";
 import ChannelLogo from "./ChannelLogo";
+import StreamSlot from "./StreamSlot";
 import {
   fetchChannels,
   fetchEvents,
@@ -26,6 +27,13 @@ function TV() {
   const [isMuted, setIsMuted] = useState(true); // arranca en mute para autoplay
   const [isPip, setIsPip] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Estados para modo multiview (2 streams)
+  const [viewMode, setViewMode] = useState("single"); // "single" | "dual"
+  const [channel1, setChannel1] = useState(null);
+  const [channel2, setChannel2] = useState(null);
+  const [activeStream, setActiveStream] = useState(1); // 1 o 2: a qué stream se asigna el clic de canal
+
   const videoRef = useRef(null);
   const hlsRef = useRef(null);
   const playerBoxRef = useRef(null);
@@ -479,10 +487,16 @@ function TV() {
       useProxy: false,
       geoRestriction: "NONE",
     };
-    setViaProxy(needsProxy(ch));
-    setViaTranscoder(false);
-    setSrcIdx(0);
-    setCurrentChannel(ch);
+
+    if (viewMode === "dual") {
+      if (activeStream === 1) setChannel1(ch);
+      else setChannel2(ch);
+    } else {
+      setViaProxy(needsProxy(ch));
+      setViaTranscoder(false);
+      setSrcIdx(0);
+      setCurrentChannel(ch);
+    }
   };
 
 
@@ -491,7 +505,47 @@ function TV() {
   return (
     <section className="tv-page">
       <div className="tv-layout">
-        {currentChannel && (
+        {/* Toggle de vista: 1 stream o 2 streams (multiview) */}
+        <div className="tv-view-toggle">
+          <button
+            type="button"
+            className={"tv-view-btn " + (viewMode === "single" ? "active" : "")}
+            onClick={() => { setViewMode("single"); setActiveStream(1); }}
+            title="Ver un solo canal"
+          >
+            1 stream
+          </button>
+          <button
+            type="button"
+            className={"tv-view-btn " + (viewMode === "dual" ? "active" : "")}
+            onClick={() => setViewMode("dual")}
+            title="Ver dos canales al mismo tiempo"
+          >
+            2 streams
+          </button>
+          {viewMode === "dual" && (
+            <div className="tv-active-stream">
+              Stream activo:{" "}
+              <button
+                type="button"
+                className={"tv-stream-btn " + (activeStream === 1 ? "active" : "")}
+                onClick={() => setActiveStream(1)}
+              >
+                1
+              </button>{" "}
+              <button
+                type="button"
+                className={"tv-stream-btn " + (activeStream === 2 ? "active" : "")}
+                onClick={() => setActiveStream(2)}
+              >
+                2
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Modo single: un reproductor (comportamiento original) */}
+        {viewMode === "single" && currentChannel && (
           <div className="tv-player-box">
             <div className="tv-title">
               Reproduciendo: <span>{currentChannel.name}</span>
@@ -604,7 +658,39 @@ function TV() {
           </div>
         )}
 
-        {currentChannel && channelSources(currentChannel).length > 1 && (
+        {/* Modo dual: dos reproductores lado a lado (multiview) */}
+        {viewMode === "dual" && (
+          <div className="tv-multiview">
+            <div className="mv-grid">
+              <div className="mv-slot">
+                <div className="mv-slot-header">
+                  <span className="mv-slot-label">Stream 1</span>
+                  {channel1 ? (
+                    <span className={activeStream === 1 ? "mv-active-dot active" : "mv-active-dot"}>●</span>
+                  ) : null}
+                </div>
+                <StreamSlot channel={channel1} slotId="1" muted={true} />
+              </div>
+              <div className="mv-slot">
+                <div className="mv-slot-header">
+                  <span className="mv-slot-label">Stream 2</span>
+                  {channel2 ? (
+                    <span className={activeStream === 2 ? "mv-active-dot active" : "mv-active-dot"}>●</span>
+                  ) : null}
+                </div>
+                <StreamSlot channel={channel2} slotId="2" muted={true} />
+              </div>
+            </div>
+            {!channel1 && !channel2 && (
+              <div className="mv-empty">
+                <p>Selecciona dos canales de la lista para verlos al mismo tiempo.</p>
+                <p>El <b>stream activo</b> recibe el canal al hacer clic en la lista.</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {viewMode === "single" && currentChannel && channelSources(currentChannel).length > 1 && (
           <div className="tv-sources">
             <h3>Opciones del canal</h3>
             <p className="tv-sources-hint">
@@ -691,10 +777,15 @@ function TV() {
                 onClick={() => {
                   setPlayerError("");
                   setLoading(true);
-                  setViaProxy(needsProxy(channel));
-                  setViaTranscoder(false);
-                  setSrcIdx(0);
-                  setCurrentChannel(channel);
+                  if (viewMode === "dual") {
+                    if (activeStream === 1) setChannel1(channel);
+                    else setChannel2(channel);
+                  } else {
+                    setViaProxy(needsProxy(channel));
+                    setViaTranscoder(false);
+                    setSrcIdx(0);
+                    setCurrentChannel(channel);
+                  }
                 }}
               >
                 <span className="channel-card-name">

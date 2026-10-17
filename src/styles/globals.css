@@ -1842,6 +1842,37 @@ button {
   .thinking-card {
     max-width: 100%;
   }
+
+  .tv-view-toggle {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .tv-view-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .tv-active-stream {
+    margin-left: 0;
+    margin-top: 8px;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .tv-multiview {
+    max-width: 100%;
+  }
+
+  .mv-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .tv-multiview .tv-player {
+    max-width: none;
+    width: 100%;
+  }
 }
 
 /* ANIMATIONS */
@@ -2627,6 +2658,200 @@ button {
   font-weight: 700;
   color: #fff;
   letter-spacing: 0.02em;
+}
+
+/* ============ Multiview: toggle de vista (1 stream / 2 streams) ============ */
+.tv-view-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background: #171c26;
+  border: 1px solid #303847;
+  border-radius: 12px;
+  flex-wrap: wrap;
+}
+
+.tv-view-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid #303847;
+  border-radius: 8px;
+  background: #0e1420;
+  color: #aab4c3;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tv-view-btn:hover {
+  border-color: #4ade80;
+  color: #e7edf6;
+}
+
+.tv-view-btn.active {
+  border-color: #4ade80;
+  color: #4ade80;
+  background: #0c1a12;
+}
+
+.tv-active-stream {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 700;
+  color: #aab4c3;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.tv-stream-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #303847;
+  border-radius: 6px;
+  background: #0e1420;
+  color: #aab4c3;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tv-stream-btn:hover {
+  border-color: #4ade80;
+  color: #e7edf6;
+}
+
+.tv-stream-btn.active {
+  border-color: #4ade80;
+  color: #4ade80;
+  background: #0c1a12;
+}
+
+/* ============ Multiview: grid de 2 slots ============ */
+.tv-multiview {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.mv-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.mv-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #171c26;
+  border: 1px solid #303847;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.mv-slot-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #0e1420;
+  border-bottom: 1px solid #303847;
+}
+
+.mv-slot-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #aab4c3;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.mv-active-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #6b7280;
+}
+
+.mv-active-dot.active {
+  background: #4ade80;
+  box-shadow: 0 0 8px rgba(74, 222, 128, 0.5);
+}
+
+.mv-empty {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  color: #aab4c3;
+}
+
+.mv-empty p {
+  margin: 6px 0;
+  font-size: 14px;
+}
+
+/* Ajuste del reproductor dentro de cada slot del multiview */
+.tv-multiview .tv-player-box {
+  margin: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.tv-multiview .tv-title {
+  margin: 0;
+  padding: 8px 12px;
+  background: #0e1420;
+  border-bottom: 1px solid #303847;
+  color: #ececec;
+}
+
+.tv-multiview .tv-title span {
+  color: #4ade80;
+}
+
+.tv-multiview .tv-player {
+  width: 100%;
+  max-width: none;
+  aspect-ratio: 16 / 9;
+  flex: 1;
+}
+
+.tv-multiview .tv-controls-bar {
+  padding: 8px;
+}
+
+.tv-multiview .tv-sources {
+  margin: 0;
+  padding: 8px 12px 12px;
+}
+
+/* ============ Empty slot (cuando no hay canal asignado) ============ */
+.tv-empty-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #7b8798;
+  font-size: 14px;
+  padding: 20px;
+  text-align: center;
 }
 
 
