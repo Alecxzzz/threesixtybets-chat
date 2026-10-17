@@ -744,7 +744,7 @@ button {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   touch-action: pan-y;
-  padding: 28px;
+  padding: 16px;
   padding-bottom: 80px;
   background: #0f1117;
   color: #ececec;
@@ -795,16 +795,29 @@ button {
   flex-direction: column;
 }
 
-.tv-player-shell.is-fullscreen {
+.tv-player-shell.is-fullscreen,
+.tv-player-shell:-webkit-full-screen {
   border-radius: 0;
+  position: fixed !important;
+  top: 0;
+  left: 0;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 2147483647;
 }
 
-.tv-player-shell:fullscreen {
+.tv-player-shell:fullscreen,
+.tv-player-shell:-webkit-full-screen {
   background: #000;
+  width: 100vw !important;
+  height: 100vh !important;
 }
 
-.tv-player-shell:fullscreen video {
-  height: 100%;
+.tv-player-shell:fullscreen video,
+.tv-player-shell:-webkit-full-screen video {
+  height: 100% !important;
+  width: 100% !important;
+  object-fit: contain;
 }
 
 /* Overlay de carga sobre el cuadro del video (spinner + "Cargando…").
@@ -1862,41 +1875,82 @@ button {
 
   .tv-multiview {
     max-width: 100%;
+    width: 100%;
   }
 
   .mv-grid {
     grid-template-columns: 1fr;
-    gap: 8px;
+    gap: 6px;
   }
 
   .mv-slot {
-    min-height: 320px;
+    min-height: 340px;
   }
 
   .tv-multiview .tv-player {
     max-width: none;
     width: 100%;
-    min-height: 240px;
+    min-height: 260px;
     aspect-ratio: 16 / 9;
   }
 
   .tv-multiview .tv-player-box {
     flex: 1;
-    min-height: 320px;
+    min-height: 340px;
   }
 
   .tv-multiview .tv-title {
-    padding: 6px 10px;
-    font-size: 14px;
+    padding: 5px 10px;
+    font-size: 13px;
+    margin-bottom: 0;
   }
 
   .tv-multiview .tv-controls-bar {
-    padding: 6px;
+    padding: 5px;
   }
 
   .tv-multiview .tv-ctrl-btn {
     width: 28px;
     height: 28px;
+  }
+
+  .tv-multiview .tv-live-badge {
+    font-size: 11px;
+  }
+
+  .tv-view-toggle {
+    padding: 8px 12px;
+    gap: 8px;
+  }
+
+  .tv-view-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  .tv-active-stream {
+    margin-top: 6px;
+    font-size: 11px;
+    gap: 6px;
+  }
+
+  .tv-stream-btn {
+    width: 26px;
+    height: 26px;
+    font-size: 12px;
+  }
+
+  .mv-slot-header {
+    padding: 6px 10px;
+  }
+
+  .mv-slot-label {
+    font-size: 11px;
+  }
+
+  .mv-active-dot {
+    width: 6px;
+    height: 6px;
   }
 }
 
@@ -2766,8 +2820,8 @@ button {
 /* ============ Multiview: grid de 2 slots ============ */
 .tv-multiview {
   width: 100%;
-  max-width: 900px;
-  margin: 0 auto;
+  max-width: none;
+  margin: 0;
 }
 
 .mv-grid {
