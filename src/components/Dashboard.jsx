@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { fetchDashboard } from "../services/api";
+import { fetchDashboard, resolveDashboard, revisarDashboard, generateDashboard } from "../services/api";
 import PagosAceptados from "./PagosAceptados";
 
 /**
@@ -428,6 +428,8 @@ export default function Dashboard({ session, onIrACreditos }) {
   const [data, setData] = useState(null);
   const [vista, setVista] = useState("dia"); // "dia" | "acertados"
   const [error, setError] = useState(null);
+  const [adminAccion, setAdminAccion] = useState(""); // "" | "resolve" | "revisar" | "generate"
+  const [adminMsg, setAdminMsg] = useState(null); // { tipo: "ok"|"err", texto }
 
   useEffect(() => {
     let alive = true;
@@ -442,6 +444,36 @@ export default function Dashboard({ session, onIrACreditos }) {
       clearInterval(intervalo);
     };
   }, [session]);
+
+  // ===== Acciones del panel admin (solo rol admin; el backend re-valida) =====
+  const esAdmin = session?.user?.role === "admin";
+
+  const accionAdmin = async (accion, trabajo, resumen) => {
+    setAdminAccion(accion);
+    setAdminMsg(null);
+    try {
+      const r = await trabajo();
+      setAdminMsg({ tipo: "ok", texto: resumen(r) });
+      const d = await fetchDashboard(session); // refrescar picks/resultados
+      setData(d);
+    } catch (e) {
+      setAdminMsg({ tipo: "err", texto: e.message });
+    } finally {
+      setAdminAccion("");
+    }
+  };
+
+  const adminResolver = () =>
+    accionAdmin("resolve", () => resolveDashboard(session),
+      (r) => "Resolucion terminada.\n" + JSON.stringify(r ?? {}, null, 1));
+
+  const adminRevisar = () =>
+    accionAdmin("revisar", () => revisarDashboard(session, true),
+      (r) => "Revision de HOY terminada.\n" + JSON.stringify(r ?? {}, null, 1));
+
+  const adminGenerar = () =>
+    accionAdmin("generate", () => generateDashboard(session, 10, true),
+      (r) => "Generacion terminada.\n" + JSON.stringify(r ?? {}, null, 1));
 
   const stats = data?.stats;
 
@@ -684,6 +716,29 @@ export default function Dashboard({ session, onIrACreditos }) {
           )
         )}
       </section>
+
+      {/* ===== PANEL ADMIN ===== */}
+      {esAdmin && (
+        <section className="dash-admin">
+          <div className="dash-admin-titulo">⚙️ Panel admin — mantenimiento de picks</div>
+          <div className="dash-admin-btns">
+            <button type="button" className="dash-admin-btn" disabled={!!adminAccion} onClick={adminResolver}>
+              {adminAccion === "resolve" ? "Resolviendo…" : "✅ Resolver picks finalizados"}
+            </button>
+            <button type="button" className="dash-admin-btn" disabled={!!adminAccion} onClick={adminRevisar}>
+              {adminAccion === "revisar" ? "Revisando…" : "🔍 Revisar HOY (y corregir)"}
+            </button>
+            <button type="button" className="dash-admin-btn" disabled={!!adminAccion} onClick={adminGenerar}>
+              {adminAccion === "generate" ? "Generando…" : "🤖 Generar picks (top ligas)"}
+            </button>
+          </div>
+          {adminMsg && (
+            <pre className={"dash-admin-msg " + (adminMsg.tipo === "err" ? "es-err" : "es-ok")}>
+              {adminMsg.texto}
+            </pre>
+          )}
+        </section>
+      )}
 
       {/* ===== AVISO ===== */}
       <footer className="dash-aviso">

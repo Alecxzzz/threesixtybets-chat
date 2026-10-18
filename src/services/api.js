@@ -512,6 +512,47 @@ export async function fetchDashboard(session) {
 }
 
 /**
+ * ADMIN: resuelve los picks pendientes cuyos partidos ya terminaron
+ * (marcador final via ESPN -> FotMob -> odds-api).
+ */
+export async function resolveDashboard(session) {
+  const res = await fetch(`${API_URL}/dashboard/resolve`, {
+    method: "POST",
+    headers: authHeaders(session),
+  });
+  return readJson(res);
+}
+
+/**
+ * ADMIN: re-verifica TODOS los picks de hoy contra marcadores y stats
+ * reales; con corregir=true guarda las correcciones en la BD.
+ */
+export async function revisarDashboard(session, corregir = false) {
+  const params = new URLSearchParams({ corregir: String(!!corregir) });
+  const res = await fetch(`${API_URL}/dashboard/revisar?${params}`, {
+    headers: authHeaders(session),
+  });
+  return readJson(res);
+}
+
+/**
+ * ADMIN: genera picks del dia (motor ESPN/FotMob con aprendizaje por
+ * liga: prioriza las ligas de mejor ROI). forzar=true regenera aunque
+ * ya existan picks vigentes.
+ */
+export async function generateDashboard(session, maxPartidos = 8, forzar = false) {
+  const params = new URLSearchParams({
+    max_partidos: String(maxPartidos),
+    forzar: String(!!forzar),
+  });
+  const res = await fetch(`${API_URL}/dashboard/generate?${params}`, {
+    method: "POST",
+    headers: authHeaders(session),
+  });
+  return readJson(res);
+}
+
+/**
  * PANEL ADMIN: borra una key no reclamada.
  */
 export async function adminDeleteKey(session, code) {
