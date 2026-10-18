@@ -395,13 +395,15 @@ function TV() {
   // Escucha cambios de pantalla completa / PiP iniciados desde fuera (ESC, etc.)
   useEffect(() => {
     const onFsChange = () =>
-      setIsFullscreen(Boolean(document.fullscreenElement));
+      setIsFullscreen(!!(document.fullscreenElement || document.webkitIsFullscreen));
     const onPipChange = () => setIsPip(Boolean(document.pictureInPictureElement));
     document.addEventListener("fullscreenchange", onFsChange);
+    document.addEventListener("webkitfullscreenchange", onFsChange);
     document.addEventListener("enterpictureinpicture", onPipChange);
     document.addEventListener("leavepictureinpicture", onPipChange);
     return () => {
       document.removeEventListener("fullscreenchange", onFsChange);
+      document.removeEventListener("webkitfullscreenchange", onFsChange);
       document.removeEventListener("enterpictureinpicture", onPipChange);
       document.removeEventListener("leavepictureinpicture", onPipChange);
     };
@@ -431,12 +433,23 @@ function TV() {
 
   const toggleFullscreen = async () => {
     const box = playerBoxRef.current;
+    const video = videoRef.current;
     if (!box) return;
     try {
       if (document.fullscreenElement) {
-        await document.exitFullscreen();
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          await document.webkitExitFullscreen();
+        }
       } else if (box.requestFullscreen) {
         await box.requestFullscreen();
+      } else if (box.webkitRequestFullscreen) {
+        // Safari / iOS
+        await box.webkitRequestFullscreen();
+      } else if (video?.webkitSupportsFullscreen && video.webkitEnterFullscreen) {
+        // iOS: fullscreen directo en el video
+        video.webkitEnterFullscreen();
       }
     } catch (err) {
       console.log("Fullscreen no disponible:", err);
