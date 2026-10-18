@@ -18,6 +18,31 @@ function ConfianzaBadge({ confianza }) {
   return null;
 }
 
+/* Cuota REAL del bookmaker: el backend la guarda como texto dentro de
+   stats ("Cuota real: 1.7334 (menor = mas probable)"), mientras que el
+   campo odds puede traer una cuota estimada distinta. El chip de la
+   tarjeta y la carta compartida SIEMPRE muestran la real; si no existe,
+   se usa odds como fallback. */
+function cuotaRealPick(p) {
+  if (Array.isArray(p.stats)) {
+    const linea = p.stats.find((s) => /^Cuota real:/i.test(String(s).trim()));
+    const m = linea && String(linea).match(/Cuota real:\s*([0-9]+(?:[.,][0-9]+)?)/i);
+    if (m) {
+      const v = parseFloat(m[1].replace(",", "."));
+      if (Number.isFinite(v) && v > 1) return v;
+    }
+  }
+  const v = Number(p.odds);
+  return Number.isFinite(v) && v > 0 ? v : null;
+}
+
+/* Stats del pick sin la linea "Cuota real: ..." (ya no se muestra en el
+   detalle porque la cuota real vive ahora en el chip de la tarjeta). */
+function statsPick(p) {
+  if (!Array.isArray(p.stats)) return [];
+  return p.stats.filter((s) => !/^Cuota real:/i.test(String(s).trim()));
+}
+
 /* Texto del pick listo para compartir (copiar o WhatsApp). */
 function textoPick(p) {
   const lineas = [
@@ -26,7 +51,8 @@ function textoPick(p) {
     `Mercado: ${p.titulo || p.market || "?"}`,
     `Seleccion: ${p.porque || p.selection || "?"}`,
   ];
-  if (p.odds) lineas.push(`Cuota: ${Number(p.odds).toFixed(2)}`);
+  const cuota = cuotaRealPick(p);
+  if (cuota) lineas.push(`Cuota: ${cuota.toFixed(2)}`);
   if (p.tier === "GOLDEN PICK") lineas.push("Doble verificado por los servidores.");
   return lineas.join("\n");
 }
@@ -219,7 +245,8 @@ async function dibujarCartaPick(p) {
   ctx.fillText("CUOTA", W / 2, y);
   ctx.fillStyle = "#4ade80";
   ctx.font = "900 132px system-ui, sans-serif";
-  ctx.fillText(p.odds != null ? String(Number(p.odds).toFixed(2)) : "-", W / 2, y + 128);
+  const cuotaCarta = cuotaRealPick(p);
+  ctx.fillText(cuotaCarta != null ? cuotaCarta.toFixed(2) : "-", W / 2, y + 128);
   ctx.fillStyle = "rgba(255,255,255,0.75)";
   ctx.font = "600 30px system-ui, sans-serif";
   ctx.fillText(
@@ -230,10 +257,11 @@ async function dibujarCartaPick(p) {
   y += 232;
 
   // Bullets de estadisticas (los .dp-stats de la tarjeta)
-  if (Array.isArray(p.stats) && p.stats.length) {
+  const statsCarta = statsPick(p);
+  if (statsCarta.length) {
     ctx.textAlign = "left";
     ctx.font = "600 30px system-ui, sans-serif";
-    for (const stat of p.stats.slice(0, 4)) {
+    for (const stat of statsCarta.slice(0, 4)) {
       if (y > H - 240) break; // no invadir el pie de la carta
       ctx.fillStyle = "#6d5df6";
       ctx.beginPath();
@@ -630,11 +658,11 @@ export default function Dashboard({ session, onIrACreditos }) {
             <div className="dp-mercado">{p.titulo || p.market}</div>
             <div className="dp-pie">
               <span className="dp-pick-sel">{p.porque || p.selection}</span>
-              {p.odds ? <span className="dp-cuota">cuota {p.odds.toFixed(2)}</span> : null}
+              {cuotaRealPick(p) != null ? <span className="dp-cuota">cuota {cuotaRealPick(p).toFixed(2)}</span> : null}
             </div>
-            {Array.isArray(p.stats) && p.stats.length > 0 && (
+            {statsPick(p).length > 0 && (
               <ul className="dp-stats">
-                {p.stats.map((s, i) => (
+                {statsPick(p).map((s, i) => (
                   <li key={i}>{s}</li>
                 ))}
               </ul>
