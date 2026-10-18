@@ -6,6 +6,7 @@ import {
   loadChatMessages,
   saveChatMessage,
   sendChatMessage,
+  enriquecerConDatos,
 } from "../services/api";
 
 // Saludo de bienvenida ROTATIVO y personalizado con el nombre del usuario.
@@ -139,10 +140,28 @@ function Chat({ session }) {
 
     const MAX_ATTEMPTS = 3;
 
+    // ---- MOTOR DE BUSQUEDA: adjunta DATOS REALES del partido (si lo detecta) ----
+    let mensajeParaIA = userMessage.text;
+    try {
+      const { mensaje: enriquecido, datos } = await enriquecerConDatos(userMessage.text);
+      if (datos && enriquecido !== userMessage.text) {
+        mensajeParaIA = enriquecido;
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "ai",
+            text: `🔎 Datos reales cargados: ${datos.home} vs ${datos.away} (${datos.sport}). La IA respondera con informacion verificada.`,
+          },
+        ]);
+      }
+    } catch {
+      // si el motor de datos falla, el chat sigue funcionando normal
+    }
+
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
       try {
         const text = await sendChatMessage({
-          mensaje: userMessage.text,
+          mensaje: mensajeParaIA,
           modelo: model,
         }, session);
         const aiMessage = { role: "ai", text };

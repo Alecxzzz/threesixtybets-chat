@@ -191,6 +191,111 @@ export async function sendChatMessage({ mensaje, modelo }, session) {
   return readText(res);
 }
 
+// ============================================================
+// MOTOR DE BUSQUEDA: datos reales para el chat IA
+// ============================================================
+// El microservicio de datos (prop_cache_service) expone /data/contexto-ia.
+// Se configura con VITE_DATA_API_URL; si no, usa la misma API principal.
+const DATA_API_URL = (
+  import.meta.env.VITE_DATA_API_URL || API_URL
+).replace(/\/$/, "");
+
+const SPORTS_KEYWORDS = [
+  { sport: "nba", words: ["nba", "basket", "baloncesto", "lakers", "celtics", "warriors"] },
+  { sport: "nfl", words: ["nfl", "futbol americano", "touchdown", "chiefs", "eagles", "cowboys"] },
+  { sport: "tennis", words: ["tenis", "tennis", "atp", "wta", "alcaraz", "sinner", "djokovic"] },
+];
+
+// Detecta un partido "X vs Y" en el mensaje del usuario.
+export function detectarPartido(texto) {
+  const t = (texto || "").trim();
+  if (!t) return null;
+
+  const re = /([a-záéíóúñü0-9.'\- ]{2,45}?)\s+(?:vs\.?|v\.?|contra|@)\s+([a-záéíóúñü0-9.'\- ]{2,45})/i;
+  const m = t.match(re);
+  if (!m) return null;
+
+  const limpiar = (s) =>
+    s
+      .replace(/^(analiza|analizame|analiza el|partido|pick|picks|de|del|el|la|los|las|dame|ver|sobre|que|como|va|juega|juegan)\s+/gi, "")
+      .replace(/\s+(hoy|manana|mañana|ayer|ahora|por favor|please)$/gi, "")
+      .trim();
+
+  const home = limpiar(m[1]);
+  const away = limpiar(m[2]);
+  if (!home || !away || home.length < 2 || away.length < 2) return null;
+
+  // Deporte
+  let sport = "soccer";
+  const lower = t.toLowerCase();
+  for (const s of SPORTS_KEYWORDS) {
+    if (s.words.some((w) => lower.includes(w))) { sport = s.sport; break; }
+  }
+
+  // Fecha (opcional)
+  let fecha = null;
+  const fIso = t.match(/(20\d{2})-(\d{2})-(\d{2})/);
+  const fDmy = t.match(/\b(\d{1,2})\/(\d{1,2})(?:\/(20\d{2}))?\b/);
+  const hoy = new Date();
+  if (fIso) {
+    fecha = fIso[1] + fIso[2] + fIso[3];
+  } else if (fDmy) {
+    const anio = fDmy[3] || hoy.getFullYear();
+    fecha = String(anio) + String(fDmy[2]).padStart(2, "0") + String(fDmy[1]).padStart(2, "0");
+  } else {
+    const d = new Date(hoy);
+    if (/\bayer\b/i.test(t)) d.setDate(d.getDate() - 1);
+    const y = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    fecha = `${y}${mm}${dd}`;
+  }
+
+  return { sport, home, away, fecha };
+}
+
+// Pide al motor de busqueda los datos completos del partido.
+export async function fetchContextoPartido({ sport, home, away, fecha, league }) {
+  const res = await fetch(`${DATA_API_URL}/data/contexto-ia`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      sport,
+      home_name: home,
+      away_name: away,
+      event_date: fecha || null,
+      league: league || null,
+    }),
+  });
+  if (!res.ok) throw new Error("servicio de datos no disponible");
+  return res.json();
+}
+
+/**
+ * Enriquece el mensaje del usuario con DATOS REALES del partido (si detecta uno).
+ * Si algo falla, devuelve el mensaje original sin romper el chat.
+ */
+export async function enriquecerConDatos(mensaje) {
+  try {
+    const partido = detectarPartido(mensaje);
+    if (!partido) return { mensaje, datos: null };
+
+    const data = await fetchContextoPartido(partido);
+    if (!data?.found || !data?.contexto) return { mensaje, datos: null };
+
+    const enriquecido =
+      "[DATOS REALES DEL PARTIDO — usa SOLO esta informacion para tu analisis]\n" +
+      data.contexto +
+      "\n[FIN DE LOS DATOS REALES]\n\n" +
+      "PREGUNTA DEL USUARIO: " +
+      mensaje;
+
+    return { mensaje: enriquecido, datos: partido };
+  } catch {
+    return { mensaje, datos: null };
+  }
+}
+
 export async function createPagaditoPayment(session, planCode) {
   const res = await fetch(`${API_URL}/pagadito/create-payment`, {
     method: "POST",
