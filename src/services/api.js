@@ -313,6 +313,34 @@ export async function resolvePicks(session, { limite = 60, soloHoy = false, anul
   return readJson(res);
 }
 
+/**
+ * ADMIN: analiza los picks PENDIENTES con el ANALISTA dedicado
+ * (ai/analista_picks.py).
+ *
+ * Capa 1 cuantitativa: modelo Poisson sobre la forma REAL de ambos equipos
+ * sacada de ESPN. Calcula la probabilidad justa, el edge y el EV de cada pick
+ * y devuelve un veredicto (VALOR / NEUTRO / EVITAR). No necesita API key.
+ *
+ * Capa 2 (conLlm): redacta el informe con un PROVEEDOR PROPIO, distinto al del
+ * chat, para no competir por cuota.
+ */
+export async function analizarPendientes(session, { limite = 12, conLlm = false } = {}) {
+  const res = await fetch(`${API_URL}/analisis/pendientes`, {
+    method: "POST",
+    headers: authHeaders(session),
+    body: JSON.stringify({ limite, con_llm: !!conLlm }),
+  });
+  return readJson(res);
+}
+
+/** ADMIN: estado del analista (proveedor, modelo, si la capa LLM esta activa). */
+export async function estadoAnalista(session) {
+  const res = await fetch(`${API_URL}/analisis/estado`, {
+    headers: authHeaders(session),
+  });
+  return readJson(res);
+}
+
 export async function createPagaditoPayment(session, planCode) {
   const res = await fetch(`${API_URL}/pagadito/create-payment`, {
     method: "POST",

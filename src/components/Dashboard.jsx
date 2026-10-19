@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { fetchDashboard, resolvePicks, generateDashboard } from "../services/api";
+import { fetchDashboard, resolvePicks, generateDashboard, analizarPendientes } from "../services/api";
 import PagosAceptados from "./PagosAceptados";
 
 /**
@@ -481,6 +481,20 @@ export default function Dashboard({ session, onIrACreditos }) {
     accionAdmin("generate", () => generateDashboard(session, 10, true),
       (r) => "Generacion terminada.\n" + JSON.stringify(r ?? {}, null, 1));
 
+  // Analista dedicado: probabilidad justa + edge + EV de cada pick pendiente.
+  // Es solo LECTURA: no toca la BD, no cambia resultados.
+  const adminAnalizar = () =>
+    accionAdmin("analizar", () => analizarPendientes(session, { limite: 12 }),
+      (r) => {
+        const s = r?.resumen ?? {};
+        return `🧠 Analista de picks\n` +
+          `Analizados: ${s.analizados ?? 0} | con modelo: ${s.con_modelo ?? 0}\n` +
+          `✅ VALOR: ${s.valor ?? 0} | ➖ NEUTRO: ${s.neutro ?? 0} | ❌ EVITAR: ${s.evitar ?? 0}\n` +
+          `Sin modelo: ${s.no_modelables ?? 0} | sin datos: ${s.sin_datos ?? 0}` +
+          (s.ev_promedio_pct !== undefined ? ` | EV medio: ${s.ev_promedio_pct}%` : "") +
+          `\n\n` + (r?.texto ?? "");
+      });
+
   const stats = data?.stats;
 
   // Efectividad de HOY (coherente con los KPIs); si hoy no hay resueltos,
@@ -736,6 +750,9 @@ export default function Dashboard({ session, onIrACreditos }) {
             </button>
             <button type="button" className="dash-admin-btn" disabled={!!adminAccion} onClick={adminAnular}>
               {adminAccion === "anular" ? "Limpiando…" : "🧹 Resolver + anular no verificables"}
+            </button>
+            <button type="button" className="dash-admin-btn" disabled={!!adminAccion} onClick={adminAnalizar}>
+              {adminAccion === "analizar" ? "Analizando…" : "🧠 Analizar picks pendientes"}
             </button>
             <button type="button" className="dash-admin-btn" disabled={!!adminAccion} onClick={adminGenerar}>
               {adminAccion === "generate" ? "Generando…" : "🤖 Generar picks (top ligas)"}
