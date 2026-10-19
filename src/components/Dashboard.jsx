@@ -36,11 +36,144 @@ function cuotaRealPick(p) {
   return Number.isFinite(v) && v > 0 ? v : null;
 }
 
-/* Stats del pick sin la linea "Cuota real: ..." (ya no se muestra en el
-   detalle porque la cuota real vive ahora en el chip de la tarjeta). */
+/* Confianza en % para la barra de la tarjeta. El backend guarda ALTA/MEDIA/
+   BAJA; si algun dia manda un numero, se respeta. */
+function confianzaPick(p) {
+  const c = String(p.confidence || "").trim().toUpperCase();
+  if (c === "ALTA") return 82;
+  if (c === "MEDIA") return 64;
+  if (c === "BAJA") return 45;
+  const n = Number(p.confidence);
+  if (Number.isFinite(n) && n > 0 && n <= 100) return Math.round(n);
+  return null;
+}
+
+/* Forma V/E/D de cada equipo. El backend la manda como
+   "Forma <equipo>: V V E D V". */
+function formaPick(p) {
+  if (!Array.isArray(p.stats)) return [];
+  const salida = [];
+  for (const raw of p.stats) {
+    const m = String(raw).trim().match(/^Forma\s+(.+?):\s*([VED\s]+)$/i);
+    if (!m) continue;
+    const chips = m[2].toUpperCase().split(/\s+/).filter(Boolean).slice(0, 5);
+    if (chips.length) salida.push({ nombre: m[1], chips });
+  }
+  return salida;
+}
+
+/* Explicacion del pick. Preferimos el rationale del modelo; si no existe,
+   usamos el stat mas largo (suele ser el argumento, no una cifra suelta). */
+function razonamientoPick(p) {
+  const rationale = String(p.rationale || "").trim();
+  if (rationale) return rationale;
+  return (
+    (p.stats || [])
+      .map((s) => String(s).trim())
+      .filter(
+        (s) =>
+          s.length > 70 &&
+          !/^(Motor ESPN|Forma |Cuota real:|Cuota estimada:)/i.test(s)
+      )
+      .sort((a, b) => b.length - a.length)[0] || ""
+  );
+}
+
+/* Stats del pick sin las lineas que ya viven en el hero o en la forma. */
 function statsPick(p) {
   if (!Array.isArray(p.stats)) return [];
-  return p.stats.filter((s) => !/^Cuota real:/i.test(String(s).trim()));
+  const rationale = String(p.rationale || "").trim().toLowerCase();
+  const hayForma = formaPick(p).length > 0;
+  return p.stats
+    .map((s) => String(s).trim())
+    .filter((s) => {
+      if (!s) return false;
+      if (/^(Cuota real:|Cuota estimada:|Mercado:|Selecci[oó]n:|Forma )/i.test(s)) {
+        return false;
+      }
+      if (hayForma && /^Motor ESPN/i.test(s)) return false;
+      return s.toLowerCase() !== rationale;
+    });
+}
+
+/* Cuerpo informativo de la tarjeta: mercado/pick/cuota/confianza + porque +
+   forma reciente + stats del motor. */
+function DetallePick({ p }) {
+  const conf = confianzaPick(p);
+  const cuota = cuotaRealPick(p);
+  const forma = formaPick(p);
+  const razon = razonamientoPick(p);
+  const stats = statsPick(p);
+
+  return (
+    <>
+      <div className="dp-hero">
+        <div className="dp-hero-row">
+          <span className="dp-hero-k">Mercado</span>
+          <span className="dp-hero-v">{p.titulo || p.market || "—"}</span>
+        </div>
+        <div className="dp-hero-row">
+          <span className="dp-hero-k">Pick</span>
+          <span className="dp-hero-v dp-hero-pick">
+            {p.porque || p.selection || "—"}
+          </span>
+        </div>
+        <div className="dp-hero-metrics">
+          <div className="dp-metric">
+            <span className="dp-metric-k">Cuota</span>
+            <span className="dp-metric-v dp-metric-cuota">
+              {cuota != null ? cuota.toFixed(2) : "—"}
+            </span>
+          </div>
+          <div className="dp-metric">
+            <span className="dp-metric-k">Confianza</span>
+            <span className="dp-metric-v">{conf != null ? `${conf}%` : "—"}</span>
+          </div>
+          {conf != null && (
+            <div className="dp-conf-bar" aria-hidden="true">
+              <span style={{ width: `${conf}%` }} />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {razon && (
+        <div className="dp-porque">
+          <span className="dp-seccion-titulo">Por qué</span>
+          <p>{razon}</p>
+        </div>
+      )}
+
+      {forma.length > 0 && (
+        <div className="dp-forma">
+          <span className="dp-seccion-titulo">Forma</span>
+          {forma.map((f) => (
+            <div className="dp-forma-fila" key={f.nombre}>
+              <span className="dp-forma-equipo">{f.nombre}</span>
+              <span className="dp-forma-chips">
+                {f.chips.map((c, i) => (
+                  <span
+                    key={`${f.nombre}-${i}`}
+                    className={`dp-form-chip ${c === "V" ? "es-v" : c === "E" ? "es-e" : "es-d"}`}
+                  >
+                    {c}
+                  </span>
+                ))}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {stats.length > 0 && (
+        <ul className="dp-stats">
+          {stats.map((s, i) => (
+            <li key={i}>{s}</li>
+          ))}
+        </ul>
+      )}
+    </>
+  );
 }
 
 /* Texto del pick listo para compartir (copiar o WhatsApp). */
@@ -707,18 +840,7 @@ export default function Dashboard({ session, onIrACreditos }) {
                 <span className="dp-equipo">{p.homeName || ""}</span>
               </div>
             </div>
-            <div className="dp-mercado">{p.titulo || p.market}</div>
-            <div className="dp-pie">
-              <span className="dp-pick-sel">{p.porque || p.selection}</span>
-              {cuotaRealPick(p) != null ? <span className="dp-cuota">cuota {cuotaRealPick(p).toFixed(2)}</span> : null}
-            </div>
-            {statsPick(p).length > 0 && (
-              <ul className="dp-stats">
-                {statsPick(p).map((s, i) => (
-                  <li key={i}>{s}</li>
-                ))}
-              </ul>
-            )}
+            <DetallePick p={p} />
             <div className="dp-foot">
               <span className="dp-liga">{p.sportLabel}</span>
               <span className="dp-fecha">{etiquetaFecha(p.eventDate)}</span>
