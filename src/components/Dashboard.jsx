@@ -19,10 +19,8 @@ function ConfianzaBadge({ confianza }) {
 }
 
 /* Cuota REAL del bookmaker: el backend la guarda como texto dentro de
-   stats ("Cuota real: 1.7334 (menor = mas probable)"), mientras que el
-   campo odds puede traer una cuota estimada distinta. El chip de la
-   tarjeta y la carta compartida SIEMPRE muestran la real; si no existe,
-   se usa odds como fallback. */
+   stats ("Cuota real: 1.7334 (menor = mas probable)"). Si solo existe una
+   cuota ESTIMADA, NO se muestra ningun numero: cuotas inventadas fuera. */
 function cuotaRealPick(p) {
   if (Array.isArray(p.stats)) {
     const linea = p.stats.find((s) => /^Cuota real:/i.test(String(s).trim()));
@@ -30,6 +28,9 @@ function cuotaRealPick(p) {
     if (m) {
       const v = parseFloat(m[1].replace(",", "."));
       if (Number.isFinite(v) && v > 1) return v;
+    }
+    if (p.stats.some((s) => /^Cuota estimada:/i.test(String(s).trim()))) {
+      return null;
     }
   }
   const v = Number(p.odds);
@@ -48,16 +49,38 @@ function confianzaPick(p) {
   return null;
 }
 
-/* Forma V/E/D de cada equipo. El backend la manda como
-   "Forma <equipo>: V V E D V". */
+/* Forma V/E/D de cada equipo. Acepta los dos formatos que guarda el backend:
+   - "Forma <equipo>: V V E D V"           (picks nuevos)
+   - "Motor ESPN (ultimos 5) <equipo>: G 3-2 vs X; P 0-2 vs Y; E 1-1 vs Z"
+   (G=ganó, P=perdió, E=empató). Se conserva el detalle para el tooltip. */
 function formaPick(p) {
   if (!Array.isArray(p.stats)) return [];
   const salida = [];
+  const vistos = new Set();
   for (const raw of p.stats) {
-    const m = String(raw).trim().match(/^Forma\s+(.+?):\s*([VED\s]+)$/i);
-    if (!m) continue;
-    const chips = m[2].toUpperCase().split(/\s+/).filter(Boolean).slice(0, 5);
-    if (chips.length) salida.push({ nombre: m[1], chips });
+    const s = String(raw).trim();
+    let m = s.match(/^Forma\s+(.+?):\s*([VED\s]+)$/i);
+    if (m) {
+      const chips = m[2].toUpperCase().split(/\s+/).filter(Boolean).slice(0, 5);
+      if (chips.length && !vistos.has(m[1])) {
+        vistos.add(m[1]);
+        salida.push({ nombre: m[1], chips, partidos: [] });
+      }
+      continue;
+    }
+    m = s.match(/^Motor ESPN \(ultimos 5\)\s+(.+?):\s*(.+)$/i);
+    if (m && !/sin datos/i.test(m[2])) {
+      const partes = m[2].split(";").map((x) => x.trim()).filter(Boolean);
+      const chips = partes
+        .map((x) => x.charAt(0).toUpperCase())
+        .filter((c) => c === "G" || c === "P" || c === "E")
+        .map((c) => (c === "G" ? "V" : c === "P" ? "D" : "E"))
+        .slice(0, 5);
+      if (chips.length && !vistos.has(m[1])) {
+        vistos.add(m[1]);
+        salida.push({ nombre: m[1], chips, partidos: partes });
+      }
+    }
   }
   return salida;
 }
@@ -79,7 +102,9 @@ function razonamientoPick(p) {
   );
 }
 
-/* Stats del pick sin las lineas que ya viven en el hero o en la forma. */
+/* Stats del pick sin las lineas que ya viven en el hero o en la forma.
+   Las lineas "Motor ESPN ...: sin datos" y las que ya se convirtieron en
+   chips V/E/D no se muestran como texto. */
 function statsPick(p) {
   if (!Array.isArray(p.stats)) return [];
   const rationale = String(p.rationale || "").trim().toLowerCase();
@@ -91,7 +116,9 @@ function statsPick(p) {
       if (/^(Cuota real:|Cuota estimada:|Mercado:|Selecci[oó]n:|Forma )/i.test(s)) {
         return false;
       }
-      if (hayForma && /^Motor ESPN/i.test(s)) return false;
+      if (/^Motor ESPN/i.test(s) && (hayForma || /sin datos/i.test(s))) {
+        return false;
+      }
       return s.toLowerCase() !== rationale;
     });
 }
@@ -146,9 +173,13 @@ function DetallePick({ p }) {
 
       {forma.length > 0 && (
         <div className="dp-forma">
-          <span className="dp-seccion-titulo">Forma</span>
+          <span className="dp-seccion-titulo">Últimos 5</span>
           {forma.map((f) => (
-            <div className="dp-forma-fila" key={f.nombre}>
+            <div
+              className="dp-forma-fila"
+              key={f.nombre}
+              title={f.partidos && f.partidos.length ? f.partidos.join(" · ") : undefined}
+            >
               <span className="dp-forma-equipo">{f.nombre}</span>
               <span className="dp-forma-chips">
                 {f.chips.map((c, i) => (
