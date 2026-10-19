@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { fetchDashboard, resolveDashboard, revisarDashboard, generateDashboard } from "../services/api";
+import { fetchDashboard, resolvePicks, generateDashboard } from "../services/api";
 import PagosAceptados from "./PagosAceptados";
 
 /**
@@ -464,12 +464,18 @@ export default function Dashboard({ session, onIrACreditos }) {
   };
 
   const adminResolver = () =>
-    accionAdmin("resolve", () => resolveDashboard(session),
-      (r) => "Resolucion terminada.\n" + JSON.stringify(r ?? {}, null, 1));
+    accionAdmin("resolve", () => resolvePicks(session, { limite: 80 }),
+      (r) => `✅ Resueltos: ${r?.resueltos ?? 0} | ⏳ Sin datos: ${r?.sin_datos ?? 0}\n` +
+             JSON.stringify(r?.detalle ?? [], null, 1));
 
-  const adminRevisar = () =>
-    accionAdmin("revisar", () => revisarDashboard(session, true),
-      (r) => "Revision de HOY terminada.\n" + JSON.stringify(r ?? {}, null, 1));
+  const adminResolverHoy = () =>
+    accionAdmin("hoy", () => resolvePicks(session, { limite: 60, soloHoy: true }),
+      (r) => `✅ Resueltos HOY: ${r?.resueltos ?? 0} | ⏳ Sin datos: ${r?.sin_datos ?? 0}\n` +
+             JSON.stringify(r?.detalle ?? [], null, 1));
+
+  const adminAnular = () =>
+    accionAdmin("anular", () => resolvePicks(session, { limite: 80, anular: true }),
+      (r) => `✅ Resueltos: ${r?.resueltos ?? 0} | 🧹 Anulados: ${r?.anulados ?? 0}`);
 
   const adminGenerar = () =>
     accionAdmin("generate", () => generateDashboard(session, 10, true),
@@ -725,8 +731,11 @@ export default function Dashboard({ session, onIrACreditos }) {
             <button type="button" className="dash-admin-btn" disabled={!!adminAccion} onClick={adminResolver}>
               {adminAccion === "resolve" ? "Resolviendo…" : "✅ Resolver picks finalizados"}
             </button>
-            <button type="button" className="dash-admin-btn" disabled={!!adminAccion} onClick={adminRevisar}>
-              {adminAccion === "revisar" ? "Revisando…" : "🔍 Revisar HOY (y corregir)"}
+            <button type="button" className="dash-admin-btn" disabled={!!adminAccion} onClick={adminResolverHoy}>
+              {adminAccion === "hoy" ? "Resolviendo…" : "🔍 Resolver SOLO HOY"}
+            </button>
+            <button type="button" className="dash-admin-btn" disabled={!!adminAccion} onClick={adminAnular}>
+              {adminAccion === "anular" ? "Limpiando…" : "🧹 Resolver + anular no verificables"}
             </button>
             <button type="button" className="dash-admin-btn" disabled={!!adminAccion} onClick={adminGenerar}>
               {adminAccion === "generate" ? "Generando…" : "🤖 Generar picks (top ligas)"}

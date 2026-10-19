@@ -296,6 +296,23 @@ export async function enriquecerConDatos(mensaje) {
   }
 }
 
+/**
+ * ADMIN: resuelve los picks PENDIENTE de ai_picks con el MOTOR DE DATOS
+ * REALES (ESPN: marcador, corners, tarjetas, faltas, tiros...).
+ */
+export async function resolvePicks(session, { limite = 60, soloHoy = false, anular = false } = {}) {
+  const params = new URLSearchParams({
+    limite: String(limite),
+    solo_hoy: String(!!soloHoy),
+    anular_no_resolubles: String(!!anular),
+  });
+  const res = await fetch(`${DATA_API_URL}/resolve/picks?${params}`, {
+    method: "POST",
+    headers: authHeaders(session),
+  });
+  return readJson(res);
+}
+
 export async function createPagaditoPayment(session, planCode) {
   const res = await fetch(`${API_URL}/pagadito/create-payment`, {
     method: "POST",
