@@ -19,6 +19,7 @@ const SALUDOS = [
   (u) => `Hola ${u}, el dia esta lleno de partidos. Cual te interesa?`,
   (u) => `Bienvenido ${u}, tus analisis y picks te esperan. Que buscamos hoy?`,
   (u) => `Nos alegra verte ${u}. Cual es el partido de tu interes hoy?`,
+  (u) => `Bienvenido devuelta ${u}. Que parlay hay para hoy?`,
 ];
 
 function mensajeBienvenida(session) {

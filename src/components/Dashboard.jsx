@@ -627,37 +627,59 @@ export default function Dashboard({ session, onIrACreditos }) {
     }
   };
 
-  const adminResolver = () =>
-    accionAdmin("resolve", () => resolvePicks(session, { limite: 80 }),
-      (r) => `✅ Resueltos: ${r?.resueltos ?? 0} | ⏳ Sin datos: ${r?.sin_datos ?? 0}\n` +
-             JSON.stringify(r?.detalle ?? [], null, 1));
-
-  const adminResolverHoy = () =>
-    accionAdmin("hoy", () => resolvePicks(session, { limite: 60, soloHoy: true }),
-      (r) => `✅ Resueltos HOY: ${r?.resueltos ?? 0} | ⏳ Sin datos: ${r?.sin_datos ?? 0}\n` +
-             JSON.stringify(r?.detalle ?? [], null, 1));
-
-  const adminAnular = () =>
-    accionAdmin("anular", () => resolvePicks(session, { limite: 80, anular: true }),
-      (r) => `✅ Resueltos: ${r?.resueltos ?? 0} | 🧹 Anulados: ${r?.anulados ?? 0}`);
-
-  const adminGenerar = () =>
-    accionAdmin("generate", () => generateDashboard(session, 10, true),
-      (r) => "Generacion terminada.\n" + JSON.stringify(r ?? {}, null, 1));
-
-  // Analista dedicado: probabilidad justa + edge + EV de cada pick pendiente.
-  // Es solo LECTURA: no toca la BD, no cambia resultados.
-  const adminAnalizar = () =>
-    accionAdmin("analizar", () => analizarPendientes(session, { limite: 12 }),
-      (r) => {
-        const s = r?.resumen ?? {};
-        return `🧠 Analista de picks\n` +
-          `Analizados: ${s.analizados ?? 0} | con modelo: ${s.con_modelo ?? 0}\n` +
+  // ===== Botón 1: Analizar y generar picks =====
+  // Genera picks nuevos para el día y luego analiza los pendientes con el
+  // analista dedicado (probabilidad justa + edge + EV).
+  const adminAnalizarGenerar = async () => {
+    setAdminAccion("analizar");
+    setAdminMsg(null);
+    try {
+      const g = await generateDashboard(session, 10, true);
+      const a = await analizarPendientes(session, { limite: 12 });
+      const s = a?.resumen ?? {};
+      setAdminMsg({
+        tipo: "ok",
+        texto:
+          "✅ Picks generados y pendientes analizados\n" +
+          `Generados: ${g?.generados ?? 0} | Analizados: ${s.analizados ?? 0}\n` +
           `✅ VALOR: ${s.valor ?? 0} | ➖ NEUTRO: ${s.neutro ?? 0} | ❌ EVITAR: ${s.evitar ?? 0}\n` +
           `Sin modelo: ${s.no_modelables ?? 0} | sin datos: ${s.sin_datos ?? 0}` +
           (s.ev_promedio_pct !== undefined ? ` | EV medio: ${s.ev_promedio_pct}%` : "") +
-          `\n\n` + (r?.texto ?? "");
+          "\n\n" + (a?.texto ?? ""),
       });
+      const d = await fetchDashboard(session);
+      setData(d);
+    } catch (e) {
+      setAdminMsg({ tipo: "err", texto: e.message });
+    } finally {
+      setAdminAccion("");
+    }
+  };
+
+  // ===== Botón 2: Verificar y resolver resultados =====
+  // Resuelve todos los picks pendientes contra el marcador real (ESPN ->
+  // FotMob -> odds-api) y anula los que no se pueden verificar.
+  const adminResolverTodos = async () => {
+    setAdminAccion("resolve");
+    setAdminMsg(null);
+    try {
+      const r = await resolvePicks(session, { limite: 100, anular: true });
+      setAdminMsg({
+        tipo: "ok",
+        texto:
+          `✅ Picks resueltos: ${r?.resueltos ?? 0}\n` +
+          `🧹 Anulados (no verificables): ${r?.anulados ?? 0}\n` +
+          `⏳ Sin datos: ${r?.sin_datos ?? 0}\n` +
+          JSON.stringify(r?.detalle ?? [], null, 1),
+      });
+      const d = await fetchDashboard(session);
+      setData(d);
+    } catch (e) {
+      setAdminMsg({ tipo: "err", texto: e.message });
+    } finally {
+      setAdminAccion("");
+    }
+  };
 
   const stats = data?.stats;
 
@@ -895,20 +917,11 @@ export default function Dashboard({ session, onIrACreditos }) {
         <section className="dash-admin">
           <div className="dash-admin-titulo">⚙️ Panel admin — mantenimiento de picks</div>
           <div className="dash-admin-btns">
-            <button type="button" className="dash-admin-btn" disabled={!!adminAccion} onClick={adminResolver}>
-              {adminAccion === "resolve" ? "Resolviendo…" : "✅ Resolver picks finalizados"}
+            <button type="button" className="dash-admin-btn" disabled={!!adminAccion} onClick={adminAnalizarGenerar}>
+              {adminAccion === "analizar" ? "Generando y analizando…" : "🧠 Analizar y generar picks"}
             </button>
-            <button type="button" className="dash-admin-btn" disabled={!!adminAccion} onClick={adminResolverHoy}>
-              {adminAccion === "hoy" ? "Resolviendo…" : "🔍 Resolver SOLO HOY"}
-            </button>
-            <button type="button" className="dash-admin-btn" disabled={!!adminAccion} onClick={adminAnular}>
-              {adminAccion === "anular" ? "Limpiando…" : "🧹 Resolver + anular no verificables"}
-            </button>
-            <button type="button" className="dash-admin-btn" disabled={!!adminAccion} onClick={adminAnalizar}>
-              {adminAccion === "analizar" ? "Analizando…" : "🧠 Analizar picks pendientes"}
-            </button>
-            <button type="button" className="dash-admin-btn" disabled={!!adminAccion} onClick={adminGenerar}>
-              {adminAccion === "generate" ? "Generando…" : "🤖 Generar picks (top ligas)"}
+            <button type="button" className="dash-admin-btn" disabled={!!adminAccion} onClick={adminResolverTodos}>
+              {adminAccion === "resolve" ? "Resolviendo…" : "✅ Verificar y resolver resultados"}
             </button>
           </div>
           {adminMsg && (
