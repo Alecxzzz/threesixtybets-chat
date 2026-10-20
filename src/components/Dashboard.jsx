@@ -634,7 +634,7 @@ export default function Dashboard({ session, onIrACreditos }) {
     setAdminAccion("analizar");
     setAdminMsg(null);
     try {
-      const g = await generateDashboard(session, 10, true);
+      const g = await generateDashboard(session, 120, true);
       const a = await analizarPendientes(session, { limite: 12 });
       const s = a?.resumen ?? {};
       setAdminMsg({
