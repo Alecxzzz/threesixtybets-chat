@@ -657,19 +657,22 @@ export default function Dashboard({ session, onIrACreditos }) {
   };
 
   // ===== Botón 2: Verificar y resolver resultados =====
-  // Resuelve todos los picks pendientes contra el marcador real (ESPN ->
-  // FotMob -> odds-api) y anula los que no se pueden verificar.
+  // Resuelve los picks pendientes contra el marcador real (ESPN -> FotMob ->
+  // odds-api). anular=false A PROPOSITO: verificar no debe destruir nada. Antes
+  // se mandaba anular=true y los picks de partidos AUN EN JUEGO (recien
+  // generados) acababan ANULADOS y desaparecian del dashboard. El backend
+  // ademas solo toca partidos YA TERMINADOS.
   const adminResolverTodos = async () => {
     setAdminAccion("resolve");
     setAdminMsg(null);
     try {
-      const r = await resolvePicks(session, { limite: 100, anular: true });
+      const r = await resolvePicks(session, { limite: 100, anular: false });
       setAdminMsg({
         tipo: "ok",
         texto:
           `✅ Picks resueltos: ${r?.resueltos ?? 0}\n` +
-          `🧹 Anulados (no verificables): ${r?.anulados ?? 0}\n` +
-          `⏳ Sin datos: ${r?.sin_datos ?? 0}\n` +
+          `⏳ Aun en juego / sin marcador final: ${r?.en_juego ?? 0}\n` +
+          `🚫 Sin datos: ${r?.sin_datos ?? 0}\n` +
           JSON.stringify(r?.detalle ?? [], null, 1),
       });
       const d = await fetchDashboard(session);
