@@ -1,8 +1,12 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { inject } from "@vercel/analytics";
 import App from "./App.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import ESPNGratis from "./pages/ESPNGratis.jsx";
+
+// Initialize Vercel Web Analytics
+inject();
 
 // Ruta publica especial: reproductor ESPN Deportes gratis (2 horas), sin
 // registro. No pasa por el App ni por la pantalla de Auth.
