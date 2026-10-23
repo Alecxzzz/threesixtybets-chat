@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { fetchDashboard, resolvePicks, generateDashboard, analizarPendientes } from "../services/api";
+import {
+  fetchDashboard,
+  resolvePicks,
+  generateDashboard,
+  analizarPendientes,
+  toggleFavoritoPick,
+  fetchComparadorCuotas,
+} from "../services/api";
 import PagosAceptados from "./PagosAceptados";
 
 /**
@@ -16,6 +23,48 @@ function ConfianzaBadge({ confianza }) {
   if (confianza === "BAJA")
     return <span className="dp-badge b-suave">Riesgo</span>;
   return null;
+}
+
+/**
+ * Boton de favorito (estrella) de un pronostico.
+ * El estado se refleja al instante (optimista) y se revierte si el backend
+ * responde con error, para que la UI nunca mienta sobre lo guardado.
+ */
+function FavoritoBoton({ activo, onToggle, cargando }) {
+  return (
+    <button
+      type="button"
+      className={`dp-fav${activo ? " es-fav" : ""}`}
+      onClick={(ev) => {
+        ev.stopPropagation();
+        onToggle();
+      }}
+      disabled={cargando}
+      title={activo ? "Quitar de favoritos" : "Guardar en favoritos"}
+      aria-label={activo ? "Quitar de favoritos" : "Guardar en favoritos"}
+      aria-pressed={!!activo}
+    >
+      {activo ? "★" : "☆"}
+    </button>
+  );
+}
+
+/**
+ * Badge del comparador de cuotas: muestra el mejor precio encontrado entre
+ * las casas y si la cuota publicada tiene valor (otra casa paga mas).
+ * Si el backend no tiene datos (`disponible=false`) no se pinta nada.
+ */
+function ComparadorBadge({ comparacion, cargando }) {
+  if (cargando) return <span className="dp-cmp dp-cmp-cargando">⏳ Comparando…</span>;
+  if (!comparacion || !comparacion.disponible) return null;
+  const { mejor_casa: casa, mejor_cuota: mejor, valor, mejora_pct: mejora } = comparacion;
+  if (mejor == null) return null;
+  return (
+    <span className={`dp-cmp${valor ? " es-valor" : ""}`} title={`Mejor cuota: ${casa} (${mejor})`}>
+      📊 {casa} {Number(mejor).toFixed(2)}
+      {valor && mejora != null ? ` · +${mejora}%` : ""}
+    </span>
+  );
 }
 
 /* Cuota REAL del bookmaker: el backend la guarda como texto dentro de
@@ -594,6 +643,12 @@ export default function Dashboard({ session, onIrACreditos }) {
   const [error, setError] = useState(null);
   const [adminAccion, setAdminAccion] = useState(""); // "" | "resolve" | "revisar" | "generate"
   const [adminMsg, setAdminMsg] = useState(null); // { tipo: "ok"|"err", texto }
+  // Favoritos: set de ids de pronosticos guardados por el usuario.
+  const [favoritos, setFavoritos] = useState(() => new Set());
+  const [favCargando, setFavCargando] = useState({}); // { pickId: true }
+  // Comparador de cuotas por pronostico: { pickId: comparacion }
+  const [comparaciones, setComparaciones] = useState({});
+  const [cmpCargando, setCmpCargando] = useState({}); // { pickId: true }
 
   useEffect(() => {
     let alive = true;
@@ -608,6 +663,82 @@ export default function Dashboard({ session, onIrACreditos }) {
       clearInterval(intervalo);
     };
   }, [session]);
+
+  // Favoritos del usuario: se cargan una vez y se actualizan al alternar.
+  useEffect(() => {
+    let alive = true;
+    const cargarFavs = async () => {
+      try {
+        const r = await fetchFavoritosPicks(session);
+        if (!alive) return;
+        const ids = new Set((r?.favoritos || []).map((f) => String(f.ref_id)));
+        setFavoritos(ids);
+      } catch {
+        /* sin sesion o sin favorites: la estrella simplemente no marca nada */
+      }
+    };
+    cargarFavs();
+    return () => {
+      alive = false;
+    };
+  }, [session]);
+
+  /** Alterna el favorito de un pronostico (optimista, revierte si falla). */
+  const alternarFavorito = async (p) => {
+    const id = String(p.id);
+    const estaba = favoritos.has(id);
+    // Optimista: se refleja al instante.
+    setFavoritos((actual) => {
+      const nuevo = new Set(actual);
+      if (estaba) nuevo.delete(id);
+      else nuevo.add(id);
+      return nuevo;
+    });
+    setFavCargando((actual) => ({ ...actual, [id]: true }));
+    try {
+      const r = await toggleFavoritoPick(session, id);
+      // El backend es la fuente de verdad: se synca con lo que devolvio.
+      setFavoritos((actual) => {
+        const nuevo = new Set(actual);
+        if (r?.favorito) nuevo.add(id);
+        else nuevo.delete(id);
+        return nuevo;
+      });
+    } catch (e) {
+      // Revierte el cambio optimista.
+      setFavoritos((actual) => {
+        const nuevo = new Set(actual);
+        if (estaba) nuevo.add(id);
+        else nuevo.delete(id);
+        return nuevo;
+      });
+    } finally {
+      setFavCargando((actual) => {
+        const nuevo = { ...actual };
+        delete nuevo[id];
+        return nuevo;
+      });
+    }
+  };
+
+  /** Pide al backend la comparacion de cuotas de un pronostico (bajo demanda). */
+  const pedirComparacion = async (p) => {
+    const id = String(p.id);
+    if (comparaciones[id] || cmpCargando[id]) return;
+    setCmpCargando((actual) => ({ ...actual, [id]: true }));
+    try {
+      const r = await fetchComparadorCuotas(session, id);
+      setComparaciones((actual) => ({ ...actual, [id]: r?.comparacion || null }));
+    } catch {
+      setComparaciones((actual) => ({ ...actual, [id]: null }));
+    } finally {
+      setCmpCargando((actual) => {
+        const nuevo = { ...actual };
+        delete nuevo[id];
+        return nuevo;
+      });
+    }
+  };
 
   // ===== Acciones del panel admin (solo rol admin; el backend re-valida) =====
   const esAdmin = session?.user?.role === "admin";
@@ -877,6 +1008,11 @@ export default function Dashboard({ session, onIrACreditos }) {
               {p.result === "ACIERTO" && (
                 <span className="dp-badge b-acierto">✓ Acertado</span>
               )}
+              <FavoritoBoton
+                activo={favoritos.has(String(p.id))}
+                cargando={!!favCargando[String(p.id)]}
+                onToggle={() => alternarFavorito(p)}
+              />
             </div>
             <div className="dp-evento">
               <div className="dp-fila-equipo">
@@ -900,6 +1036,21 @@ export default function Dashboard({ session, onIrACreditos }) {
             <div className="dp-foot">
               <span className="dp-liga">{p.sportLabel}</span>
               <span className="dp-fecha">{etiquetaFecha(p.eventDate)}</span>
+            </div>
+            <div className="dp-cmp-row">
+              <button
+                type="button"
+                className="dp-cmp-btn"
+                onClick={() => pedirComparacion(p)}
+                disabled={!!cmpCargando[String(p.id)]}
+                title="Comparar esta cuota entre las casas disponibles"
+              >
+                📊 Comparar cuota
+              </button>
+              <ComparadorBadge
+                comparacion={comparaciones[String(p.id)]}
+                cargando={!!cmpCargando[String(p.id)]}
+              />
             </div>
             <button
               type="button"

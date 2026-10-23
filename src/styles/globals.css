@@ -2339,6 +2339,102 @@ button {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
+  align-items: center;
+}
+
+/* Favorito (estrella) del pronostico. Se alinea a la derecha de la fila de
+   badges y crece un poco al pasar el mouse para inviting a pulsarla. */
+.dp-fav {
+  margin-left: auto;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid #2b3350;
+  background: rgba(255, 255, 255, 0.04);
+  color: #6d7690;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform .15s, color .15s, border-color .15s, background .15s;
+}
+
+.dp-fav:hover:not(:disabled) {
+  transform: scale(1.12);
+  color: #f5c542;
+  border-color: rgba(245, 197, 66, 0.6);
+}
+
+.dp-fav.es-fav {
+  color: #f5c542;
+  border-color: rgba(245, 197, 66, 0.75);
+  background: rgba(245, 197, 66, 0.12);
+}
+
+.dp-fav:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+/* Fila del comparador de cuotas */
+.dp-cmp-row {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.dp-cmp-btn {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #2b3350;
+  background: rgba(109, 93, 246, 0.12);
+  color: #a89bff;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, transform .15s;
+}
+
+.dp-cmp-btn:hover:not(:disabled) {
+  background: rgba(109, 93, 246, 0.22);
+  border-color: rgba(124, 108, 255, 0.55);
+  transform: translateY(-1px);
+}
+
+.dp-cmp-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+/* Badge con el resultado de la comparacion de cuotas */
+.dp-cmp {
+  padding: 5px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(124, 108, 255, 0.4);
+  background: rgba(124, 108, 255, 0.14);
+  color: #a89bff;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+/* Con valor: hay otra casa que paga mas que la cuota publicada */
+.dp-cmp.es-valor {
+  color: #4ade80;
+  border-color: rgba(34, 197, 94, 0.5);
+  background: rgba(34, 197, 94, 0.16);
+}
+
+.dp-cmp-cargando {
+  color: #6d7690;
+  border-color: #2b3350;
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .dp-badge {

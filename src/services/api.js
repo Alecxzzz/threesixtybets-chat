@@ -471,6 +471,45 @@ export async function removeFavorito(session, tipo, refId) {
   return readJson(res);
 }
 
+/* ---- Favoritos de PRONOSTICOS (estrella del dashboard) ---- */
+
+/** Pronosticos que el usuario guardo como favoritos. */
+export async function fetchFavoritosPicks(session) {
+  const res = await fetch(`${API_URL}/favoritos/picks`, {
+    headers: authHeaders(session),
+  });
+
+  return readJson(res);
+}
+
+/**
+ * Alterna el favorito de un pronostico (toggle de la estrella).
+ * El backend resuelve el pick en su BD: aqui solo se manda el id.
+ */
+export async function toggleFavoritoPick(session, pickId) {
+  const res = await fetch(
+    `${API_URL}/favoritos/picks/${encodeURIComponent(pickId)}/toggle`,
+    { method: "POST", headers: authHeaders(session) },
+  );
+
+  return readJson(res);
+}
+
+/**
+ * Compara la cuota de un pronostico entre las casas disponibles.
+ * Devuelve { disponible, cuotas: {casa: cuota}, mejor_casa, mejor_cuota,
+ * valor, motivo }. `disponible=false` significa que no hay datos: el
+ * frontend no debe pintar nada en ese caso.
+ */
+export async function fetchComparadorCuotas(session, pickId) {
+  const params = new URLSearchParams({ pick_id: pickId });
+  const res = await fetch(`${API_URL}/dashboard/comparador-cuotas?${params}`, {
+    headers: authHeaders(session),
+  });
+
+  return readJson(res);
+}
+
 /**
  * Stream SSE de marcadores (/stats/stream). RETIRADO: el proxy de produccion
  * (Northflank) bufferiza la respuesta y los eventos nunca llegan al cliente.
