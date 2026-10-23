@@ -7,7 +7,14 @@ import {
   adminDeleteChannel,
   adminChannelTest,
 } from "../services/api";
-import { resolveStreamUrl, needsProxy } from "../utils/stream";
+import {
+  resolveStreamUrl,
+  needsProxy,
+  transcoderUrl,
+  esErrorDeCodec,
+  primerNivelSoportado,
+  describirErrorPlayer,
+} from "../utils/stream";
 
 const sectionH3 = {
   color: "#e6edf3",
@@ -22,7 +29,7 @@ function AdminChannels({ session }) {
   const [error, setError] = useState("");
   const [saved, setSaved] = useState("");
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ name: "", stream: "", type: "m3u8", ads: false, useProxy: false });
+  const [form, setForm] = useState({ name: "", stream: "", type: "m3u8", ads: false, useProxy: false, transcode: false });
   const [preview, setPreview] = useState(null);
   const videoRef = useRef(null);
   const hlsRef = useRef(null);
@@ -55,22 +62,62 @@ function AdminChannels({ session }) {
     destroyHls();
     const channel = preview.channel;
     const viaProxy = preview.forceProxy === true;
-    const alreadyProxied = viaProxy || needsProxy(channel);
-    const streamUrl = resolveStreamUrl(channel, viaProxy);
+    const viaTranscoder = preview.viaTranscoder === true;
+    // El transcodificador ya entrega H.264/AAC desde nuestro backend: no hay
+    // CORS ni codec exótico, así que no se reintenta el proxy (que no arregla
+    // nada: reenvía los mismos bytes con el mismo codec).
+    const alreadyProxied = viaProxy || viaTranscoder || needsProxy(channel);
+    const streamUrl = viaTranscoder
+      ? transcoderUrl(channel.stream, channel.referer)
+      : resolveStreamUrl(channel, viaProxy);
     if (!Hls.isSupported()) {
       video.src = streamUrl;
       return;
     }
-    const hls = new Hls({ manifestLoadingMaxRetry: 2, fragLoadingMaxRetry: 3 });
+    const hls = new Hls(
+      viaTranscoder
+        ? // FFmpeg tarda varios segundos en producir el primer segmento: el
+          // timeout por defecto (10 s) cortaba la reproducción antes de tiempo.
+          { manifestLoadingTimeOut: 45000, manifestLoadingMaxRetry: 1, manifestLoadingRetryDelay: 3000 }
+        : { manifestLoadingMaxRetry: 2, fragLoadingMaxRetry: 3 }
+    );
     hlsRef.current = hls;
     hls.loadSource(streamUrl);
     hls.attachMedia(video);
     hls.on(Hls.Events.MANIFEST_PARSED, () => {
+      // Diagnóstico: qué anuncia el master. Si sale hvc1/hev1 o ec-3/ac-3, el
+      // navegador no podrá decodificarlo aunque el proxy responda 200.
+      const infoCodecs = hls.levels
+        .map((l) => [l.videoCodec, l.audioCodec].filter(Boolean).join("/") || "sin declarar")
+        .join(" · ");
+      // Antes de pedir el primer fragmento: si el master anuncia codecs que el
+      // navegador no puede decodificar (HEVC/hvc1, audio AC-3...) se salta
+      // directo al transcodificador. Así no aparece bufferAddCodecError.
+      if (!viaTranscoder) {
+        const idxSoportado = primerNivelSoportado(hls.levels);
+        if (idxSoportado < 0) {
+          console.log("[Preview] el navegador no soporta ninguno de los codecs del master: transcodificando", infoCodecs);
+          setPreview((p) =>
+            p ? { ...p, viaTranscoder: true, playing: false, playerError: "", codecs: infoCodecs } : p
+          );
+          return;
+        }
+        // Si el master mezcla calidades (p.ej. 1080p HEVC + 720p H.264), se
+        // fija la variante soportada para que el ABR no elija la HEVC.
+        if (idxSoportado > 0 || hls.levels.length > 1) hls.currentLevel = idxSoportado;
+      }
       video.play().catch(() => {});
-      setPreview((p) => (p ? { ...p, playing: true, playerError: "" } : p));
+      setPreview((p) => (p ? { ...p, playing: true, playerError: "", codecs: infoCodecs } : p));
     });
     hls.on(Hls.Events.ERROR, (event, data) => {
       if (!data.fatal) return;
+      // Codec no soportado: reintentar o pasar por el proxy NO lo arregla
+      // (mismos bytes, mismo perfil). VLC lo abre porque trae sus decodificadores.
+      if (esErrorDeCodec(data.details) && !viaTranscoder) {
+        console.log("[Preview] codec no soportado (" + data.details + "): pasando al transcodificador");
+        setPreview((p) => (p ? { ...p, viaTranscoder: true, playing: false, playerError: "" } : p));
+        return;
+      }
       // Reintento automatico via proxy si fallo la red (CORS / mixed content)
       const isNetwork = data.type === Hls.ErrorTypes.NETWORK_ERROR;
       if (isNetwork && !alreadyProxied) {
@@ -78,10 +125,12 @@ function AdminChannels({ session }) {
         setPreview((p) => (p ? { ...p, forceProxy: true, playerError: "" } : p));
         return;
       }
-      setPreview((p) => (p ? { ...p, playing: false, playerError: data.details } : p));
+      setPreview((p) =>
+        p ? { ...p, playing: false, playerError: describirErrorPlayer(data.details) } : p
+      );
     });
     return () => destroyHls();
-  }, [preview?.channel, preview?.forceProxy]);
+  }, [preview?.channel, preview?.forceProxy, preview?.viaTranscoder]);
 
   async function handlePreview(e) {
     e.preventDefault();
@@ -102,7 +151,14 @@ function AdminChannels({ session }) {
     };
     try {
       const result = await adminChannelTest(session, stream);
-      setPreview({ loading: false, channel, result });
+      setPreview({
+        loading: false,
+        channel,
+        result,
+        // El checkbox solo afecta a la vista previa: sirve para comprobar si el
+        // stream se reproduce cuando FFmpeg lo convierte a H.264/AAC.
+        viaTranscoder: form.transcode === true,
+      });
     } catch (err) {
       setPreview({ loading: false, channel, result: { ok: false, error: err.message } });
     }
@@ -121,7 +177,7 @@ function AdminChannels({ session }) {
         useProxy: form.useProxy,
       });
       setSaved(`Canal "${form.name.trim()}" agregado y ACTIVO.`);
-      setForm({ name: "", stream: "", type: "m3u8", ads: false, useProxy: false });
+      setForm({ name: "", stream: "", type: "m3u8", ads: false, useProxy: false, transcode: false });
       setPreview(null);
       await loadChannels();
     } catch (err) {
@@ -228,6 +284,14 @@ function AdminChannels({ session }) {
             />
             Usar proxy
           </label>
+          <label style={styles.check} title="Convierte el canal a H.264/AAC con FFmpeg en el backend. Solo para la vista previa.">
+            <input
+              type="checkbox"
+              checked={form.transcode}
+              onChange={(e) => setForm((f) => ({ ...f, transcode: e.target.checked }))}
+            />
+            Transcodificar
+          </label>
           <button type="submit" style={styles.btn} disabled={p?.loading}>
             {p?.loading ? "Probando..." : "▶ Vista previa"}
           </button>
@@ -283,10 +347,67 @@ function AdminChannels({ session }) {
             />
           ) : null}
 
+          {p.channel && p.channel.type === "m3u8" && (
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 8 }}>
+              {p.viaTranscoder ? (
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    padding: "2px 8px",
+                    borderRadius: 999,
+                    background: "#1f4738",
+                    color: "#4ade80",
+                  }}
+                  title="FFmpeg convierte el canal a H.264/AAC en el backend"
+                >
+                  🔁 Transcodificando a H.264/AAC
+                </span>
+              ) : (
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    padding: "2px 8px",
+                    borderRadius: 999,
+                    background: "#232a33",
+                    color: "#8b95a1",
+                  }}
+                >
+                  Original (sin transcodificar)
+                </span>
+              )}
+              <button
+                type="button"
+                style={{ ...styles.btn, padding: "4px 10px", fontSize: 12 }}
+                onClick={() =>
+                  setPreview((prev) =>
+                    prev
+                      ? { ...prev, viaTranscoder: !prev.viaTranscoder, playing: false, playerError: "" }
+                      : prev
+                  )
+                }
+              >
+                {p.viaTranscoder ? "▶ Ver el original" : "🔁 Probar transcodificador"}
+              </button>
+              {p.codecs && (
+                <span style={{ fontSize: 11, color: "#8b95a1" }} title="Códecs que anuncia el master playlist">
+                  códecs: {p.codecs}
+                </span>
+              )}
+            </div>
+          )}
+
           {p.playing && (
             <div style={{ fontSize: 12, color: "#4ade80", marginTop: 6 }}>
               ✅ El video carga correctamente en el reproductor.
-              {p.forceProxy && (
+              {p.viaTranscoder && (
+                <span style={{ color: "#fbbf24" }}>
+                  {" "}
+                  (se reprodujo gracias al transcodificador: el original usa un códec que el navegador no soporta)
+                </span>
+              )}
+              {!p.viaTranscoder && p.forceProxy && (
                 <span style={{ color: "#fbbf24" }}>
                   {" "}
                   (funciona vía proxy: marca "Usar proxy" antes de agregar el canal)
@@ -296,12 +417,16 @@ function AdminChannels({ session }) {
           )}
           {p.playerError && (
             <div style={{ fontSize: 12, color: "#fca5a5", marginTop: 6 }}>
-              ⚠️ Error del reproductor: {p.playerError}
-              {p.forceProxy && (
+              ⚠️ {p.playerError}
+              {p.viaTranscoder ? (
                 <div style={{ color: "#8b95a1" }}>
-                  Falló incluso vía proxy. Prueba con otra URL o verifica que el servidor del stream esté activo.
+                  El transcodificador tampoco pudo con esta fuente: el servidor del canal está caído, geobloqueado o exige un token que ya venció.
                 </div>
-              )}
+              ) : p.forceProxy ? (
+                <div style={{ color: "#8b95a1" }}>
+                  Falló también vía proxy. Prueba con "Probar transcodificador" o revisa que el servidor del stream esté activo.
+                </div>
+              ) : null}
             </div>
           )}
         </div>

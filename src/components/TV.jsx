@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import Hls from "hls.js";
 import { channels as staticChannels } from "../data/channels";
 import { events as staticEvents } from "../data/events";
-import { resolveStreamUrl, needsProxy, transcoderUrl, channelSources, channelSourcesDetailed } from "../utils/stream";
+import { resolveStreamUrl, needsProxy, transcoderUrl, channelSources, channelSourcesDetailed, esErrorDeCodec, primerNivelSoportado, describirErrorPlayer } from "../utils/stream";
 import ChannelLogo from "./ChannelLogo";
 import StreamSlot from "./StreamSlot";
 import {
@@ -166,6 +166,12 @@ function TV() {
         nudgeMaxRetry: 10,
         // Ajuste de ancho de banda: empezar con nivel más bajo para carga rápida
         startLevel: -1, // auto: hls.js elige el mejor nivel inicial
+        // El transcodificador necesita margen: FFmpeg tarda en dar el primer
+        // segmento y con el timeout por defecto hls.js abortaba antes (va al
+        // final a propósito, para pisar los valores de arriba).
+        ...(viaTranscoder
+          ? { manifestLoadingTimeOut: 45000, manifestLoadingMaxRetry: 1, manifestLoadingRetryDelay: 3000 }
+          : {}),
       });
       hlsRef.current = hls;
 
@@ -173,6 +179,20 @@ function TV() {
       hls.attachMedia(video);
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        // Si el master anuncia codecs que este navegador no decodifica
+        // (HEVC/hvc1, audio AC-3...) se salta directo al transcodificador:
+        // pasar por el proxy no cambia el codec, solo los headers.
+        if (!viaTranscoder) {
+          const idxSoportado = primerNivelSoportado(hls.levels);
+          if (idxSoportado < 0) {
+            setPlayerError("Este canal usa un códec que el navegador no soporta (H.265/AC-3). Activando transcodificador...");
+            destroyHls();
+            if (!cancelled) setViaTranscoder(true);
+            return;
+          }
+          // Varias calidades: fijar la soportada para que el ABR no elija HEVC.
+          if (idxSoportado > 0 || hls.levels.length > 1) hls.currentLevel = idxSoportado;
+        }
         setPlayerError("");
         setLoading(false);
         reloadAttemptsRef.current = 0; // conexión exitosa: reinicia el contador
@@ -185,6 +205,16 @@ function TV() {
         console.log("HLS ERROR:", data.type, data.details, "fatal:", data.fatal, data);
 
         if (!data.fatal) return; // los no fatales los recupera hls.js solo
+
+        // 0) Códec que el navegador no puede decodificar (HEVC/AC-3): ni el
+        //    proxy ni recoverMediaError lo arreglan. Se transcodifica.
+        if (esErrorDeCodec(data.details) && !viaTranscoder) {
+          console.log("[TV] codec no soportado (" + data.details + "): transcodificando");
+          setPlayerError("Este canal usa un códec que el navegador no soporta (H.265/AC-3). Activando transcodificador...");
+          destroyHls();
+          if (!cancelled) setViaTranscoder(true);
+          return;
+        }
 
         // 1) Si aún no pasamos por el proxy y falla la red (CORS / mixed content /
         //    bloqueo del servidor) -> reintentar automáticamente vía proxy.
@@ -318,7 +348,7 @@ function TV() {
         } else if (data.details === Hls.ErrorDetails.KEY_LOAD_ERROR) {
           setPlayerError("No se pudo cargar la llave del stream.");
         } else {
-          setPlayerError(`Error fatal al reproducir el canal (${data.details}).`);
+          setPlayerError(describirErrorPlayer(data.details));
         }
 
         setLoading(false);

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import Hls from "hls.js";
-import { resolveStreamUrl, needsProxy, transcoderUrl, channelSources, channelSourcesDetailed } from "../utils/stream";
+import { resolveStreamUrl, needsProxy, transcoderUrl, channelSources, channelSourcesDetailed, esErrorDeCodec, primerNivelSoportado, describirErrorPlayer } from "../utils/stream";
 
 export default function StreamSlot({ channel, slotId = "1", muted: initialMuted = true }) {
   const [loading, setLoading] = useState(false);
@@ -54,27 +54,57 @@ export default function StreamSlot({ channel, slotId = "1", muted: initialMuted 
     }
 
     if (Hls.isSupported()) {
-      const hls = new Hls();
+      const hls = new Hls(
+        viaTranscoder
+          ? // FFmpeg tarda en entregar el primer segmento (hasta 30 s en el
+            // backend): sin esto hls.js aborta con manifestLoadTimeOut.
+            { manifestLoadingTimeOut: 45000, manifestLoadingMaxRetry: 1, manifestLoadingRetryDelay: 3000 }
+          : {}
+      );
       hlsRef.current = hls;
       hls.loadSource(streamUrl);
       hls.attachMedia(video);
 
       let networkRecoveryAttempts = 0;
       let mediaRecoveryAttempts = 0;
-      const alreadyProxied = viaProxy;
+      const alreadyProxied = viaProxy || viaTranscoder;
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        if (!cancelled) {
-          setLoading(false);
-          video.play().catch((err) => {
-            console.log("[SV-" + slotId + "] Autoplay bloqueado:", err);
-          });
+        if (cancelled) return;
+        // Si el master anuncia codecs que este navegador no decodifica
+        // (HEVC/hvc1, audio AC-3...) no se espera al error: se transcodifica.
+        // El proxy no sirve aqui porque reenvia los mismos bytes.
+        if (!viaTranscoder) {
+          const idxSoportado = primerNivelSoportado(hls.levels);
+          if (idxSoportado < 0) {
+            setPlayerError("Este canal usa un codec que el navegador no soporta (H.265/AC-3). Activando transcodificador...");
+            destroyHls();
+            if (!cancelled) setViaTranscoder(true);
+            return;
+          }
+          // Varias calidades: fijar la soportada para que el ABR no elija HEVC.
+          if (idxSoportado > 0 || hls.levels.length > 1) hls.currentLevel = idxSoportado;
         }
+        setLoading(false);
+        video.play().catch((err) => {
+          console.log("[SV-" + slotId + "] Autoplay bloqueado:", err);
+        });
       });
 
       hls.on(Hls.Events.ERROR, (event, data) => {
         console.log("[SV-" + slotId + "] HLS ERROR:", data.type, data.details, "fatal:", data.fatal, data);
         if (!data.fatal) return;
+
+        // Codec que el navegador no puede decodificar (HEVC/AC-3): ni el proxy
+        // ni reintentar lo arreglan (mismos bytes, mismo perfil). Se pasa al
+        // transcodificador FFmpeg del backend al primer intento.
+        if (esErrorDeCodec(data.details) && !viaTranscoder) {
+          console.log("[SV-" + slotId + "] codec no soportado (" + data.details + "): transcodificando");
+          setPlayerError("Este canal usa un codec que el navegador no soporta (H.265/AC-3). Activando transcodificador...");
+          destroyHls();
+          if (!cancelled) setViaTranscoder(true);
+          return;
+        }
 
         const isNetworkError = data.type === Hls.ErrorTypes.NETWORK_ERROR;
 
@@ -159,6 +189,8 @@ export default function StreamSlot({ channel, slotId = "1", muted: initialMuted 
 
         if (data.details === Hls.ErrorDetails.BUFFER_INCOMPATIBLE_CODECS_ERROR) {
           setPlayerError("Este canal usa un códec que tu navegador no soporta (ej. HEVC/H.265). Prueba en otro navegador o dispositivo.");
+        } else if (data.details === Hls.ErrorDetails.BUFFER_ADD_CODEC_ERROR) {
+          setPlayerError(describirErrorPlayer(data.details) + " Prueba con otro canal o espera al transcodificador.");
         } else if (data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR) {
           setPlayerError(alreadyProxied ? "El servidor del canal no responde el m3u8 (caído, geobloqueado o cambió la URL)." : "No se pudo cargar el m3u8.");
         } else if (data.details === Hls.ErrorDetails.MANIFEST_PARSING_ERROR) {
