@@ -2616,14 +2616,24 @@ button {
   flex-shrink: 0;
 }
 
+.dp-forma-logo {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  object-fit: contain;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
 .dp-form-chip {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
-  border-radius: 6px;
-  font-size: 10px;
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  font-size: 11px;
   font-weight: 900;
 }
 

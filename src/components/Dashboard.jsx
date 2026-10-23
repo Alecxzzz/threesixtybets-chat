@@ -204,25 +204,49 @@ function DetallePick({ p }) {
       {forma.length > 0 && (
         <div className="dp-forma">
           <span className="dp-seccion-titulo">Últimos 5</span>
-          {forma.map((f) => (
-            <div
-              className="dp-forma-fila"
-              key={f.nombre}
-              title={f.partidos && f.partidos.length ? f.partidos.join(" · ") : undefined}
-            >
-              <span className="dp-forma-equipo">{f.nombre}</span>
-              <span className="dp-forma-chips">
-                {f.chips.map((c, i) => (
-                  <span
-                    key={`${f.nombre}-${i}`}
-                    className={`dp-form-chip ${c === "V" ? "es-v" : c === "E" ? "es-e" : "es-d"}`}
-                  >
-                    {c}
+          {forma.map((f) => {
+            // Asignar el logo del equipo (away/home) segun el nombre del pick.
+            const logoUrl =
+              f.nombre === p.awayName
+                ? p.awayLogo
+                : f.nombre === p.homeName
+                  ? p.homeLogo
+                  : null;
+            return (
+              <div
+                className="dp-forma-fila"
+                key={f.nombre}
+                title={
+                  f.partidos && f.partidos.length
+                    ? `${f.nombre} · ${f.partidos.join(" · ")}`
+                    : f.nombre
+                }
+              >
+                {logoUrl ? (
+                  <img
+                    className="dp-forma-logo"
+                    src={logoUrl}
+                    alt=""
+                    loading="lazy"
+                  />
+                ) : (
+                  <span className="dp-forma-equipo dp-forma-equipo-fallback">
+                    {f.nombre}
                   </span>
-                ))}
-              </span>
-            </div>
-          ))}
+                )}
+                <span className="dp-forma-chips">
+                  {f.chips.map((c, i) => (
+                    <span
+                      key={`${f.nombre}-${i}`}
+                      className={`dp-form-chip ${c === "V" ? "es-v" : c === "E" ? "es-e" : "es-d"}`}
+                    >
+                      {c}
+                    </span>
+                  ))}
+                </span>
+              </div>
+            );
+          })}
         </div>
       )}
 
