@@ -2437,6 +2437,14 @@ button {
   background: rgba(255, 255, 255, 0.04);
 }
 
+/* Sin precios reales: solo el aviso. Nunca se pinta una cuota inventada. */
+.dp-cmp-sin {
+  color: #6d7690;
+  border-color: #2b3350;
+  background: rgba(255, 255, 255, 0.03);
+  font-weight: 600;
+}
+
 .dp-badge {
   font-size: 10.5px;
   font-weight: 800;

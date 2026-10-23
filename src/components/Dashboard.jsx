@@ -50,13 +50,36 @@ function FavoritoBoton({ activo, onToggle, cargando }) {
 }
 
 /**
+ * Motivos por los que el comparador no devuelve precios. Se muestran como
+ * texto, NUNCA como cuota: si no hay dato real, no se pinta ningun numero.
+ */
+const MOTIVOS_CMP = {
+  sin_precios: "Las casas no publican este mercado",
+  evento_no_encontrado: "Partido no encontrado en el comparador",
+  sin_datos: "Faltan datos del pronostico",
+  datos_insuficientes: "Faltan datos del pronostico",
+  error_evento: "Comparador no disponible ahora",
+  error_comparacion: "Comparador no disponible ahora",
+};
+
+/**
  * Badge del comparador de cuotas: muestra el mejor precio encontrado entre
  * las casas y si la cuota publicada tiene valor (otra casa paga mas).
- * Si el backend no tiene datos (`disponible=false`) no se pinta nada.
+ * Si el backend no tiene datos (`disponible=false`) solo se avisa con texto.
  */
 function ComparadorBadge({ comparacion, cargando }) {
   if (cargando) return <span className="dp-cmp dp-cmp-cargando">⏳ Comparando…</span>;
-  if (!comparacion || !comparacion.disponible) return null;
+  if (!comparacion) return null;
+  if (!comparacion.disponible) {
+    return (
+      <span
+        className="dp-cmp dp-cmp-sin"
+        title={MOTIVOS_CMP[comparacion.motivo] || "Sin cuotas publicadas para este mercado"}
+      >
+        Sin comparación
+      </span>
+    );
+  }
   const { mejor_casa: casa, mejor_cuota: mejor, valor, mejora_pct: mejora } = comparacion;
   if (mejor == null) return null;
   return (
@@ -66,6 +89,7 @@ function ComparadorBadge({ comparacion, cargando }) {
     </span>
   );
 }
+
 
 /* Cuota REAL del bookmaker: el backend la guarda como texto dentro de
    stats ("Cuota real: 1.7334 (menor = mas probable)"). Si solo existe una
@@ -724,7 +748,9 @@ export default function Dashboard({ session, onIrACreditos }) {
   /** Pide al backend la comparacion de cuotas de un pronostico (bajo demanda). */
   const pedirComparacion = async (p) => {
     const id = String(p.id);
-    if (comparaciones[id] || cmpCargando[id]) return;
+    // No se repite si ya hay datos validos o si esta en curso: cada llamada
+    // consume cuota de odds-api.io. Si no habia datos, el boton reintenta.
+    if (cmpCargando[id] || comparaciones[id]?.disponible) return;
     setCmpCargando((actual) => ({ ...actual, [id]: true }));
     try {
       const r = await fetchComparadorCuotas(session, id);
