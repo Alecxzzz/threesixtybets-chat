@@ -496,21 +496,6 @@ export async function toggleFavoritoPick(session, pickId) {
 }
 
 /**
- * Compara la cuota de un pronostico entre las casas disponibles.
- * Devuelve { disponible, cuotas: {casa: cuota}, mejor_casa, mejor_cuota,
- * valor, motivo }. `disponible=false` significa que no hay datos: el
- * frontend no debe pintar nada en ese caso.
- */
-export async function fetchComparadorCuotas(session, pickId) {
-  const params = new URLSearchParams({ pick_id: pickId });
-  const res = await fetch(`${API_URL}/dashboard/comparador-cuotas?${params}`, {
-    headers: authHeaders(session),
-  });
-
-  return readJson(res);
-}
-
-/**
  * Stream SSE de marcadores (/stats/stream). RETIRADO: el proxy de produccion
  * (Northflank) bufferiza la respuesta y los eventos nunca llegan al cliente.
  * Se conserva el nombre como no-op para no romper imports previos.
