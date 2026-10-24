@@ -316,7 +316,7 @@ function PlayerBox({ playerState, match, videoRef, opciones = [], opcionActiva =
             <>
               <div style={{ fontSize: 40 }}>⏳</div>
               <p style={{ margin: 0 }}>
-                El acceso gratis abre 30 min antes del partido
+                El acceso gratis abre 15 min antes del partido
                 {match.kickoff ? ` (${fmtHora(match.kickoff)})` : ""}.
               </p>
               {match.apertura && (
