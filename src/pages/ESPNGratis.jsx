@@ -29,7 +29,7 @@ function restar(iso) {
 }
 
 // Señal de respaldo: mismo Stream 1 que sirve el backend.
-const STREAM_FIJO = "http://190.61.101.11:7050/play/a04g/index.m3u8";
+const STREAM_FIJO = "https://barinaslive1.boldmss.com/ESPN_2/ESPN_2.isml/ESPN_2.m3u8";
 const FALLBACK_STREAM = `${API_URL}/hls-proxy?url=${encodeURIComponent(STREAM_FIJO)}`;
 
 export default function ESPNGratis() {
