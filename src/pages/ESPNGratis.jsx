@@ -28,7 +28,8 @@ function restar(iso) {
   return Number.isFinite(t) ? Math.max(0, t) : 0;
 }
 
-const STREAM_FIJO = "http://168.228.44.241:9998/play/a0dz/index.m3u8";
+// Señal de respaldo: ESPN COLOMBIA (misma fuente que sirve el backend).
+const STREAM_FIJO = "http://38.252.215.33:8000/play/a024/index.m3u8";
 const FALLBACK_STREAM = `${API_URL}/hls-proxy?url=${encodeURIComponent(STREAM_FIJO)}`;
 
 export default function ESPNGratis() {
