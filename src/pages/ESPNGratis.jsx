@@ -349,30 +349,54 @@ function PlayerBox({ playerState, match, videoRef, opciones = [], opcionActiva =
       )}
       </div>
 
-      {/* SELECTOR DE SENAL: Opcion 1 / 2 / 3 */}
-      {opciones.length > 1 && (
-        <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-          {opciones.map((o, i) => (
-            <button
-              key={o.url || i}
-              type="button"
-              onClick={() => onCambiar?.(i)}
-              style={{
-                padding: "9px 16px",
-                borderRadius: 9,
-                fontWeight: 800,
-                fontSize: 13,
-                cursor: "pointer",
-                border: i === opcionActiva ? "1px solid #4ade80" : "1px solid #3a4450",
-                background: i === opcionActiva ? "rgba(74,222,128,0.15)" : "transparent",
-                color: i === opcionActiva ? "#4ade80" : "#8b95a1",
-              }}
-            >
-              {o.label || `Opción ${i + 1}`}
-            </button>
-          ))}
-        </div>
-      )}
+      {/* SELECTOR DE SENAL: Opcion 1 / 2 */}
+      <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
+        <button
+          type="button"
+          onClick={async () => {
+            const video = document.querySelector('video');
+            if (!video) return;
+            try {
+              if (document.pictureInPictureElement) {
+                await document.exitPictureInPicture();
+              } else if (document.pictureInPictureEnabled) {
+                await video.requestPictureInPicture();
+              }
+            } catch(e) {}
+          }}
+          style={{
+            padding: "9px 16px",
+            borderRadius: 9,
+            fontWeight: 800,
+            fontSize: 13,
+            cursor: "pointer",
+            border: "1px solid #3a4450",
+            background: "transparent",
+            color: "#c9d1d9",
+          }}
+        >
+          ⛶ Picture-in-Picture
+        </button>
+        {opciones.length > 1 && opciones.map((o, i) => (
+          <button
+            key={o.url || i}
+            type="button"
+            onClick={() => onCambiar?.(i)}
+            style={{
+              padding: "9px 16px",
+              borderRadius: 9,
+              fontWeight: 800,
+              fontSize: 13,
+              cursor: "pointer",
+              border: i === opcionActiva ? "1px solid #4ade80" : "1px solid #3a4450",
+              background: i === opcionActiva ? "rgba(74,222,128,0.15)" : "transparent",
+              color: i === opcionActiva ? "#4ade80" : "#8b95a1",
+            }}
+          >
+            {o.label || `Opción ${i + 1}`}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
