@@ -15,6 +15,7 @@ import { clearSession, getStoredSession, signOut as signOutRequest, refreshSessi
 import { sendChatMessage } from "./services/api";
 import Message from "./components/Message";
 import Input from "./components/Input";
+import LiveScoresWidget from "./components/LiveScoresWidget";
 
 const PLANS = [
   { price: "$10", days: "15 dias" },

@@ -7,6 +7,7 @@ import {
   toggleFavoritoPick,
 } from "../services/api";
 import PagosAceptados from "./PagosAceptados";
+import LiveScoresWidget from "./LiveScoresWidget";
 
 /**
  * Dashboard - pagina principal de 3SIXTYBETS.
@@ -651,6 +652,8 @@ export default function Dashboard({ session, onIrACreditos }) {
   // Favoritos: set de ids de pronosticos guardados por el usuario.
   const [favoritos, setFavoritos] = useState(() => new Set());
   const [favCargando, setFavCargando] = useState({}); // { pickId: true }
+  const [filtroDeporte, setFiltroDeporte] = useState("todos");
+  const [filtroEstado, setFiltroEstado] = useState("todos");
 
   useEffect(() => {
     let alive = true;
@@ -848,6 +851,8 @@ export default function Dashboard({ session, onIrACreditos }) {
           variando deportes y mercados para buscar siempre el mayor valor.
         </p>
       </section>
+
+      <LiveScoresWidget />
 
       {/* ===== STATS ===== */}
       <section className="dash-stats-row">
