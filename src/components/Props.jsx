@@ -1,17 +1,13 @@
 /**
  * Props - 3SIXTYBETS
- * Props de jugador: para cada prop que publica el bookmaker, en cuantos de
- * sus ultimos N partidos el jugador cumplio la linea, con cuota y edge.
+ * Props de jugador: solo las que el jugador cumplio al menos el 60% de sus
+ * ultimos partidos (lo filtra el backend con PROPS_PCT_MINIMA).
  *
- * Layout: el shell de la app es body{overflow:hidden} + .main{overflow:hidden},
- * asi que ESTA pagina es su propio contenedor con scroll (igual que .messages
- * del chat). Sin eso el contenido se recortaba y no se podia recorrer bien.
- *
- * Los datos los prepara el backend (props_scheduler, cada 90 min): la pagina
- * solo lee.
+ * Layout: el shell es body{overflow:hidden} + .main{overflow:hidden}, asi que
+ * ESTA pagina es su propio contenedor con scroll (igual que .messages).
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { fetchProps } from "../services/api";
 import "./Props.css";
 
@@ -21,6 +17,13 @@ const DEPORTES = [
   { key: "nfl", label: "NFL", icon: "🏈" },
 ];
 
+const ORDENES = [
+  { key: "edge", label: "Mas edge" },
+  { key: "ajustado", label: "Edge ajustado" },
+  { key: "pct", label: "Mas cumplimiento" },
+  { key: "cuota", label: "Cuota mas baja" },
+];
+
 function iniciales(nombre) {
   const partes = String(nombre || "?").trim().split(/\s+/).filter(Boolean);
   if (!partes.length) return "?";
@@ -28,7 +31,7 @@ function iniciales(nombre) {
   return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase();
 }
 
-function Barras({ valores, linea, lado }) {
+function Barras({ valores, linea, lado, detalle }) {
   if (!valores || !valores.length) {
     return <div className="props-barras props-barras--vacio">sin historico</div>;
   }
@@ -38,13 +41,16 @@ function Barras({ valores, linea, lado }) {
       {valores.map((valor, i) => {
         const cumple = lado === "under" ? valor <= linea : valor >= linea;
         const alto = Math.max(14, Math.round((valor / max) * 100));
+        const d = (detalle && detalle[i]) || {};
+        const rival = d.rival ? (d.casa === false ? `@ ${d.rival}` : `vs ${d.rival}`) : "";
+        const titulo = [rival, d.fecha, `${valor}`].filter(Boolean).join(" · ");
         return (
           <div className="props-barra-col" key={i}>
             <div className="props-barra-wrap">
               <div
                 className={`props-barra ${cumple ? "ok" : "no"}`}
                 style={{ height: `${alto}%`, animationDelay: `${120 + i * 70}ms` }}
-                title={`Partido ${i + 1}: ${valor}`}
+                title={titulo}
               />
             </div>
             <span className="props-barra-val">{valor}</span>
@@ -55,14 +61,45 @@ function Barras({ valores, linea, lado }) {
   );
 }
 
+function Comparativa({ pct, implicita }) {
+  const real = Math.max(0, Math.min(100, pct || 0));
+  const paga = Math.max(0, Math.min(100, implicita || 0));
+  const gana = real > paga + 0.5;
+  return (
+    <div className="props-cmp">
+      <div className="props-cmp-row">
+        <span>real</span>
+        <div className="props-cmp-track">
+          <div
+            className={`props-cmp-fill real ${gana ? "bien" : "mal"}`}
+            style={{ width: `${real}%`, animationDelay: "180ms" }}
+          />
+        </div>
+        <b>{pct != null ? `${pct}%` : "-"}</b>
+      </div>
+      <div className="props-cmp-row">
+        <span>paga</span>
+        <div className="props-cmp-track">
+          <div
+            className="props-cmp-fill paga"
+            style={{ width: `${paga}%`, animationDelay: "260ms" }}
+          />
+        </div>
+        <b>{implicita != null ? `${implicita}%` : "-"}</b>
+      </div>
+    </div>
+  );
+}
+
 function Tarjeta({ p, indice }) {
   const [sinFoto, setSinFoto] = useState(!p.foto);
-  const positivo = p.edge != null && p.edge > 0;
   const valores = Array.isArray(p.valores) ? p.valores.map(Number) : [];
   const media = valores.length
     ? valores.reduce((a, b) => a + b, 0) / valores.length
     : null;
   const maximo = valores.length ? Math.max(...valores) : null;
+  const positivo = p.edge != null && p.edge > 0;
+
   return (
     <article className="props-card" style={{ "--i": Math.min(indice, 16) }}>
       <header className="props-card-top">
@@ -78,13 +115,20 @@ function Tarjeta({ p, indice }) {
             />
           )}
         </div>
+
         <div className="props-id">
           <h3 title={p.jugador}>{p.jugador}</h3>
           <small>{p.equipo || "—"}</small>
         </div>
+
         <div className="props-cuota">
           <strong>{p.cuota ?? "-"}</strong>
           <em>{p.implicita ?? "-"}%</em>
+          {p.cuota_justa != null && (
+            <span className="props-justa" title="Cuota que deberia pagar segun su historico">
+              justa {p.cuota_justa}
+            </span>
+          )}
         </div>
       </header>
 
@@ -95,7 +139,12 @@ function Tarjeta({ p, indice }) {
         </span>
       </div>
 
-      <Barras valores={p.valores} linea={p.linea} lado={p.lado} />
+      <Barras
+        valores={p.valores}
+        linea={p.linea}
+        lado={p.lado}
+        detalle={p.detalle}
+      />
 
       <div className="props-media">
         <span>
@@ -107,19 +156,30 @@ function Tarjeta({ p, indice }) {
         </span>
       </div>
 
+      <Comparativa pct={p.pct} implicita={p.implicita} />
+
       <footer className="props-foot">
         <span className="props-racha">
           <b>{p.cumple ?? 0}</b>/{p.n_partidos ?? 0}
           {p.pct != null ? ` · ${p.pct}%` : ""}
         </span>
-        {p.edge != null ? (
-          <span className={`props-edge ${positivo ? "pos" : "neg"}`}>
-            {positivo ? "▲" : "▼"} {p.edge > 0 ? "+" : ""}
-            {p.edge}%
-          </span>
-        ) : (
-          <span className="props-edge neutro">sin edge</span>
-        )}
+        <span className="props-edges">
+          {p.edge != null && (
+            <span className={`props-edge ${positivo ? "pos" : "neg"}`}>
+              {positivo ? "▲" : "▼"} {p.edge > 0 ? "+" : ""}
+              {p.edge}%
+            </span>
+          )}
+          {p.edge_ajustado != null && (
+            <span
+              className={`props-edge suave ${p.edge_ajustado > 0 ? "pos" : "neg"}`}
+              title="Edge con el limite inferior del intervalo (version honesta)"
+            >
+              adj {p.edge_ajustado > 0 ? "+" : ""}
+              {p.edge_ajustado}%
+            </span>
+          )}
+        </span>
       </footer>
     </article>
   );
@@ -147,13 +207,18 @@ function Esqueleto() {
   );
 }
 
+
 export default function Props({ session }) {
   const [sport, setSport] = useState("soccer");
   const [estado, setEstado] = useState("cargando");
   const [props, setProps] = useState([]);
+  const [meta, setMeta] = useState({ pct_minima: 60, descartadas: 0, origen: "" });
   const [error, setError] = useState("");
   const [actualizado, setActualizado] = useState(null);
   const [intento, setIntento] = useState(0);
+  const [orden, setOrden] = useState("edge");
+  const [soloMas, setSoloMas] = useState(false);
+  const [q, setQ] = useState("");
 
   useEffect(() => {
     let vivo = true;
@@ -164,6 +229,11 @@ export default function Props({ session }) {
       .then((data) => {
         if (!vivo) return;
         setProps(data?.props || []);
+        setMeta({
+          pct_minima: data?.pct_minima ?? 60,
+          descartadas: data?.descartadas_por_pct ?? 0,
+          origen: data?.origen || "",
+        });
         setActualizado(new Date());
         setEstado("ok");
       })
@@ -178,18 +248,39 @@ export default function Props({ session }) {
     };
   }, [sport, session, intento]);
 
-  const conEdge = props.filter((p) => p.edge != null && p.edge > 0).length;
+  const visibles = useMemo(() => {
+    let lista = props;
+    if (soloMas) lista = lista.filter((p) => p.lado !== "under");
+    const texto = q.trim().toLowerCase();
+    if (texto) {
+      lista = lista.filter((p) =>
+        String(p.jugador || "").toLowerCase().includes(texto));
+    }
+    const clave = {
+      edge: (p) => -(p.edge ?? -999),
+      ajustado: (p) => -(p.edge_ajustado ?? -999),
+      pct: (p) => -(p.pct ?? 0),
+      cuota: (p) => p.cuota ?? 99,
+    }[orden];
+    return [...lista].sort((a, b) => clave(a) - clave(b));
+  }, [props, soloMas, q, orden]);
+
+  const conValor = props.filter((p) => p.edge != null && p.edge > 0).length;
+
 
   return (
     <div className="props-page">
       <div className="props-head">
         <div>
           <h1>
-            Props de jugador <span className="props-badge">LIVE</span>
+            Props de jugador <span className="props-badge">+{meta.pct_minima}%</span>
           </h1>
           <p>
-            En cuantos de sus ultimos 5 partidos el jugador cumplio la linea,
-            frente a la cuota que paga el bookmaker.
+            Solo props que el jugador cumplio al menos el {meta.pct_minima}% de
+            sus ultimos 5 partidos, frente a la cuota que paga el bookmaker.
+            {meta.descartadas > 0
+              ? ` ${meta.descartadas} descartadas por debajo del minimo.`
+              : ""}
           </p>
         </div>
 
@@ -200,12 +291,17 @@ export default function Props({ session }) {
               <small>props</small>
             </div>
             <div>
-              <strong className="verde">{conEdge}</strong>
+              <strong className="verde">{conValor}</strong>
               <small>con valor</small>
             </div>
             {actualizado && (
               <div>
-                <strong>{actualizado.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</strong>
+                <strong>
+                  {actualizado.toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </strong>
                 <small>actualizado</small>
               </div>
             )}
@@ -228,6 +324,46 @@ export default function Props({ session }) {
         ))}
       </div>
 
+      {estado === "ok" && props.length > 0 && (
+        <div className="props-toolbar">
+          <input
+            className="props-search"
+            type="search"
+            placeholder="Buscar jugador..."
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            aria-label="Buscar jugador"
+          />
+          <div className="props-chips">
+            <button
+              type="button"
+              className={`props-chip ${!soloMas ? "on" : ""}`}
+              onClick={() => setSoloMas(false)}
+            >
+              Todas
+            </button>
+            <button
+              type="button"
+              className={`props-chip ${soloMas ? "on" : ""}`}
+              onClick={() => setSoloMas(true)}
+            >
+              Solo MAS
+            </button>
+          </div>
+          <select
+            className="props-sort"
+            value={orden}
+            onChange={(e) => setOrden(e.target.value)}
+            aria-label="Ordenar"
+          >
+            {ORDENES.map((o) => (
+              <option key={o.key} value={o.key}>{o.label}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
+
       <div className="props-body">
         {estado === "cargando" && <Esqueleto />}
 
@@ -243,17 +379,25 @@ export default function Props({ session }) {
 
         {estado === "ok" && props.length === 0 && (
           <div className="props-empty">
-            <h2>Sin props ahora mismo</h2>
+            <h2>Ninguna prop supera el {meta.pct_minima}%</h2>
             <p>
-              El bookmaker no publica props de jugador en este deporte en este
-              momento. Se actualiza solo cada 90 minutos.
+              Ahora mismo el bookmaker no publica props que el jugador haya
+              cumplido al menos el {meta.pct_minima}% de sus ultimos 5
+              partidos. Se recalcula solo cada 90 minutos.
             </p>
           </div>
         )}
 
-        {estado === "ok" && props.length > 0 && (
+        {estado === "ok" && props.length > 0 && visibles.length === 0 && (
+          <div className="props-empty">
+            <h2>Sin resultados</h2>
+            <p>Ajusta la busqueda o quita el filtro de Solo MAS.</p>
+          </div>
+        )}
+
+        {estado === "ok" && visibles.length > 0 && (
           <div className="props-grid">
-            {props.map((p, i) => (
+            {visibles.map((p, i) => (
               <Tarjeta
                 key={p.id || `${p.jugador}-${p.prop}-${p.linea}-${p.lado}`}
                 p={p}
