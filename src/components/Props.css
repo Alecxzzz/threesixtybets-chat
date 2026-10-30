@@ -283,19 +283,34 @@
   border: 1px solid rgba(59, 130, 246, 0.3);
 }
 
-/* Barras: una por partido, crecen al entrar */
+/* Barras: una por partido (con su cantidad debajo), crecen al entrar */
 .props-barras {
   display: flex;
-  align-items: flex-end;
+  align-items: stretch;
   gap: 6px;
-  height: 62px;
-  margin-top: 18px;
-  margin-bottom: 4px;
+  height: 74px;
+  margin-top: 10px;
+  margin-bottom: 2px;
+}
+
+.props-barra-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 5px;
+}
+
+.props-barra-wrap {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  min-height: 0;
 }
 
 .props-barra {
-  position: relative;
-  flex: 1;
+  width: 100%;
   min-height: 6px;
   border-radius: 5px 5px 3px 3px;
   transform-origin: bottom;
@@ -305,14 +320,12 @@
 .props-barra.ok { background: linear-gradient(180deg, #34d399, #15803d); }
 .props-barra.no { background: linear-gradient(180deg, #f87171, #b91c1c); }
 
-.props-barra span {
-  position: absolute;
-  left: 50%;
-  bottom: 100%;
-  transform: translateX(-50%);
-  margin-bottom: 3px;
-  font-size: 0.6rem;
-  color: #8b98a9;
+/* La cantidad que hizo en ese partido, alineada bajo su barra */
+.props-barra-val {
+  text-align: center;
+  font-size: 0.64rem;
+  line-height: 1;
+  color: #93a0b1;
   font-variant-numeric: tabular-nums;
 }
 
@@ -328,6 +341,28 @@
   font-size: 0.72rem;
   font-style: italic;
 }
+
+/* Media y maximo de lo que hizo */
+.props-media {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 0.72rem;
+  color: #7b8798;
+}
+
+.props-media b {
+  color: #dbe3ec;
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.props-media em {
+  font-style: normal;
+  color: #6b7788;
+}
+
 
 /* Pie */
 .props-foot {
@@ -500,7 +535,7 @@
   }
 
   .props-cuota strong { font-size: 1rem; }
-  .props-barras { height: 56px; }
+  .props-barras { height: 68px; }
 }
 
 /* iOS: evita el zoom automatico al tocar y el highlight azul */

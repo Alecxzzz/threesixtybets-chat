@@ -37,15 +37,17 @@ function Barras({ valores, linea, lado }) {
     <div className="props-barras" aria-label={`Ultimos ${valores.length} partidos`}>
       {valores.map((valor, i) => {
         const cumple = lado === "under" ? valor <= linea : valor >= linea;
-        const alto = Math.max(20, Math.round((valor / max) * 100));
+        const alto = Math.max(14, Math.round((valor / max) * 100));
         return (
-          <div
-            key={i}
-            className={`props-barra ${cumple ? "ok" : "no"}`}
-            style={{ height: `${alto}%`, animationDelay: `${120 + i * 70}ms` }}
-            title={`Partido ${i + 1}: ${valor}`}
-          >
-            <span>{valor}</span>
+          <div className="props-barra-col" key={i}>
+            <div className="props-barra-wrap">
+              <div
+                className={`props-barra ${cumple ? "ok" : "no"}`}
+                style={{ height: `${alto}%`, animationDelay: `${120 + i * 70}ms` }}
+                title={`Partido ${i + 1}: ${valor}`}
+              />
+            </div>
+            <span className="props-barra-val">{valor}</span>
           </div>
         );
       })}
@@ -56,6 +58,11 @@ function Barras({ valores, linea, lado }) {
 function Tarjeta({ p, indice }) {
   const [sinFoto, setSinFoto] = useState(!p.foto);
   const positivo = p.edge != null && p.edge > 0;
+  const valores = Array.isArray(p.valores) ? p.valores.map(Number) : [];
+  const media = valores.length
+    ? valores.reduce((a, b) => a + b, 0) / valores.length
+    : null;
+  const maximo = valores.length ? Math.max(...valores) : null;
   return (
     <article className="props-card" style={{ "--i": Math.min(indice, 16) }}>
       <header className="props-card-top">
@@ -89,6 +96,16 @@ function Tarjeta({ p, indice }) {
       </div>
 
       <Barras valores={p.valores} linea={p.linea} lado={p.lado} />
+
+      <div className="props-media">
+        <span>
+          media <b>{media != null ? media.toFixed(1) : "-"}</b>{" "}
+          <em>{String(p.prop_raw || p.prop).toLowerCase()}</em>
+        </span>
+        <span>
+          max <b>{maximo != null ? maximo : "-"}</b>
+        </span>
+      </div>
 
       <footer className="props-foot">
         <span className="props-racha">
