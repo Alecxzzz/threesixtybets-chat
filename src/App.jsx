@@ -7,6 +7,7 @@ import TV from "./components/TV";
 import Auth from "./components/Auth";
 import Credits from "./components/Credits";
 import Stats from "./components/Stats";
+import Props from "./components/Props";
 import Dashboard from "./components/Dashboard";
 import AdminKeys from "./components/AdminKeys";
 import Transactions from "./components/Transactions";
@@ -487,6 +488,7 @@ function App() {
             <Stats />
           )
         )}
+        {page === "props" && <Props session={session} />}
         {page === "admin" && session.user.role === "admin" && <AdminKeys session={session} />}
         {page === "transactions" && (
           esInvitado ? (

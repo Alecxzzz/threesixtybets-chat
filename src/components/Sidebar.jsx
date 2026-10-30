@@ -56,6 +56,18 @@ function MenuIcon({ type }) {
     );
   }
 
+  if (type === "props") {
+    return (
+      <svg {...common}>
+        <circle cx="9" cy="6" r="3" />
+        <path d="M3 21v-2a6 6 0 0 1 6-6h2" />
+        <path d="M15 21v-4" />
+        <path d="M19 21v-8" />
+        <path d="M23 21v-6" />
+      </svg>
+    );
+  }
+
   if (type === "transactions") {
     return (
       <svg {...common}>
@@ -95,6 +107,7 @@ function Sidebar({ open, close, page, setPage, user }) {
     { page: "tv", label: "TV", icon: "tv" },
     { page: "credits", label: "Compra y canjeo", icon: "credits" },
     { page: "stats", label: "Estadisticas", icon: "stats" },
+    { page: "props", label: "Props", icon: "props" },
     { page: "transactions", label: "Historial de transacciones", icon: "transactions" },
   ];
 

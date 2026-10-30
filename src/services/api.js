@@ -408,6 +408,25 @@ export async function fetchStatsSummary(session) {
   return readJson(res);
 }
 
+/**
+ * Props de jugador (/api/props): cada prop que publica el bookmaker con la
+ * racha real del jugador (en cuantos de sus ultimos N partidos cumplio la
+ * linea), la cuota y el edge.
+ *
+ * Es un endpoint PUBLICO: se llama con authRequired:false para que un 401
+ * (por ejemplo, con la sesion caducada) no cierre la sesion del usuario.
+ * La primera visita sin snapshot puede tardar unos segundos porque el
+ * backend lo calcula al vuelo.
+ */
+export async function fetchProps(session, sport = "soccer", limite = 60) {
+  const params = new URLSearchParams({ sport, limite: String(limite) });
+  const res = await fetch(`${API_URL}/api/props?${params.toString()}`, {
+    headers: authHeaders(session),
+  });
+
+  return readJson(res, { authRequired: false });
+}
+
 export async function fetchLeagues(session) {
   const res = await fetch(`${API_URL}/stats/leagues`, {
     headers: authHeaders(session),
