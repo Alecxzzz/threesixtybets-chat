@@ -427,6 +427,18 @@ export async function fetchProps(session, sport = "soccer", limite = 60) {
   return readJson(res, { authRequired: false });
 }
 
+/**
+ * Track record de props: efectividad real de las ya cerradas (ACIERTO/FALLO)
+ * en los ultimos `dias` dias. Es la prueba de si el edge se sostiene.
+ */
+export async function fetchPropsTrack(session, dias = 7) {
+  const res = await fetch(`${API_URL}/api/props/track?dias=${dias}`, {
+    headers: authHeaders(session),
+  });
+
+  return readJson(res, { authRequired: false });
+}
+
 export async function fetchLeagues(session) {
   const res = await fetch(`${API_URL}/stats/leagues`, {
     headers: authHeaders(session),

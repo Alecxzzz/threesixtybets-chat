@@ -8,7 +8,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { fetchProps } from "../services/api";
+import { fetchProps, fetchPropsTrack } from "../services/api";
 import "./Props.css";
 
 const DEPORTES = [
@@ -137,6 +137,12 @@ function Tarjeta({ p, indice }) {
         <span className={`props-lado ${p.lado === "under" ? "under" : "over"}`}>
           {p.lado === "under" ? "MENOS" : "MAS"} {p.linea}
         </span>
+        {(p.estado === "ACIERTO" || p.estado === "FALLO") && (
+          <span className={`props-veredicto ${p.estado === "ACIERTO" ? "ok" : "no"}`}>
+            {p.estado === "ACIERTO" ? "✓" : "✗"}
+            {p.valor_real != null ? ` ${p.valor_real}` : ""}
+          </span>
+        )}
       </div>
 
       <Barras
@@ -219,6 +225,15 @@ export default function Props({ session }) {
   const [orden, setOrden] = useState("edge");
   const [soloMas, setSoloMas] = useState(false);
   const [q, setQ] = useState("");
+  const [record, setRecord] = useState(null);
+
+  useEffect(() => {
+    let vivo = true;
+    fetchPropsTrack(session, 7)
+      .then((d) => { if (vivo) setRecord(d?.total || null); })
+      .catch(() => { if (vivo) setRecord(null); });
+    return () => { vivo = false; };
+  }, [session, intento]);
 
   useEffect(() => {
     let vivo = true;
@@ -308,6 +323,18 @@ export default function Props({ session }) {
           </div>
         )}
       </div>
+
+      {record && record.resueltos > 0 && (
+        <div className="props-record">
+          <span className="props-record-title">Ultimos 7 dias</span>
+          <span><b>{record.efectividad}%</b> acierto</span>
+          <span>{record.aciertos}/{record.resueltos} props</span>
+          <span className={record.roi >= 0 ? "verde" : "rojo"}>
+            ROI {record.roi > 0 ? "+" : ""}
+            {record.roi}%
+          </span>
+        </div>
+      )}
 
       <div className="props-tabs" role="tablist">
         {DEPORTES.map((d) => (
