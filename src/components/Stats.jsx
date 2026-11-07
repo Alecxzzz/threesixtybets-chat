@@ -12,6 +12,7 @@ import {
   removeFavorito,
 } from "../services/api";
 import PlayerLast5Modal from "./PlayerLast5Modal";
+import RadarPartido from "./RadarPartido";
 
 const SPORTS = [
   { key: "soccer", label: "⚽ Futbol" },
@@ -640,6 +641,10 @@ function GameDetail({ sport, eventId, onBack }) {
       </button>
 
       <Scoreboard detail={detail} />
+
+      {/* Radar del partido (solo futbol): mapa de tiros con xG, momentum y
+          zonas de ataque. Sale del endpoint /stats/radar (FotMob). */}
+      <RadarPartido sport={sport} eventId={eventId} />
 
       {/* Layout de 2 columnas: IA arriba izq, stats al lado */}
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-start" }}>
