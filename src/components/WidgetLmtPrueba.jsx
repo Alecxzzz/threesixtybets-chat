@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { CLIENT_DEMO, agregarWidget, loaderUrl, montarLoader } from "../utils/sportradarWidget";
+import {
+  CLIENT_DEMO,
+  agregarWidget,
+  loaderUrl,
+  montarLoader,
+  reiniciarLoader,
+} from "../utils/sportradarWidget";
 
 /**
  * Probador del Live Match Tracker (match.lmtPlus) de Sportradar.
@@ -50,6 +56,13 @@ const boton = {
 
 export default function WidgetLmtPrueba() {
   const [matchId, setMatchId] = useState(MATCH_INICIAL);
+  const [clientId, setClientId] = useState(() => {
+    try {
+      return localStorage.getItem("lmt_client_id") || CLIENT_DEMO;
+    } catch {
+      return CLIENT_DEMO;
+    }
+  });
   const [estado, setEstado] = useState("");
   const [pintado, setPintado] = useState(false);
   const [estadoLoader, setEstadoLoader] = useState("");
@@ -64,32 +77,58 @@ export default function WidgetLmtPrueba() {
     setEstadoLoader(valor);
   };
 
-  useEffect(() => {
-    // En un tick para no hacer setState dentro del cuerpo del efecto.
-    const id = window.setTimeout(() => {
-      montarLoader(loaderUrl(CLIENT_DEMO), registrarLoader);
-    }, 0);
-    return () => {
-      window.clearTimeout(id);
-      window.clearTimeout(esperaRef.current);
-    };
-  }, []);
+  useEffect(() => () => window.clearTimeout(esperaRef.current), []);
 
-  function probar() {
+  /** Monta (o remonta) el loader del clientId indicado y espera a que cargue. */
+  function cargarLoader(cliente) {
+    return new Promise((resolve) => {
+      reiniciarLoader();
+      const script = montarLoader(loaderUrl(cliente), registrarLoader);
+      if (!script) {
+        resolve(true);
+        return;
+      }
+      let listo = false;
+      const terminar = (ok) => {
+        if (listo) return;
+        listo = true;
+        resolve(ok);
+      };
+      script.addEventListener("load", () => terminar(true));
+      script.addEventListener("error", () => terminar(false));
+      window.setTimeout(() => terminar(Boolean(window.SIR)), 8000);
+    });
+  }
+
+  async function probar() {
     const caja0 = contenedorRef.current;
     if (!caja0) return;
+
+    const cliente = String(clientId).trim() || CLIENT_DEMO;
+    try {
+      localStorage.setItem("lmt_client_id", cliente);
+    } catch {
+      /* sin localStorage (modo privado) da igual */
+    }
 
     caja0.innerHTML = "";
     setPintado(false);
     setCopiado(false);
-    setEstado("Pidiendo el widget a Sportradar…");
+    setEstado("Cargando el loader de Sportradar…");
 
+    const cargado = await cargarLoader(cliente);
+    if (!cargado) {
+      setEstado("El loader no cargó: clientId inexistente, red o bloqueo del navegador.");
+      return;
+    }
+
+    setEstado("Pidiendo el widget a Sportradar…");
     const enviado = agregarWidget(`#${idCaja}`, "match.lmtPlus", {
       matchId: String(matchId).trim(),
       layout: "single",
     });
     if (!enviado) {
-      setEstado("El loader de Sportradar no está disponible en esta página.");
+      setEstado("Sportradar no expuso SIR tras cargar el loader.");
       return;
     }
 
@@ -100,7 +139,7 @@ export default function WidgetLmtPrueba() {
       setPintado(hay);
 
       if (hay) {
-        setEstado("Sportradar pintó el widget: la integración funciona desde este dominio.");
+        setEstado(`Sportradar pintó el widget con el clientId «${cliente}». ¡Funciona!`);
         return;
       }
       const loader = estadoLoaderRef.current;
@@ -110,7 +149,7 @@ export default function WidgetLmtPrueba() {
         setEstado("El loader de Sportradar no respondió a tiempo.");
       } else {
         setEstado(
-          "El loader cargó, pero Sportradar no pintó el widget: este clientId no autoriza " +
+          `El loader cargó, pero no pintó el widget: el clientId «${cliente}» no autoriza ` +
             window.location.hostname + " o el matchId no existe."
         );
       }
@@ -119,11 +158,12 @@ export default function WidgetLmtPrueba() {
 
   function diagnostico() {
     const nodo = document.getElementById(idCaja);
+    const cliente = String(clientId).trim() || CLIENT_DEMO;
     const lineas = [
       "Radar 3SIXTYBETS · diagnostico widget LMT de Sportradar",
       `dominio: ${typeof window !== "undefined" ? window.location.hostname : "-"}`,
-      `clientId usado: ${CLIENT_DEMO} (demo publica)`,
-      `loader: ${loaderUrl(CLIENT_DEMO)}`,
+      `clientId usado: ${cliente}${cliente === CLIENT_DEMO ? " (demo publica)" : ""}`,
+      `loader: ${loaderUrl(cliente)}`,
       `matchId probado: ${matchId}`,
       `estado del loader: ${estadoLoader || "desconocido"}`,
       `widget pintado: ${nodo && nodo.childElementCount > 0 ? "si" : "no"}`,
@@ -150,10 +190,21 @@ export default function WidgetLmtPrueba() {
         <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: 0.4, textTransform: "uppercase", color: "#8b93a7" }}>
           Probador · Live Match Tracker
         </span>
-        <span style={{ fontSize: 10, color: "#fbbf24", fontWeight: 800 }}>CLIENT DEMO</span>
+        <span style={{ fontSize: 10, color: "#fbbf24", fontWeight: 800 }}>
+          {String(clientId).trim() === CLIENT_DEMO ? "CLIENT DEMO" : "CLIENT PROPIO"}
+        </span>
       </div>
 
-      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 10 }}>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 6 }}>
+        <span style={{ fontSize: 10, color: "#6b7280", minWidth: 52 }}>clientId</span>
+        <input
+          value={clientId}
+          onChange={(e) => setClientId(e.target.value)}
+          aria-label="clientId de Engagement Tools"
+          placeholder="clientId"
+          style={{ ...campo, width: 170 }}
+        />
+        <span style={{ fontSize: 10, color: "#6b7280", minWidth: 52 }}>matchId</span>
         <input
           value={matchId}
           onChange={(e) => setMatchId(e.target.value)}
@@ -164,9 +215,16 @@ export default function WidgetLmtPrueba() {
         <button type="button" onClick={probar} style={boton}>
           Cargar widget
         </button>
+      </div>
+
+      <div style={{ marginBottom: 10, minHeight: 16 }}>
         {estado ? (
           <span style={{ fontSize: 11, color: pintado ? "#22c55e" : "#8b93a7" }}>{estado}</span>
-        ) : null}
+        ) : (
+          <span style={{ fontSize: 10, color: "#4b5563" }}>
+            Pega aquí tu clientId cuando Sportradar te lo entregue (se guarda en este navegador).
+          </span>
+        )}
       </div>
 
       <div ref={contenedorRef} style={{ maxWidth: 560, margin: "0 auto", minHeight: 120 }}>

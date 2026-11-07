@@ -63,6 +63,19 @@ export function montarLoader(url, alCambiarEstado) {
   return script;
 }
 
+/**
+ * Quita el loader y el stub instalados, para poder montar otro clientId.
+ */
+export function reiniciarLoader() {
+  if (typeof window === "undefined") return;
+  document.querySelectorAll("script[data-sr-loader]").forEach((s) => s.remove());
+  try {
+    delete window.SIR;
+  } catch {
+    window.SIR = undefined;
+  }
+}
+
 /** Pinta un widget en el selector indicado. Devuelve false si SIR no esta. */
 export function agregarWidget(selector, widget, opciones = {}) {
   if (typeof window === "undefined" || !window.SIR) return false;
