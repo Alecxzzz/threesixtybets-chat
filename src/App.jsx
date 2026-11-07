@@ -7,7 +7,6 @@ import TV from "./components/TV";
 import Auth from "./components/Auth";
 import Credits from "./components/Credits";
 import Stats from "./components/Stats";
-import RadarHD from "./components/RadarHD";
 import Props from "./components/Props";
 import Dashboard from "./components/Dashboard";
 import AdminKeys from "./components/AdminKeys";
@@ -487,15 +486,6 @@ function App() {
             <SoloPremium onIrACreditos={() => setPage("credits")} />
           ) : (
             <Stats />
-          )
-        )}
-        {page === "radar" && (
-          esInvitado ? (
-            <NecesitaCuenta onIrAAuth={irAAuth} seccion="el radar HD" />
-          ) : hasAccessExpired(session.user) ? (
-            <SoloPremium onIrACreditos={() => setPage("credits")} />
-          ) : (
-            <RadarHD session={session} />
           )
         )}
         {page === "props" && <Props session={session} />}
