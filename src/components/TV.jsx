@@ -17,6 +17,9 @@ function TV() {
     [...staticChannels].sort((a, b) => a.name.localeCompare(b.name))
   );
   const [todayEvents, setTodayEvents] = useState(staticEvents);
+  // La agenda ya no viene de la18hd (caida): la sirve el backend desde ESPN +
+  // dlive. Mientras llega, el panel muestra "Cargando calendario...".
+  const [cargandoCalendario, setCargandoCalendario] = useState(true);
   const [currentChannel, setCurrentChannel] = useState(null);
   const [playerError, setPlayerError] = useState("");
   const [viaProxy, setViaProxy] = useState(false); // reintento automático
@@ -86,7 +89,13 @@ function TV() {
           setTodayEvents(data.events);
         }
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        // Pase lo que pase se quita el "Cargando calendario...": si falla, el
+        // panel muestra el aviso de "no hay partidos" en vez de quedarse
+        // girando para siempre.
+        if (active) setCargandoCalendario(false);
+      });
     return () => {
       active = false;
     };
@@ -768,7 +777,18 @@ function TV() {
         <div className="channels-box">
           <h2>Canales disponibles</h2>
 
-          {todayEvents.length > 0 ? (
+          {cargandoCalendario ? (
+            <div className="events-box events-box-loading">
+              <div className="events-box-header">
+                <span className="events-live-dot" />
+                Partidos de hoy
+              </div>
+              <div className="events-loading" role="status" aria-live="polite">
+                <span className="events-spinner" aria-hidden="true" />
+                <span>Cargando calendario…</span>
+              </div>
+            </div>
+          ) : todayEvents.length > 0 ? (
             <div className="events-box">
               <div className="events-box-header">
                 <span className="events-live-dot" />

@@ -1213,6 +1213,44 @@ button {
   color: #8b93a7;
 }
 
+/* Cargando calendario: la agenda la sirve el backend (ESPN + dlive) y en la
+   primera carga tarda unos segundos; esto evita que el panel parezca vacio. */
+.events-box-loading .events-live-dot {
+  background: #22c55e;
+}
+
+.events-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 14px;
+  font-size: 13px;
+  color: #8b93a7;
+}
+
+.events-spinner {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  border: 2px solid #2b3342;
+  border-top-color: #22c55e;
+  animation: events-spin 0.8s linear infinite;
+}
+
+@keyframes events-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Respeta a quien pide menos animaciones en el sistema. */
+@media (prefers-reduced-motion: reduce) {
+  .events-spinner {
+    animation: none;
+  }
+}
+
 
 .channels-box h2 {
   margin: 0 0 14px;
