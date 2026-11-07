@@ -359,7 +359,8 @@ export default function RadarHD({ session }) {
   const colorVisita = String(datos?.visita?.color || "").toLowerCase() === "#ffffff" ? "#e5e7eb" : datos?.visita?.color;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+    <section className="tool-page">
+      <div style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 860, margin: "0 auto" }}>
       <div style={caja}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
           <span style={{ ...titulo, marginBottom: 0 }}>Radar HD · tracking real</span>
@@ -491,6 +492,7 @@ export default function RadarHD({ session }) {
           <WidgetLmtPrueba />
         </div>
       </details>
-    </div>
+      </div>
+    </section>
   );
 }
