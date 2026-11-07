@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getStoredSession, fetchTrackingDemo, fetchTrackingPartido } from "../services/api";
+import WidgetLmtPrueba from "./WidgetLmtPrueba";
 
 /**
  * Radar HD (demo): reproductor de tracking REAL de los 22 jugadores + balon.
@@ -472,6 +473,24 @@ export default function RadarHD({ session }) {
         posiciones en vivo.
         {aviso ? <div style={{ marginTop: 6, color: "#6b7280" }}>{aviso}</div> : null}
       </div>
+
+      <details style={{ ...caja, marginBottom: 0 }}>
+        <summary
+          style={{
+            cursor: "pointer",
+            fontSize: 12,
+            fontWeight: 800,
+            letterSpacing: 0.4,
+            textTransform: "uppercase",
+            color: "#8b93a7",
+          }}
+        >
+          Probar el widget licenciado de Sportradar (LMT)
+        </summary>
+        <div style={{ marginTop: 12 }}>
+          <WidgetLmtPrueba />
+        </div>
+      </details>
     </div>
   );
 }
