@@ -85,8 +85,12 @@ function TV() {
     let active = true;
     fetchEvents(getStoredSession())
       .then((data) => {
-        if (active && data?.events?.length) {
-          setTodayEvents(data.events);
+        // Solo eventos con stream directo (m3u8). Los que llegan como "iframe"
+        // abren el player de daddylive dentro de la pagina (su marca, "Embed
+        // code", "THEATER MODE", botones PLAYER 1-7) y se veia muy mal.
+        const jugables = (data?.events || []).filter((ev) => ev?.type !== "iframe");
+        if (active && jugables.length) {
+          setTodayEvents(jugables);
         }
       })
       .catch(() => {})

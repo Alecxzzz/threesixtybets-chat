@@ -753,6 +753,9 @@ button {
 .tv-layout {
   width: 100%;
   max-width: 900px;
+  /* Centrado: antes quedaba pegado a la izquierda y dejaba un hueco muerto a
+     la derecha en pantallas anchas. */
+  margin: 0 auto;
 }
 
 .tv-player-box {
@@ -1103,7 +1106,10 @@ button {
 
 .channels-box {
   width: 100%;
-  max-width: 760px;
+  /* Mismo ancho que .tv-layout para que la lista quede alineada con el
+     reproductor (antes 760px dentro de un bloque de 900px: se veia
+     descuadrado). */
+  max-width: 900px;
 }
 
 /* Cuadro compacto de partidos del día (scrolleable) */
