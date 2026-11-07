@@ -1,7 +1,7 @@
 const API_URL =
   (
     import.meta.env.VITE_API_URL ||
-    "https://site--threesixtybetssz--qytms2wflqbs.code.run"
+    "https://xn--sixtyserver--b61q52a.up.railway.app"
   ).replace(/\/$/, "");
 const SESSION_KEY = "threesixtybets_session";
 

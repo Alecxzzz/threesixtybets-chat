@@ -2,10 +2,24 @@
  * Utilidades para resolver la URL final que se le pasa a hls.js.
  *
  * En dev/preview el proxy lo sirve el plugin de Vite (vite-plugins/hls-proxy.js).
- * En producción define VITE_HLS_PROXY con la URL de tu proxy desplegado, por ej:
- *   VITE_HLS_PROXY=https://mi-backend.onrender.com/hls-proxy
+ * En produccion define VITE_HLS_PROXY con la URL del proxy desplegado, por ej:
+ *   VITE_HLS_PROXY=https://mi-backend.up.railway.app/hls-proxy
+ *
+ * Si no se define, se usa el MISMO host que la API (el backend ya sirve
+ * /hls-proxy). Antes caia a "/hls-proxy" (mismo origen) y en Vercel ese path
+ * devolvia el index.html de la SPA: hls.js respondia manifestLoadError en
+ * TODOS los canales aunque el backend estuviera sano.
  */
-export const PROXY_BASE = import.meta.env.VITE_HLS_PROXY || "/hls-proxy";
+
+/** URL base del backend (API + transcodificador /live). */
+export const API_BASE = (
+  import.meta.env.VITE_API_URL ||
+  "https://xn--sixtyserver--b61q52a.up.railway.app"
+).replace(/\/$/, "");
+
+export const PROXY_BASE = (
+  import.meta.env.VITE_HLS_PROXY || `${API_BASE}/hls-proxy`
+).replace(/\/$/, "");
 
 /** Devuelve la URL del stream pasada por el proxy. */
 export function toProxyUrl(rawUrl, referer) {
@@ -13,12 +27,6 @@ export function toProxyUrl(rawUrl, referer) {
   if (referer) url += `&referer=${encodeURIComponent(referer)}`;
   return url;
 }
-
-/** URL base del backend (para el transcodificador /live). */
-export const API_BASE = (
-  import.meta.env.VITE_API_URL ||
-  "https://site--threesixtybetssz--qytms2wflqbs.code.run"
-).replace(/\/$/, "");
 
 /**
  * URL del transcodificador universal (H.264/AAC via FFmpeg en el backend).
