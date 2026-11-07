@@ -21,9 +21,22 @@ export function loaderUrl(clientId) {
  * Instala el stub global SIR y el script widgetloader (patron oficial de
  * Sportradar: las llamadas a SIR() se encolan hasta que carga el loader).
  * Si ya hay un SIR cargado, no hace nada.
+ *
+ * `alCambiarEstado` recibe: "cargando" | "cargado" | "error", para poder
+ * distinguir un script bloqueado de un widget que no pinta por licencia.
  */
-export function montarLoader(url) {
-  if (typeof window === "undefined" || window.SIR) return;
+export function montarLoader(url, alCambiarEstado) {
+  if (typeof window === "undefined") return null;
+
+  const avisar = (estado) => {
+    if (typeof alCambiarEstado === "function") alCambiarEstado(estado);
+  };
+
+  if (window.SIR) {
+    avisar("cargado");
+    return null;
+  }
+
   const doc = document;
 
   const stub = function stub() {
@@ -39,10 +52,15 @@ export function montarLoader(url) {
   script.src = url;
   script.setAttribute("n", "SIR");
   script.dataset.srLoader = url;
+  script.addEventListener("load", () => avisar(window.SIR && !window.SIR.q ? "cargado" : "cargado"));
+  script.addEventListener("error", () => avisar("error"));
 
   const primero = doc.getElementsByTagName("script")[0];
   if (primero?.parentNode) primero.parentNode.insertBefore(script, primero);
   else doc.head.appendChild(script);
+
+  avisar("cargando");
+  return script;
 }
 
 /** Pinta un widget en el selector indicado. Devuelve false si SIR no esta. */

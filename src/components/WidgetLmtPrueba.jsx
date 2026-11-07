@@ -52,13 +52,27 @@ export default function WidgetLmtPrueba() {
   const [matchId, setMatchId] = useState(MATCH_INICIAL);
   const [estado, setEstado] = useState("");
   const [pintado, setPintado] = useState(false);
+  const [estadoLoader, setEstadoLoader] = useState("");
+  const [copiado, setCopiado] = useState(false);
   const contenedorRef = useRef(null);
   const esperaRef = useRef(0);
+  const estadoLoaderRef = useRef("");
   const idCaja = "sr-lmt-prueba";
 
+  const registrarLoader = (valor) => {
+    estadoLoaderRef.current = valor;
+    setEstadoLoader(valor);
+  };
+
   useEffect(() => {
-    montarLoader(loaderUrl(CLIENT_DEMO));
-    return () => window.clearTimeout(esperaRef.current);
+    // En un tick para no hacer setState dentro del cuerpo del efecto.
+    const id = window.setTimeout(() => {
+      montarLoader(loaderUrl(CLIENT_DEMO), registrarLoader);
+    }, 0);
+    return () => {
+      window.clearTimeout(id);
+      window.clearTimeout(esperaRef.current);
+    };
   }, []);
 
   function probar() {
@@ -67,6 +81,7 @@ export default function WidgetLmtPrueba() {
 
     caja0.innerHTML = "";
     setPintado(false);
+    setCopiado(false);
     setEstado("Pidiendo el widget a Sportradar…");
 
     const enviado = agregarWidget(`#${idCaja}`, "match.lmtPlus", {
@@ -74,7 +89,7 @@ export default function WidgetLmtPrueba() {
       layout: "single",
     });
     if (!enviado) {
-      setEstado("El loader de Sportradar no cargó (bloqueado por el navegador o sin red).");
+      setEstado("El loader de Sportradar no está disponible en esta página.");
       return;
     }
 
@@ -83,12 +98,50 @@ export default function WidgetLmtPrueba() {
       const nodo = document.getElementById(idCaja);
       const hay = Boolean(nodo && nodo.childElementCount > 0);
       setPintado(hay);
-      setEstado(
-        hay
-          ? "Sportradar pintó el widget. La integración funciona desde tu dominio."
-          : "Sportradar no pintó nada: el clientId de demo no acepta este dominio (o el matchId no existe)."
-      );
+
+      if (hay) {
+        setEstado("Sportradar pintó el widget: la integración funciona desde este dominio.");
+        return;
+      }
+      const loader = estadoLoaderRef.current;
+      if (loader === "error") {
+        setEstado("El navegador no pudo cargar el script de Sportradar (red o bloqueo del cliente).");
+      } else if (loader !== "cargado") {
+        setEstado("El loader de Sportradar no respondió a tiempo.");
+      } else {
+        setEstado(
+          "El loader cargó, pero Sportradar no pintó el widget: este clientId no autoriza " +
+            window.location.hostname + " o el matchId no existe."
+        );
+      }
     }, ESPERA_MS);
+  }
+
+  function diagnostico() {
+    const nodo = document.getElementById(idCaja);
+    const lineas = [
+      "Radar 3SIXTYBETS · diagnostico widget LMT de Sportradar",
+      `dominio: ${typeof window !== "undefined" ? window.location.hostname : "-"}`,
+      `clientId usado: ${CLIENT_DEMO} (demo publica)`,
+      `loader: ${loaderUrl(CLIENT_DEMO)}`,
+      `matchId probado: ${matchId}`,
+      `estado del loader: ${estadoLoader || "desconocido"}`,
+      `widget pintado: ${nodo && nodo.childElementCount > 0 ? "si" : "no"}`,
+      `resultado: ${estado || "-"}`,
+      `navegador: ${typeof navigator !== "undefined" ? navigator.userAgent : "-"}`,
+    ];
+    return lineas.join("\n");
+  }
+
+  async function copiarDiagnostico() {
+    const texto = diagnostico();
+    try {
+      await navigator.clipboard.writeText(texto);
+      setCopiado(true);
+      window.setTimeout(() => setCopiado(false), 2500);
+    } catch {
+      setCopiado(false);
+    }
   }
 
   return (
@@ -118,6 +171,29 @@ export default function WidgetLmtPrueba() {
 
       <div ref={contenedorRef} style={{ maxWidth: 560, margin: "0 auto", minHeight: 120 }}>
         <div id={idCaja} />
+      </div>
+
+      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginTop: 10 }}>
+        <button
+          type="button"
+          onClick={copiarDiagnostico}
+          style={{
+            background: "#1f2633",
+            color: "#e5e7eb",
+            border: "1px solid #303847",
+            borderRadius: 8,
+            padding: "6px 10px",
+            fontSize: 11,
+            fontWeight: 700,
+            cursor: "pointer",
+          }}
+        >
+          {copiado ? "✓ Copiado" : "Copiar diagnóstico"}
+        </button>
+        <span style={{ fontSize: 10, color: "#6b7280" }}>
+          Loader: {estadoLoader || "sin cargar"}
+          {estado ? ` · ${pintado ? "OK" : "sin widget"}` : ""}
+        </span>
       </div>
 
       <div style={{ fontSize: 10, color: "#4b5563", marginTop: 10, lineHeight: 1.5 }}>
