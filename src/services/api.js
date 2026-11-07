@@ -575,6 +575,32 @@ export async function fetchRadarWidget(session, sport, eventId) {
 }
 
 /**
+ * Radar HD (demo): partidos con tracking real de 22 jugadores y balon.
+ * Datos de SkillCorner Open Data (MIT), A-League 2024/25. Son partidos ya
+ * jugados: es un replay, no retransmision en vivo.
+ */
+export async function fetchTrackingDemo(session) {
+  const res = await fetch(`${API_URL}/stats/tracking-demo`, {
+    headers: authHeaders(session),
+  });
+
+  return readJson(res);
+}
+
+/**
+ * Radar HD (demo): tracking completo de un partido.
+ * Coordenadas enteras en decimetros (x 0..largo*10, y 0..ancho*10), -1 = sin
+ * deteccion, y `fps` indica cuantos frames por segundo de juego hay.
+ */
+export async function fetchTrackingPartido(session, matchId) {
+  const res = await fetch(`${API_URL}/stats/tracking-demo/${encodeURIComponent(matchId)}`, {
+    headers: authHeaders(session),
+  });
+
+  return readJson(res);
+}
+
+/**
  * Tabla de posiciones de una liga de futbol (grupos por zona + forma last 5).
  */
 export async function fetchStandings(session, league) {

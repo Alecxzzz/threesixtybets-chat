@@ -56,6 +56,18 @@ function MenuIcon({ type }) {
     );
   }
 
+  if (type === "radar") {
+    return (
+      <svg {...common}>
+        <circle cx="12" cy="12" r="9" />
+        <circle cx="12" cy="12" r="3.2" />
+        <path d="M12 12 18 7" />
+        <path d="M12 3v2" />
+        <path d="M21 12h-2" />
+      </svg>
+    );
+  }
+
   if (type === "props") {
     return (
       <svg {...common}>
@@ -107,6 +119,7 @@ function Sidebar({ open, close, page, setPage, user }) {
     { page: "tv", label: "TV", icon: "tv" },
     { page: "credits", label: "Compra y canjeo", icon: "credits" },
     { page: "stats", label: "Estadisticas", icon: "stats" },
+    { page: "radar", label: "Radar HD", icon: "radar" },
     { page: "props", label: "Props", icon: "props" },
     { page: "transactions", label: "Historial de transacciones", icon: "transactions" },
   ];
