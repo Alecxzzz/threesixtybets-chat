@@ -558,6 +558,23 @@ export async function fetchRadar(session, sport, eventId) {
 }
 
 /**
+ * Configuracion del widget Live Match Tracker (LMT Plus) de Sportradar.
+ *
+ * Respuesta: { disponible: true, loader, match_id, layout } o
+ *            { disponible: false, motivo: "sin_licencia" | "sin_match_id" }.
+ * Es un widget licenciado (Engagement Tools): mientras no haya clientId y
+ * matchId el radar propio (/stats/radar) sigue funcionando.
+ */
+export async function fetchRadarWidget(session, sport, eventId) {
+  const params = new URLSearchParams({ sport, event_id: eventId });
+  const res = await fetch(`${API_URL}/stats/widget?${params}`, {
+    headers: authHeaders(session),
+  });
+
+  return readJson(res);
+}
+
+/**
  * Tabla de posiciones de una liga de futbol (grupos por zona + forma last 5).
  */
 export async function fetchStandings(session, league) {

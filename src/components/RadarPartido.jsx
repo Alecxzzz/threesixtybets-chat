@@ -303,8 +303,19 @@ export default function RadarPartido({ sport = "soccer", eventId }) {
         </span>
       </div>
 
-      <Cancha tiros={datos.tiros || []} />
-      <div style={{ display: "flex", gap: 14, fontSize: 10, color: "#6b7280", margin: "8px 0 14px" }}>
+      <div style={{ maxWidth: 560, margin: "0 auto" }}>
+        <Cancha tiros={datos.tiros || []} />
+      </div>
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "4px 14px",
+          fontSize: 10,
+          color: "#6b7280",
+          margin: "8px 0 14px",
+        }}
+      >
         <span>● tamaño = xG</span>
         <span>◯ borde blanco = gol</span>
         <span>opaco = bloqueado</span>
