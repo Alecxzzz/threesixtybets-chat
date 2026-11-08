@@ -688,7 +688,7 @@ function GameDetail({ sport, eventId, onBack }) {
         {/* Alineacion: campo con los 22 titulares + suplentes */}
         <div className="sd-card" data-tab="alineacion">
           <h3 style={sectionTitle()}>👥 Alineación</h3>
-          <Alineacion lineups={detail.lineups || []} />
+          <Alineacion lineups={detail.lineups || []} equipos={detail.teams || []} />
         </div>
 
         {/* Analisis IA - PRIORIDAD arriba */}
