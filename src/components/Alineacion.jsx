@@ -1,350 +1,204 @@
+import { useEffect, useState } from "react";
+import { getStoredSession, fetchAlineacion } from "../services/api";
+
 /**
- * Alineación del partido: campo con los 22 titulares colocados por línea
- * (portero / defensa / medio / delantera) según la posición de ESPN, con
- * avatar (foto o iniciales), dorsal, goles/tarjetas/cambios y nombre.
- * También hay vista "Lista" para el móvil.
+ * Alineación del partido con FOTOS de todos los jugadores.
  *
- * Datos: detail.lineups -> [{ equipo, lado, formacion, titulares[], suplentes[] }]
- *        detail.teams   -> [{ name, logo, color }]  (para logo y color)
- * Cada jugador: { id, nombre, dorsal, pos, orden, foto, goles, asistencias,
- *                 amarillas, rojas, entra, sale }
+ * Datos: /stats/alineacion (FotMob)
+ *   - tipo "oficial": once real con nota, suplentes y bajas.
+ *   - tipo "probable": once más repetido en los últimos partidos (con % de
+ *     titularidad), para cuando aún no se publicó la oficial.
+ * Cada jugador trae: id, nombre, dorsal, pos_id, x, y (0..1), nota, foto.
+ *
+ * Coordenadas: FotMob da x=0 en la portería propia y x=1 en la contraria, así
+ * que el local se pinta en la mitad izquierda y el visitante en la derecha.
  */
 
-import { useState } from "react";
+const COLOR_LOCAL = "#22c55e";
+const COLOR_VISITA = "#f97316";
 
-const COLOR_POR_DEFECTO = { home: "#22c55e", away: "#f97316" };
-
-/** Clasifica la posición de ESPN en línea del campo. */
-function lineaDe(pos) {
-  const p = (pos || "").toUpperCase();
-  if (!p) return "mid";
-  if (p.startsWith("G")) return "gk";
-  if (/^(CDM|DM|CAM|AM|CM|RM|LM)/.test(p)) return "mid";
-  if (/^(RB|LB|CD|CB|RCB|LCB|SW|D)/.test(p)) return "def";
-  if (/^(CF|ST|F|RW|LW|W)/.test(p)) return "fwd";
-  return "mid";
+/** Color de la nota (estilo SofaScore). */
+function colorNota(nota) {
+  if (nota == null) return "#334155";
+  if (nota >= 7) return "#16a34a";
+  if (nota >= 6) return "#ca8a04";
+  return "#dc2626";
 }
 
-/** -1 izquierda, 0 centro, 1 derecha (según el sufijo de la posición). */
-function ladoDe(pos) {
-  const p = (pos || "").toUpperCase();
-  if (p.endsWith("-L")) return -1;
-  if (p.endsWith("-R")) return 1;
-  return 0;
-}
-
-/** Portero + filas (defensa, medio, delantera) ordenadas por lado. */
-function filasDe(lineup) {
-  const titulares = lineup?.titulares || [];
-  const portero = titulares.find((j) => lineaDe(j.pos) === "gk") || titulares[0];
-  const resto = titulares.filter((j) => j !== portero);
-
-  const filas = ["def", "mid", "fwd"]
-    .map((clave) => resto.filter((j) => lineaDe(j.pos) === clave))
-    .filter((fila) => fila.length)
-    .map((fila) => fila.sort((a, b) => ladoDe(a.pos) - ladoDe(b.pos)));
-
-  return { portero, filas };
-}
-
-/** Iniciales para el avatar cuando ESPN no trae foto ("C. Haydar" -> "CH"). */
-function iniciales(nombre) {
-  const partes = String(nombre || "")
-    .replace(/\./g, " ")
-    .split(/\s+/)
-    .filter(Boolean);
-  if (!partes.length) return "?";
-  if (partes.length === 1) return partes[0].slice(0, 2).toUpperCase();
-  return (partes[0][0] + partes[1][0]).toUpperCase();
-}
-
-function hexValido(hex) {
-  const h = String(hex || "").replace("#", "");
-  return /^[0-9a-fA-F]{6}$/.test(h) ? h : null;
-}
-
-/** Aclara un color para el degradado del avatar. */
-function aclarar(hex, factor) {
-  const h = hexValido(hex);
-  if (!h) return hex;
-  const n = parseInt(h, 16);
-  const r = (n >> 16) & 255;
-  const g = (n >> 8) & 255;
-  const b = n & 255;
-  const mezclar = (c) => Math.round(c + (255 - c) * factor);
-  return `#${((mezclar(r) << 16) | (mezclar(g) << 8) | mezclar(b)).toString(16).padStart(6, "0")}`;
-}
-
-/** Color y escudo del equipo (busca por nombre en detail.teams). */
-function datosEquipo(equipos, nombre, lado) {
-  const buscado = String(nombre || "").toLowerCase();
-  const equipo =
-    (equipos || []).find((t) => t && String(t.name || "").toLowerCase() === buscado) ||
-    (equipos || []).find(
-      (t) =>
-        t &&
-        buscado &&
-        (buscado.includes(String(t.name || "").toLowerCase().slice(0, 6)) ||
-          String(t.name || "").toLowerCase().includes(buscado.slice(0, 6)))
-    );
-
-  const color = equipo?.color && hexValido(equipo.color) ? equipo.color : COLOR_POR_DEFECTO[lado];
-  return { color, claro: aclarar(color, 0.35), logo: equipo?.logo || null };
-}
-
-/** Tamaño de la pastilla del nombre (SVG no mide texto: se estima). */
-function anchoPastilla(nombre) {
-  return Math.max(6.5, Math.min(11.5, String(nombre).length * 1.0 + 1.6));
-}
-
-
-/** Ficha de un jugador: avatar + dorsal + nombre. */
-function Marca({ x, y, jugador, gradId }) {
+function Marca({ jugador, x, y, color, tipo }) {
   const nombre = String(jugador?.nombre || "").trim();
-  const corto = nombre.length > 10 ? `${nombre.slice(0, 9)}…` : nombre;
-  const ancho = anchoPastilla(corto);
+  const corto = nombre.length > 11 ? `${nombre.slice(0, 10)}…` : nombre;
+  const ancho = Math.max(7, Math.min(12.5, corto.length * 1.05 + 2));
+  const etiqueta = tipo === "probable" ? `${jugador?.posibilidad ?? 0}%` : jugador?.nota;
+  const fondo = tipo === "probable" ? "#1d4ed8" : colorNota(jugador?.nota);
 
   return (
     <g transform={`translate(${x} ${y})`}>
       <title>
-        {`${nombre}${jugador?.dorsal ? ` · #${jugador.dorsal}` : ""}${jugador?.pos ? ` · ${jugador.pos}` : ""}`}
+        {`${nombre}${jugador?.dorsal ? ` · #${jugador.dorsal}` : ""}${jugador?.nota ? ` · nota ${jugador.nota}` : ""}`}
       </title>
 
-      <ellipse cx="0" cy="4.7" rx="3" ry="0.75" fill="rgba(0,0,0,.38)" />
-      <circle r="4.1" fill="rgba(255,255,255,.10)" />
-      <circle r="3.05" fill={`url(#${gradId})`} stroke="rgba(255,255,255,.92)" strokeWidth="0.3" />
+      <ellipse cx="0" cy="3.9" rx="2.9" ry="0.7" fill="rgba(0,0,0,.4)" />
+      <circle r="3.3" fill="rgba(255,255,255,.10)" />
+      <circle r="2.9" fill={color} stroke="rgba(255,255,255,.9)" strokeWidth="0.28" />
 
       {jugador?.foto ? (
         <g clipPath="url(#alz-clip)">
           <image
             href={jugador.foto}
-            x="-3.05"
-            y="-3.05"
-            width="6.1"
-            height="6.1"
+            x="-2.9"
+            y="-2.9"
+            width="5.8"
+            height="5.8"
             preserveAspectRatio="xMidYMid slice"
           />
         </g>
       ) : (
-        <text
-          y="1"
-          textAnchor="middle"
-          fontSize="2.45"
-          fontWeight="800"
-          fill="#ffffff"
-          style={{ paintOrder: "stroke", stroke: "rgba(0,0,0,.35)", strokeWidth: 0.35 }}
-        >
-          {iniciales(nombre)}
+        <text y="0.9" textAnchor="middle" fontSize="2.4" fontWeight="800" fill="#fff">
+          {(nombre || "?").slice(0, 2).toUpperCase()}
         </text>
       )}
 
-      <g transform="translate(2.1 2.1)">
-        <circle r="1.5" fill="#0b1118" stroke="rgba(255,255,255,.55)" strokeWidth="0.2" />
-        <text y="0.6" textAnchor="middle" fontSize="1.85" fontWeight="800" fill="#e6edf3">
-          {jugador?.dorsal ?? "-"}
+      {/* dorsal */}
+      <g transform="translate(2 -2)">
+        <circle r="1.45" fill="#0b1118" stroke="rgba(255,255,255,.55)" strokeWidth="0.18" />
+        <text y="0.58" textAnchor="middle" fontSize="1.75" fontWeight="800" fill="#e6edf3">
+          {jugador?.dorsal || "-"}
         </text>
       </g>
 
-      <g className="alz-pill" transform="translate(0 4.1)">
+      {/* nota / % de titularidad */}
+      {etiqueta !== undefined && etiqueta !== null && etiqueta !== "" ? (
+        <g transform="translate(0 -4.1)">
+          <rect x="-2.2" y="-1.5" width="4.4" height="2.6" rx="0.7" fill={fondo} />
+          <text y="0.42" textAnchor="middle" fontSize="1.8" fontWeight="800" fill="#fff">
+            {etiqueta}
+          </text>
+        </g>
+      ) : null}
+
+      {/* nombre */}
+      <g transform="translate(0 4.3)">
         <rect
           x={-ancho / 2}
           y="0"
           width={ancho}
-          height="2.9"
-          rx="1.45"
-          fill="rgba(6,12,10,.74)"
+          height="2.7"
+          rx="1.35"
+          fill="rgba(6,12,10,.76)"
           stroke="rgba(255,255,255,.10)"
-          strokeWidth="0.12"
+          strokeWidth="0.1"
         />
-        <text y="2.08" textAnchor="middle" fontSize="2.05" fontWeight="700" fill="#e9eff7">
+        <text y="1.95" textAnchor="middle" fontSize="1.85" fontWeight="700" fill="#e9eff7">
           {corto}
         </text>
       </g>
-
-      {/* Goles / asistencias arriba a la derecha */}
-      {jugador?.goles ? (
-        <g>
-          <circle cx="3.9" cy="-3.3" r="1.7" fill="#0b1118" stroke="rgba(255,255,255,.55)" strokeWidth="0.15" />
-          <text
-            x="3.9"
-            y="-2.65"
-            textAnchor="middle"
-            fontSize="2.1"
-            fontWeight="800"
-            fill="#ffffff"
-          >
-            {jugador.goles > 1 ? jugador.goles : "⚽"}
-          </text>
-        </g>
-      ) : jugador?.asistencias ? (
-        <g>
-          <circle cx="3.9" cy="-3.3" r="1.7" fill="#1d4ed8" stroke="rgba(255,255,255,.5)" strokeWidth="0.15" />
-          <text x="3.9" y="-2.6" textAnchor="middle" fontSize="2" fontWeight="800" fill="#ffffff">
-            A
-          </text>
-        </g>
-      ) : null}
-
-      {/* Tarjetas arriba a la izquierda */}
-      {jugador?.amarillas ? (
-        <rect x="-4.9" y="-4.4" width="1.5" height="2.2" rx="0.3" fill="#facc15" stroke="#0b1118" strokeWidth="0.15" />
-      ) : null}
-      {jugador?.rojas ? (
-        <rect x="-3.1" y="-4.4" width="1.5" height="2.2" rx="0.3" fill="#ef4444" stroke="#0b1118" strokeWidth="0.15" />
-      ) : null}
-
-      {/* Cambio: entra (verde) / sale (rojo) */}
-      {jugador?.entra ? (
-        <path d="M-4.6 2.2 L-2.9 2.2 L-3.75 0.6 Z" fill="#22c55e" stroke="#0b1118" strokeWidth="0.15" />
-      ) : jugador?.sale ? (
-        <path d="M-4.6 0.6 L-2.9 0.6 L-3.75 2.2 Z" fill="#ef4444" stroke="#0b1118" strokeWidth="0.15" />
-      ) : null}
     </g>
   );
 }
 
-const X_FILAS = { 1: [24], 2: [17.5, 32], 3: [13, 26, 39] };
-const MARGEN_Y = 8.5;
-
-/** Los 11 de un equipo en su mitad del campo. */
-function MedioCampo({ lineup, esLocal, gradId }) {
-  const { portero, filas } = filasDe(lineup);
-  const xs = X_FILAS[filas.length] || X_FILAS[3];
-  const espejo = (x) => (esLocal ? x : 100 - x);
-
-  return (
-    <>
-      {portero ? (
-        <Marca x={espejo(5.4)} y={34} jugador={portero} gradId={gradId} />
-      ) : null}
-
-      {filas.map((fila, i) =>
-        fila.map((jugador, j) => {
-          const n = fila.length;
-          const y = n === 1 ? 34 : MARGEN_Y + (j * (68 - 2 * MARGEN_Y)) / (n - 1);
-          return (
-            <Marca
-              key={`${i}-${jugador.nombre}-${jugador.dorsal}`}
-              x={espejo(xs[i])}
-              y={y}
-              jugador={jugador}
-              gradId={gradId}
-            />
-          );
-        })
-      )}
-    </>
-  );
-}
-
-function Insignias({ j }) {
-  return (
-    <span className="alz-badges">
-      {j.goles ? <span className="alz-b alz-b-gol">⚽{j.goles > 1 ? ` ${j.goles}` : ""}</span> : null}
-      {j.asistencias ? <span className="alz-b alz-b-asist">A</span> : null}
-      {j.amarillas ? <span className="alz-b alz-b-amarilla" title="Amarilla" /> : null}
-      {j.rojas ? <span className="alz-b alz-b-roja" title="Roja" /> : null}
-      {j.entra ? <span className="alz-b alz-b-entra" title="Entró">▲</span> : null}
-      {j.sale ? <span className="alz-b alz-b-sale" title="Salió">▼</span> : null}
-    </span>
-  );
-}
-
-function FilaJugador({ jugador, color }) {
+function FilaJugador({ jugador, tipo, color }) {
+  const etiqueta = tipo === "probable" ? `${jugador?.posibilidad ?? 0}%` : jugador?.nota;
   return (
     <li className="alz-fila">
-      <span className="alz-fila-dorsal" style={{ borderColor: color }}>
-        {jugador.dorsal ?? "-"}
+      <span className="alz-fila-foto">
+        {jugador?.foto ? (
+          <img src={jugador.foto} alt="" loading="lazy" />
+        ) : (
+          <span className="alz-fila-inicial">{(jugador?.nombre || "?").slice(0, 1)}</span>
+        )}
       </span>
-      <span className="alz-fila-nombre">{jugador.nombre}</span>
-      <span className="alz-fila-pos">{jugador.pos || ""}</span>
-      <Insignias j={jugador} />
+      <span className="alz-fila-dorsal" style={{ borderColor: color }}>
+        {jugador?.dorsal || "-"}
+      </span>
+      <span className="alz-fila-nombre">{jugador?.nombre}</span>
+      {etiqueta != null && etiqueta !== "" ? (
+        <span
+          className="alz-fila-nota"
+          style={{ background: tipo === "probable" ? "#1d4ed8" : colorNota(jugador?.nota) }}
+        >
+          {etiqueta}
+        </span>
+      ) : null}
     </li>
   );
 }
 
-/** Vista lista (mejor en móvil): los 11 + suplentes de cada equipo. */
-function Lista({ local, visita, dLocal, dVisita }) {
-  const bloques = [
-    { alineacion: local, equipo: dLocal },
-    { alineacion: visita, equipo: dVisita },
-  ];
-
+function CabeceraEquipo({ equipo, color }) {
   return (
-    <div className="alz-lista">
-      {bloques.map(({ alineacion, equipo }) => (
-        <div key={alineacion?.equipo || "equipo"} className="alz-lista-equipo">
-          <div className="alz-lista-cab">
-            {equipo.logo ? <img src={equipo.logo} alt="" className="alz-lista-logo" /> : null}
-            <span className="alz-lista-titulo">{alineacion?.equipo}</span>
-            <span className="alz-lista-form">{alineacion?.formacion || "-"}</span>
-          </div>
-
-          <ul className="alz-filas">
-            {(alineacion?.titulares || []).map((j, i) => (
-              <FilaJugador key={`t-${j.nombre}-${i}`} jugador={j} color={equipo.color} />
-            ))}
-          </ul>
-
-          {(alineacion?.suplentes || []).length ? (
-            <details className="alz-banca">
-              <summary>
-                Suplentes
-                <span className="alz-banca-num">{alineacion.suplentes.length}</span>
-              </summary>
-              <ul className="alz-filas">
-                {alineacion.suplentes.map((j, i) => (
-                  <FilaJugador key={`s-${j.nombre}-${i}`} jugador={j} color={equipo.color} />
-                ))}
-              </ul>
-            </details>
-          ) : null}
-        </div>
-      ))}
+    <div className="alz-cab">
+      <span className="alz-cab-punto" style={{ background: color }} />
+      <div className="alz-cab-texto">
+        <span className="alz-cab-nombre">{equipo?.equipo}</span>
+        <span className="alz-cab-meta">
+          {equipo?.formacion || "-"}
+          {equipo?.entrenador ? ` · ${equipo.entrenador}` : ""}
+          {equipo?.nota != null ? ` · nota ${equipo.nota}` : ""}
+        </span>
+      </div>
     </div>
   );
 }
 
-export default function Alineacion({ lineups = [], equipos = [] }) {
+export default function Alineacion({ sport = "soccer", eventId, league = null }) {
+  const [datos, setDatos] = useState(null);
+  const [cargando, setCargando] = useState(true);
   const [vista, setVista] = useState("campo");
 
-  if (!lineups.length) {
+  useEffect(() => {
+    let cancelado = false;
+
+    async function cargar() {
+      const sesion = getStoredSession();
+      if (!sesion || !eventId || sport !== "soccer") {
+        if (!cancelado) setCargando(false);
+        return;
+      }
+      try {
+        const r = await fetchAlineacion(sesion, sport, eventId, league);
+        if (!cancelado) setDatos(r);
+      } catch {
+        if (!cancelado) setDatos({ ok: false, detalle: "No se pudo cargar la alineación." });
+      } finally {
+        if (!cancelado) setCargando(false);
+      }
+    }
+
+    cargar();
+    return () => {
+      cancelado = true;
+    };
+  }, [sport, eventId, league]);
+
+  if (sport !== "soccer") return null;
+
+  if (cargando) {
     return (
-      <p style={{ color: "#8b95a1", fontSize: 13, textAlign: "center", margin: 0 }}>
-        La alineación se publica cerca del inicio del partido.
-      </p>
+      <div className="alz-cargando">
+        <span className="alz-spinner" aria-hidden="true" />
+        Cargando alineación…
+      </div>
     );
   }
 
-  const local = lineups.find((l) => l.lado === "home") || lineups[0];
-  const visita = lineups.find((l) => l.lado === "away") || lineups[1];
-  const dLocal = datosEquipo(equipos, local?.equipo, "home");
-  const dVisita = datosEquipo(equipos, visita?.equipo, "away");
+  if (!datos?.ok) {
+    return <p className="alz-vacio">{datos?.detalle || "Sin alineación disponible para este partido."}</p>;
+  }
 
-  // metros -> unidades del viewBox (el campo mide 105 x 68)
-  const mx = (metros) => metros * (100 / 105);
+  const { local, visita, tipo } = datos;
+  const probable = tipo === "probable";
+
+  const px = (j, esLocal) => (esLocal ? 3 + Number(j.x || 0) * 47 : 97 - Number(j.x || 0) * 47);
+  const py = (j) => 2 + Number(j.y || 0) * 64;
+
 
   return (
     <div>
-      <div className="alz-cabecera">
-        <div className="alz-equipo">
-          {dLocal.logo ? <img className="alz-escudo" src={dLocal.logo} alt="" /> : null}
-          <div className="alz-equipo-texto">
-            <span className="alz-nombre">{local?.equipo}</span>
-            <span className="alz-formacion">{local?.formacion || "-"}</span>
-          </div>
-        </div>
-
-        <div className="alz-equipo alz-der">
-          <div className="alz-equipo-texto alz-texto-der">
-            <span className="alz-nombre">{visita?.equipo}</span>
-            <span className="alz-formacion">{visita?.formacion || "-"}</span>
-          </div>
-          {dVisita.logo ? <img className="alz-escudo" src={dVisita.logo} alt="" /> : null}
-        </div>
-      </div>
-
       <div className="alz-barra">
+        <span className={`alz-etiqueta${probable ? " es-probable" : ""}`}>
+          {probable ? "Once probable" : "Alineación oficial"}
+          {probable && local?.partidos ? ` · últimos ${local.partidos} partidos` : ""}
+        </span>
         <div className="alz-toggle" role="group" aria-label="Vista de la alineación">
           <button
             type="button"
@@ -363,98 +217,112 @@ export default function Alineacion({ lineups = [], equipos = [] }) {
         </div>
       </div>
 
+      <div className="alz-cabs">
+        <CabeceraEquipo equipo={local} color={COLOR_LOCAL} />
+        <CabeceraEquipo equipo={visita} color={COLOR_VISITA} />
+      </div>
+
       {vista === "campo" ? (
-        <>
-      <svg
-        viewBox="0 0 100 68"
-        className="alz-campo"
-        role="img"
-        aria-label={`Alineación de ${local?.equipo || "local"} y ${visita?.equipo || "visitante"}`}
-      >
-        <defs>
-          <clipPath id="alz-clip">
-            <circle r="3.05" />
-          </clipPath>
-          <linearGradient id="alz-cesped" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#1b5f35" />
-            <stop offset="100%" stopColor="#0d3a20" />
-          </linearGradient>
-          <radialGradient id="alz-grad-home" cx="35%" cy="25%" r="85%">
-            <stop offset="0%" stopColor={dLocal.claro} />
-            <stop offset="100%" stopColor={dLocal.color} />
-          </radialGradient>
-          <radialGradient id="alz-grad-away" cx="35%" cy="25%" r="85%">
-            <stop offset="0%" stopColor={dVisita.claro} />
-            <stop offset="100%" stopColor={dVisita.color} />
-          </radialGradient>
-        </defs>
+        <svg viewBox="0 0 100 68" className="alz-campo" role="img" aria-label="Alineación del partido">
+          <defs>
+            <clipPath id="alz-clip">
+              <circle r="2.9" />
+            </clipPath>
+            <linearGradient id="alz-cesped" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#1b5f35" />
+              <stop offset="100%" stopColor="#0d3a20" />
+            </linearGradient>
+          </defs>
 
-        <rect
-          x="0.4"
-          y="0.4"
-          width="99.2"
-          height="67.2"
-          rx="2"
-          fill="url(#alz-cesped)"
-          stroke="rgba(255,255,255,.16)"
-          strokeWidth="0.35"
-        />
+          <rect x="0.4" y="0.4" width="99.2" height="67.2" rx="2" fill="url(#alz-cesped)" stroke="rgba(255,255,255,.16)" strokeWidth="0.35" />
+          {Array.from({ length: 10 }).map((_, i) => (
+            <rect key={i} x={0.4 + i * 9.92} y="0.4" width="9.92" height="67.2" fill={i % 2 ? "rgba(255,255,255,.03)" : "transparent"} />
+          ))}
+          <g stroke="rgba(255,255,255,.20)" strokeWidth="0.32" fill="none">
+            <line x1="50" y1="0.4" x2="50" y2="67.6" />
+            <circle cx="50" cy="34" r="8.6" />
+            <rect x="0.4" y="13.84" width="15.7" height="40.32" />
+            <rect x="83.9" y="13.84" width="15.7" height="40.32" />
+            <rect x="0.4" y="24.84" width="5.24" height="18.32" />
+            <rect x="94.36" y="24.84" width="5.24" height="18.32" />
+          </g>
+          <circle cx="50" cy="34" r="0.6" fill="rgba(255,255,255,.35)" />
 
-        {Array.from({ length: 10 }).map((_, i) => (
-          <rect
-            key={i}
-            x={0.4 + i * 9.92}
-            y="0.4"
-            width="9.92"
-            height="67.2"
-            fill={i % 2 ? "rgba(255,255,255,.03)" : "transparent"}
-          />
-        ))}
-
-        <g stroke="rgba(255,255,255,.20)" strokeWidth="0.32" fill="none">
-          <line x1="50" y1="0.4" x2="50" y2="67.6" />
-          <circle cx="50" cy="34" r="8.6" />
-          <rect x="0.4" y={34 - 20.16} width={mx(16.5)} height="40.32" />
-          <rect x={99.6 - mx(16.5)} y={34 - 20.16} width={mx(16.5)} height="40.32" />
-          <rect x="0.4" y={34 - 9.16} width={mx(5.5)} height="18.32" />
-          <rect x={99.6 - mx(5.5)} y={34 - 9.16} width={mx(5.5)} height="18.32" />
-        </g>
-
-        <circle cx="50" cy="34" r="0.6" fill="rgba(255,255,255,.35)" />
-        <circle cx={0.4 + mx(11)} cy="34" r="0.45" fill="rgba(255,255,255,.35)" />
-        <circle cx={99.6 - mx(11)} cy="34" r="0.45" fill="rgba(255,255,255,.35)" />
-
-        <MedioCampo lineup={local} esLocal gradId="alz-grad-home" />
-        <MedioCampo lineup={visita} esLocal={false} gradId="alz-grad-away" />
-      </svg>
+          {(local?.titulares || []).map((j, i) => (
+            <Marca key={`l-${j.id || i}`} jugador={j} x={px(j, true)} y={py(j)} color={COLOR_LOCAL} tipo={tipo} />
+          ))}
+          {(visita?.titulares || []).map((j, i) => (
+            <Marca key={`v-${j.id || i}`} jugador={j} x={px(j, false)} y={py(j)} color={COLOR_VISITA} tipo={tipo} />
+          ))}
+        </svg>
+      ) : (
+        <div className="alz-lista">
+          {[
+            { equipo: local, color: COLOR_LOCAL },
+            { equipo: visita, color: COLOR_VISITA },
+          ].map(({ equipo, color }) => (
+            <div key={equipo?.equipo || color} className="alz-lista-equipo">
+              <CabeceraEquipo equipo={equipo} color={color} />
+              <ul className="alz-filas">
+                {(equipo?.titulares || []).map((j, i) => (
+                  <FilaJugador key={`${j.id || i}`} jugador={j} tipo={tipo} color={color} />
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="alz-bancas">
         {[
-          { alineacion: local, equipo: dLocal, clave: "home" },
-          { alineacion: visita, equipo: dVisita, clave: "away" },
-        ].map(({ alineacion, equipo, clave }) => (
-          <details key={clave} className="alz-banca">
-            <summary>
-              <span className="alz-banca-punto" style={{ background: equipo.color }} />
-              Suplentes {alineacion?.equipo}
-              <span className="alz-banca-num">{alineacion?.suplentes?.length || 0}</span>
-            </summary>
-            <ul>
-              {(alineacion?.suplentes || []).map((j, i) => (
-                <li key={`${j.nombre}-${i}`}>
-                  <span className="alz-dorsal">{j.dorsal ?? "-"}</span>
-                  <span className="alz-banca-nombre">{j.nombre}</span>
-                  {j.pos ? <span className="alz-pos">{j.pos}</span> : null}
-                </li>
-              ))}
-            </ul>
-          </details>
+          { equipo: local, color: COLOR_LOCAL },
+          { equipo: visita, color: COLOR_VISITA },
+        ].map(({ equipo, color }) => (
+          <div key={`b-${equipo?.equipo || color}`} className="alz-banca-grupo">
+            {equipo?.suplentes?.length ? (
+              <details className="alz-banca">
+                <summary>
+                  <span className="alz-banca-punto" style={{ background: color }} />
+                  Suplentes {equipo?.equipo}
+                  <span className="alz-banca-num">{equipo.suplentes.length}</span>
+                </summary>
+                <ul className="alz-filas">
+                  {equipo.suplentes.map((j, i) => (
+                    <FilaJugador key={`s-${j.id || i}`} jugador={j} tipo="oficial" color={color} />
+                  ))}
+                </ul>
+              </details>
+            ) : null}
+
+            {equipo?.bajas?.length ? (
+              <details className="alz-banca alz-bl">
+                <summary>
+                  <span className="alz-banca-punto" style={{ background: "#ef4444" }} />
+                  Bajas {equipo?.equipo}
+                  <span className="alz-banca-num">{equipo.bajas.length}</span>
+                </summary>
+                <ul className="alz-filas">
+                  {equipo.bajas.map((j, i) => (
+                    <li key={`x-${i}`} className="alz-fila">
+                      <span className="alz-fila-foto">
+                        {j.foto ? (
+                          <img src={j.foto} alt="" loading="lazy" />
+                        ) : (
+                          <span className="alz-fila-inicial">?</span>
+                        )}
+                      </span>
+                      <span className="alz-fila-nombre">{j.nombre}</span>
+                      <span className="alz-fila-pos">{j.motivo || "baja"}</span>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            ) : null}
+          </div>
         ))}
       </div>
-        </>
-      ) : (
-        <Lista local={local} visita={visita} dLocal={dLocal} dVisita={dVisita} />
-      )}
+
+      <div className="alz-fuente">Alineación: FotMob</div>
     </div>
   );
 }

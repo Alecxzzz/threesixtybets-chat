@@ -545,6 +545,21 @@ export async function fetchGameDetail(session, sport, eventId) {
 }
 
 /**
+ * Alineacion del partido desde FotMob: la OFICIAL si ya salio o el ONCE
+ * PROBABLE calculado con los ultimos partidos. Cada jugador trae foto, dorsal,
+ * nota y coordenadas reales en el campo.
+ */
+export async function fetchAlineacion(session, sport, eventId, league) {
+  const params = new URLSearchParams({ sport, event_id: eventId });
+  if (league) params.set("league", league);
+  const res = await fetch(`${API_URL}/stats/alineacion?${params}`, {
+    headers: authHeaders(session),
+  });
+
+  return readJson(res);
+}
+
+/**
  * Tabla de posiciones de una liga de futbol (grupos por zona + forma last 5).
  */
 export async function fetchStandings(session, league) {

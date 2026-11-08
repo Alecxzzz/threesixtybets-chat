@@ -685,10 +685,10 @@ function GameDetail({ sport, eventId, onBack }) {
 
       {/* Contenido en una sola columna de tarjetas (estilo app) */}
       <div className="sd-stack" data-activa={tab}>
-        {/* Alineacion: campo con los 22 titulares + suplentes */}
+        {/* Alineacion: oficial de FotMob o once probable, con fotos */}
         <div className="sd-card" data-tab="alineacion">
           <h3 style={sectionTitle()}>👥 Alineación</h3>
-          <Alineacion lineups={detail.lineups || []} equipos={detail.teams || []} />
+          <Alineacion sport={sport} eventId={eventId} league={detail.league_code || null} />
         </div>
 
         {/* Analisis IA - PRIORIDAD arriba */}
