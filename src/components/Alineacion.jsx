@@ -25,6 +25,25 @@ function colorNota(nota) {
   return "#dc2626";
 }
 
+/**
+ * En el móvil el campo se pinta VERTICAL (como la app de FotMob): se aprovecha
+ * todo el ancho de la pantalla y los jugadores salen mucho más grandes.
+ */
+function useCampoVertical() {
+  const [vertical, setVertical] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(max-width: 700px)").matches
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 700px)");
+    const alCambiar = () => setVertical(mq.matches);
+    mq.addEventListener("change", alCambiar);
+    return () => mq.removeEventListener("change", alCambiar);
+  }, []);
+
+  return vertical;
+}
+
 function Marca({ jugador, x, y, color, tipo, detalle }) {
   const nombre = String(jugador?.nombre || "").trim();
   const corto = nombre.length > 12 ? `${nombre.slice(0, 11)}…` : nombre;
@@ -150,6 +169,7 @@ export default function Alineacion({ sport = "soccer", eventId, league = null })
   const [cargando, setCargando] = useState(true);
   const [vista, setVista] = useState("campo");
   const [chip, setChip] = useState("nota");
+  const vertical = useCampoVertical();
 
   useEffect(() => {
     let cancelado = false;
@@ -194,8 +214,20 @@ export default function Alineacion({ sport = "soccer", eventId, league = null })
   const { local, visita, tipo } = datos;
   const probable = tipo === "probable";
 
-  const px = (j, esLocal) => (esLocal ? 4 + Number(j.x || 0) * 45 : 96 - Number(j.x || 0) * 45);
-  const py = (j) => 7 + Number(j.y || 0) * 54;
+  // Horizontal: el local ataca hacia la derecha. Vertical: el local ataca hacia
+  // arriba (su portería queda abajo), así el portero siempre está abajo.
+  const px = (j, esLocal) => {
+    const x = Number(j.x || 0);
+    const y = Number(j.y || 0);
+    if (vertical) return 7 + y * 54;
+    return esLocal ? 4 + x * 45 : 96 - x * 45;
+  };
+
+  const py = (j, esLocal) => {
+    const x = Number(j.x || 0);
+    if (vertical) return esLocal ? 93 - x * 45 : 7 + x * 45;
+    return 7 + Number(j.y || 0) * 54;
+  };
 
 
   return (
@@ -247,7 +279,12 @@ export default function Alineacion({ sport = "soccer", eventId, league = null })
       </div>
 
       {vista === "campo" ? (
-        <svg viewBox="0 0 100 68" className="alz-campo" role="img" aria-label="Alineación del partido">
+        <svg
+          viewBox={vertical ? "0 0 68 100" : "0 0 100 68"}
+          className={vertical ? "alz-campo alz-campo-v" : "alz-campo"}
+          role="img"
+          aria-label="Alineación del partido"
+        >
           <defs>
             <clipPath id="alz-clip">
               <circle r="3.2" />
@@ -257,6 +294,10 @@ export default function Alineacion({ sport = "soccer", eventId, league = null })
               <stop offset="100%" stopColor="#0d3a20" />
             </linearGradient>
           </defs>
+
+          {/* El cesped y las lineas se dibujan en horizontal (100x68) y se giran
+              cuando el campo es vertical, asi no hay que duplicar el dibujo. */}
+          <g transform={vertical ? "translate(68 0) rotate(90)" : undefined}>
 
           <rect x="0.4" y="0.4" width="99.2" height="67.2" rx="2" fill="url(#alz-cesped)" stroke="rgba(255,255,255,.16)" strokeWidth="0.35" />
           {Array.from({ length: 10 }).map((_, i) => (
@@ -271,12 +312,13 @@ export default function Alineacion({ sport = "soccer", eventId, league = null })
             <rect x="94.36" y="24.84" width="5.24" height="18.32" />
           </g>
           <circle cx="50" cy="34" r="0.6" fill="rgba(255,255,255,.35)" />
+          </g>
 
           {(local?.titulares || []).map((j, i) => (
-            <Marca key={`l-${j.id || i}`} jugador={j} x={px(j, true)} y={py(j)} color={COLOR_LOCAL} tipo={tipo} detalle={chip} />
+            <Marca key={`l-${j.id || i}`} jugador={j} x={px(j, true)} y={py(j, true)} color={COLOR_LOCAL} tipo={tipo} detalle={chip} />
           ))}
           {(visita?.titulares || []).map((j, i) => (
-            <Marca key={`v-${j.id || i}`} jugador={j} x={px(j, false)} y={py(j)} color={COLOR_VISITA} tipo={tipo} detalle={chip} />
+            <Marca key={`v-${j.id || i}`} jugador={j} x={px(j, false)} y={py(j, false)} color={COLOR_VISITA} tipo={tipo} detalle={chip} />
           ))}
         </svg>
       ) : (
