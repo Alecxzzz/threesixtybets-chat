@@ -45,6 +45,28 @@ function lineas(jugadores) {
 }
 
 /**
+ * Reparte a los jugadores de una misma línea a lo ancho del campo. FotMob a
+ * veces da la misma y a dos jugadores (o el once probable los mezcla de varios
+ * partidos): así se separan y no se pisan.
+ */
+function reparte(fila) {
+  const minimo = Math.min(12, 54 / Math.max(1, fila.length - 1));
+  const enFila = fila
+    .map((jugador) => ({ jugador, x: 7 + Number(jugador.y || 0) * 54 }))
+    .sort((a, b) => a.x - b.x);
+
+  for (let i = 1; i < enFila.length; i += 1) {
+    if (enFila[i].x - enFila[i - 1].x < minimo) enFila[i].x = enFila[i - 1].x + minimo;
+  }
+
+  const sobra = enFila.length ? Math.max(0, enFila[enFila.length - 1].x - 61) : 0;
+  return enFila.map(({ jugador, x }) => ({
+    jugador,
+    x: Math.max(7, Math.min(61, x - sobra)),
+  }));
+}
+
+/**
  * Nombre corto para el campo: solo el apellido (como FotMob), así no se pisan
  * los textos aunque haya cinco jugadores en la misma línea.
  */
@@ -241,7 +263,6 @@ export default function Alineacion({ sport = "soccer", eventId, league = null })
   const totalFilas = Math.max(1, filasLocal.length + filasVisita.length);
   const paso = 93 / totalFilas; // reparto vertical: de la y=6 a la y=99
   const yLinea = (i, esLocal) => (esLocal ? 99 - (i + 0.5) * paso : 6 + (i + 0.5) * paso);
-  const px = (j) => 7 + Number(j.y || 0) * 54;
 
 
   return (
@@ -374,11 +395,11 @@ export default function Alineacion({ sport = "soccer", eventId, league = null })
           <circle cx="34" cy="52.5" r="0.55" fill="rgba(255,255,255,.5)" />
 
           {filasLocal.map((fila, i) =>
-            fila.map((j, k) => (
+            reparte(fila).map(({ jugador, x }, k) => (
               <Marca
-                key={`l-${j.id || `${i}-${k}`}`}
-                jugador={j}
-                x={px(j)}
+                key={`l-${jugador.id || `${i}-${k}`}`}
+                jugador={jugador}
+                x={x}
                 y={yLinea(i, true)}
                 tono="local"
                 tipo={tipo}
@@ -387,11 +408,11 @@ export default function Alineacion({ sport = "soccer", eventId, league = null })
             ))
           )}
           {filasVisita.map((fila, i) =>
-            fila.map((j, k) => (
+            reparte(fila).map(({ jugador, x }, k) => (
               <Marca
-                key={`v-${j.id || `${i}-${k}`}`}
-                jugador={j}
-                x={px(j)}
+                key={`v-${jugador.id || `${i}-${k}`}`}
+                jugador={jugador}
+                x={x}
                 y={yLinea(i, false)}
                 tono="visita"
                 tipo={tipo}
