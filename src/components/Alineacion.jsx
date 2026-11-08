@@ -107,6 +107,7 @@ function Marca({ x, y, jugador, gradId }) {
       </title>
 
       <ellipse cx="0" cy="4.7" rx="3" ry="0.75" fill="rgba(0,0,0,.38)" />
+      <circle r="4.1" fill="rgba(255,255,255,.10)" />
       <circle r="3.05" fill={`url(#${gradId})`} stroke="rgba(255,255,255,.92)" strokeWidth="0.3" />
 
       {jugador?.foto ? (
@@ -140,7 +141,7 @@ function Marca({ x, y, jugador, gradId }) {
         </text>
       </g>
 
-      <g transform="translate(0 4.1)">
+      <g className="alz-pill" transform="translate(0 4.1)">
         <rect
           x={-ancho / 2}
           y="0"
@@ -151,7 +152,7 @@ function Marca({ x, y, jugador, gradId }) {
           stroke="rgba(255,255,255,.10)"
           strokeWidth="0.12"
         />
-        <text y="2.08" textAnchor="middle" fontSize="1.95" fontWeight="700" fill="#e9eff7">
+        <text y="2.08" textAnchor="middle" fontSize="2.05" fontWeight="700" fill="#e9eff7">
           {corto}
         </text>
       </g>

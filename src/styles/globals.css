@@ -3935,5 +3935,10 @@ button {
     width: 24px;
     height: 24px;
   }
+
+  /* En pantallas chicas el campo se ve apretado: mejor solo avatar + dorsal */
+  .alz-campo .alz-pill {
+    display: none;
+  }
 }
 
