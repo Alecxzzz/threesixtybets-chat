@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import "./styles/globals.css";
 import Sidebar from "./components/Sidebar";
+import MobileTabBar from "./components/MobileTabBar";
 import Header from "./components/Header";
 import Chat from "./components/Chat";
 import TV from "./components/TV";
@@ -498,6 +499,14 @@ function App() {
           )
         )}
       </main>
+
+      {/* Barra inferior tipo app (solo movil): acceso directo a las 4
+          secciones principales y "Mas" para el resto. */}
+      <MobileTabBar
+        page={page}
+        setPage={guardPage}
+        openMenu={() => setSidebarOpen(true)}
+      />
 
       <Modal
         open={paymentModal.open}

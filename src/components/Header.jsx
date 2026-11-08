@@ -32,6 +32,7 @@ function Header({ openSidebar, user, onSignOut }) {
   const [perfilOpen, setPerfilOpen] = useState(false);
   const [soporteOpen, setSoporteOpen] = useState(false);
   const displayName = user.name || user.username;
+  const inicial = String(displayName || "?").trim().charAt(0).toUpperCase() || "?";
 
   return (
     <header className="header">
@@ -53,14 +54,39 @@ function Header({ openSidebar, user, onSignOut }) {
             className="user-pill"
             onClick={() => setAccountOpen((open) => !open)}
             type="button"
+            aria-label={`Cuenta de ${displayName}`}
           >
-            {displayName}
+            <span className="user-pill-initial" aria-hidden="true">{inicial}</span>
+            <span className="user-pill-name">{displayName}</span>
           </button>
           {accountOpen && (
             <div className="account-popover">
               <strong>{displayName}</strong>
               <span>Restante: {daysLeft(user.access_expires_at)}</span>
               <span>Expira: {formatExpiry(user.access_expires_at)}</span>
+              <div className="popover-actions">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAccountOpen(false);
+                    setSoporteOpen(true);
+                  }}
+                >
+                  Soporte
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAccountOpen(false);
+                    setPerfilOpen(true);
+                  }}
+                >
+                  Mi perfil
+                </button>
+                <button type="button" className="popover-salir" onClick={onSignOut}>
+                  Cerrar sesión
+                </button>
+              </div>
             </div>
           )}
         </div>
