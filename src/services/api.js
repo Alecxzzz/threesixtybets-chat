@@ -545,21 +545,6 @@ export async function fetchGameDetail(session, sport, eventId) {
 }
 
 /**
- * Embed oficial de SofaScore para el partido (alineaciones). Devuelve
- * { ok, id, embed } o { ok:true, id:null } cuando no hay mapeo.
- * El id se declara en el backend (SOFASCORE_IDS) porque su API bloquea
- * las peticiones de servidor y no manda CORS.
- */
-export async function fetchSofascore(session, eventId) {
-  const params = new URLSearchParams({ event_id: eventId });
-  const res = await fetch(`${API_URL}/stats/sofascore?${params}`, {
-    headers: authHeaders(session),
-  });
-
-  return readJson(res);
-}
-
-/**
  * Tabla de posiciones de una liga de futbol (grupos por zona + forma last 5).
  */
 export async function fetchStandings(session, league) {

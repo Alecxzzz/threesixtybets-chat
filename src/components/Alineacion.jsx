@@ -1,12 +1,16 @@
 /**
  * Alineación del partido: campo con los 22 titulares colocados por línea
  * (portero / defensa / medio / delantera) según la posición de ESPN, con
- * avatar (foto o iniciales), dorsal en badge y nombre en pastilla.
+ * avatar (foto o iniciales), dorsal, goles/tarjetas/cambios y nombre.
+ * También hay vista "Lista" para el móvil.
  *
  * Datos: detail.lineups -> [{ equipo, lado, formacion, titulares[], suplentes[] }]
  *        detail.teams   -> [{ name, logo, color }]  (para logo y color)
- * Cada jugador: { nombre, dorsal, pos, orden, foto }
+ * Cada jugador: { id, nombre, dorsal, pos, orden, foto, goles, asistencias,
+ *                 amarillas, rojas, entra, sale }
  */
+
+import { useState } from "react";
 
 const COLOR_POR_DEFECTO = { home: "#22c55e", away: "#f97316" };
 
@@ -156,6 +160,45 @@ function Marca({ x, y, jugador, gradId }) {
           {corto}
         </text>
       </g>
+
+      {/* Goles / asistencias arriba a la derecha */}
+      {jugador?.goles ? (
+        <g>
+          <circle cx="3.9" cy="-3.3" r="1.7" fill="#0b1118" stroke="rgba(255,255,255,.55)" strokeWidth="0.15" />
+          <text
+            x="3.9"
+            y="-2.65"
+            textAnchor="middle"
+            fontSize="2.1"
+            fontWeight="800"
+            fill="#ffffff"
+          >
+            {jugador.goles > 1 ? jugador.goles : "⚽"}
+          </text>
+        </g>
+      ) : jugador?.asistencias ? (
+        <g>
+          <circle cx="3.9" cy="-3.3" r="1.7" fill="#1d4ed8" stroke="rgba(255,255,255,.5)" strokeWidth="0.15" />
+          <text x="3.9" y="-2.6" textAnchor="middle" fontSize="2" fontWeight="800" fill="#ffffff">
+            A
+          </text>
+        </g>
+      ) : null}
+
+      {/* Tarjetas arriba a la izquierda */}
+      {jugador?.amarillas ? (
+        <rect x="-4.9" y="-4.4" width="1.5" height="2.2" rx="0.3" fill="#facc15" stroke="#0b1118" strokeWidth="0.15" />
+      ) : null}
+      {jugador?.rojas ? (
+        <rect x="-3.1" y="-4.4" width="1.5" height="2.2" rx="0.3" fill="#ef4444" stroke="#0b1118" strokeWidth="0.15" />
+      ) : null}
+
+      {/* Cambio: entra (verde) / sale (rojo) */}
+      {jugador?.entra ? (
+        <path d="M-4.6 2.2 L-2.9 2.2 L-3.75 0.6 Z" fill="#22c55e" stroke="#0b1118" strokeWidth="0.15" />
+      ) : jugador?.sale ? (
+        <path d="M-4.6 0.6 L-2.9 0.6 L-3.75 2.2 Z" fill="#ef4444" stroke="#0b1118" strokeWidth="0.15" />
+      ) : null}
     </g>
   );
 }
@@ -194,7 +237,77 @@ function MedioCampo({ lineup, esLocal, gradId }) {
   );
 }
 
+function Insignias({ j }) {
+  return (
+    <span className="alz-badges">
+      {j.goles ? <span className="alz-b alz-b-gol">⚽{j.goles > 1 ? ` ${j.goles}` : ""}</span> : null}
+      {j.asistencias ? <span className="alz-b alz-b-asist">A</span> : null}
+      {j.amarillas ? <span className="alz-b alz-b-amarilla" title="Amarilla" /> : null}
+      {j.rojas ? <span className="alz-b alz-b-roja" title="Roja" /> : null}
+      {j.entra ? <span className="alz-b alz-b-entra" title="Entró">▲</span> : null}
+      {j.sale ? <span className="alz-b alz-b-sale" title="Salió">▼</span> : null}
+    </span>
+  );
+}
+
+function FilaJugador({ jugador, color }) {
+  return (
+    <li className="alz-fila">
+      <span className="alz-fila-dorsal" style={{ borderColor: color }}>
+        {jugador.dorsal ?? "-"}
+      </span>
+      <span className="alz-fila-nombre">{jugador.nombre}</span>
+      <span className="alz-fila-pos">{jugador.pos || ""}</span>
+      <Insignias j={jugador} />
+    </li>
+  );
+}
+
+/** Vista lista (mejor en móvil): los 11 + suplentes de cada equipo. */
+function Lista({ local, visita, dLocal, dVisita }) {
+  const bloques = [
+    { alineacion: local, equipo: dLocal },
+    { alineacion: visita, equipo: dVisita },
+  ];
+
+  return (
+    <div className="alz-lista">
+      {bloques.map(({ alineacion, equipo }) => (
+        <div key={alineacion?.equipo || "equipo"} className="alz-lista-equipo">
+          <div className="alz-lista-cab">
+            {equipo.logo ? <img src={equipo.logo} alt="" className="alz-lista-logo" /> : null}
+            <span className="alz-lista-titulo">{alineacion?.equipo}</span>
+            <span className="alz-lista-form">{alineacion?.formacion || "-"}</span>
+          </div>
+
+          <ul className="alz-filas">
+            {(alineacion?.titulares || []).map((j, i) => (
+              <FilaJugador key={`t-${j.nombre}-${i}`} jugador={j} color={equipo.color} />
+            ))}
+          </ul>
+
+          {(alineacion?.suplentes || []).length ? (
+            <details className="alz-banca">
+              <summary>
+                Suplentes
+                <span className="alz-banca-num">{alineacion.suplentes.length}</span>
+              </summary>
+              <ul className="alz-filas">
+                {alineacion.suplentes.map((j, i) => (
+                  <FilaJugador key={`s-${j.nombre}-${i}`} jugador={j} color={equipo.color} />
+                ))}
+              </ul>
+            </details>
+          ) : null}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function Alineacion({ lineups = [], equipos = [] }) {
+  const [vista, setVista] = useState("campo");
+
   if (!lineups.length) {
     return (
       <p style={{ color: "#8b95a1", fontSize: 13, textAlign: "center", margin: 0 }}>
@@ -231,6 +344,27 @@ export default function Alineacion({ lineups = [], equipos = [] }) {
         </div>
       </div>
 
+      <div className="alz-barra">
+        <div className="alz-toggle" role="group" aria-label="Vista de la alineación">
+          <button
+            type="button"
+            className={vista === "campo" ? "alz-tab activo" : "alz-tab"}
+            onClick={() => setVista("campo")}
+          >
+            Campo
+          </button>
+          <button
+            type="button"
+            className={vista === "lista" ? "alz-tab activo" : "alz-tab"}
+            onClick={() => setVista("lista")}
+          >
+            Lista
+          </button>
+        </div>
+      </div>
+
+      {vista === "campo" ? (
+        <>
       <svg
         viewBox="0 0 100 68"
         className="alz-campo"
@@ -317,6 +451,10 @@ export default function Alineacion({ lineups = [], equipos = [] }) {
           </details>
         ))}
       </div>
+        </>
+      ) : (
+        <Lista local={local} visita={visita} dLocal={dLocal} dVisita={dVisita} />
+      )}
     </div>
   );
 }

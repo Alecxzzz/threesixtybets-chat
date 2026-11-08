@@ -3943,22 +3943,157 @@ button {
 }
 
 
-/* Embed oficial de SofaScore (alineaciones) */
-.sofa-embed {
-  display: block;
-  width: 100%;
-  max-width: 800px;
-  height: 780px;
-  margin: 0 auto;
-  border: 0;
-  border-radius: 14px;
-  background: #0f1117;
-  overflow: hidden;
+/* Alternar campo / lista */
+.alz-barra {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
 }
 
-@media (max-width: 768px) {
-  .sofa-embed {
-    height: 640px;
-  }
+.alz-toggle {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 999px;
+  background: #10151d;
+  border: 1px solid #242c38;
+}
+
+.alz-tab {
+  padding: 4px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #8b95a1;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.alz-tab.activo {
+  background: #1f2a3a;
+  color: #e9eff7;
+}
+
+/* Vista lista */
+.alz-lista {
+  display: grid;
+  gap: 10px;
+}
+
+.alz-lista-equipo {
+  border: 1px solid #222a36;
+  border-radius: 14px;
+  background: #10151d;
+  padding: 10px;
+}
+
+.alz-lista-cab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.alz-lista-logo {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+.alz-lista-titulo {
+  font-size: 13px;
+  font-weight: 800;
+  color: #eef2f7;
+}
+
+.alz-lista-form {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 700;
+  color: #8b95a1;
+}
+
+.alz-filas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.alz-fila {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: #cfd6e2;
+  padding: 2px 0;
+}
+
+.alz-fila-dorsal {
+  min-width: 22px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: #e9eff7;
+  border: 1px solid #303847;
+  border-radius: 6px;
+  padding: 1px 0;
+}
+
+.alz-fila-nombre {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.alz-fila-pos {
+  font-size: 10.5px;
+  color: #6b7280;
+  font-weight: 700;
+}
+
+.alz-badges {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.alz-b {
+  font-size: 10.5px;
+  line-height: 1;
+  font-weight: 800;
+}
+
+.alz-b-asist {
+  background: #1d4ed8;
+  color: #fff;
+  border-radius: 4px;
+  padding: 1px 4px;
+}
+
+.alz-b-amarilla {
+  width: 7px;
+  height: 10px;
+  border-radius: 2px;
+  background: #facc15;
+}
+
+.alz-b-roja {
+  width: 7px;
+  height: 10px;
+  border-radius: 2px;
+  background: #ef4444;
+}
+
+.alz-b-entra {
+  color: #22c55e;
+}
+
+.alz-b-sale {
+  color: #ef4444;
 }
 
