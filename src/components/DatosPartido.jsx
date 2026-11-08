@@ -1,11 +1,21 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { getStoredSession, fetchDatosPartido } from "../services/api";
 
 /**
- * Extras del partido (FotMob): forma reciente, insights, Ã¡rbitro y goleadores.
- * Se pintan como tarjetas dentro de la pestaÃ±a Resumen. Si no hay datos, no
+ * Extras del partido (FotMob): forma reciente, insights, árbitro y goleadores.
+ * Se pintan como tarjetas dentro de la pestaña Resumen. Si no hay datos, no
  * muestra nada (no ensucia la vista).
  */
+
+/** Números: enteros tal cual, decimales a 2 cifras (xG, nota). */
+function fmt(valor) {
+  if (valor === null || valor === undefined || valor === "") return "-";
+  const n = Number(valor);
+  if (!Number.isFinite(n)) return String(valor);
+  if (Number.isInteger(n)) return String(n);
+  return n.toFixed(2);
+}
+
 export default function DatosPartido({ sport = "soccer", eventId, league = null, equipos = [] }) {
   const [datos, setDatos] = useState(null);
 
@@ -39,7 +49,7 @@ export default function DatosPartido({ sport = "soccer", eventId, league = null,
     <div className="dp-extras">
       {insights.length ? (
         <section className="sd-card dp-card" data-tab="resumen">
-          <h4 className="dp-titulo">ðŸ’¡ Datos del partido</h4>
+          <h4 className="dp-titulo">💡 Datos del partido</h4>
           <ul className="dp-insights">
             {insights.map((i, idx) => (
               <li key={idx} style={{ borderLeftColor: i.color || "#4ade80" }}>
@@ -54,12 +64,14 @@ export default function DatosPartido({ sport = "soccer", eventId, league = null,
         <section className="sd-card dp-card" data-tab="resumen">
           <h4 className="dp-titulo">Forma reciente</h4>
           {[
-            { equipo: casa, fila: forma[0], nombre: goleadores?.local?.nombre },
-            { equipo: fuera, fila: forma[1], nombre: goleadores?.visita?.nombre },
+            { equipo: casa, fila: forma[0] },
+            { equipo: fuera, fila: forma[1] },
           ].map(({ equipo, fila }, idx) =>
             fila?.length ? (
               <div key={idx} className="dp-forma-fila">
-                <span className="dp-forma-equipo">{equipo?.name || (idx === 0 ? "Local" : "Visitante")}</span>
+                <span className="dp-forma-equipo">
+                  {equipo?.name || (idx === 0 ? "Local" : "Visitante")}
+                </span>
                 <span className="dp-forma-chips">
                   {fila.map((f, i) => (
                     <span
@@ -79,17 +91,19 @@ export default function DatosPartido({ sport = "soccer", eventId, league = null,
 
       {arbitro ? (
         <section className="sd-card dp-card" data-tab="resumen">
-          <h4 className="dp-titulo">Ãrbitro</h4>
+          <h4 className="dp-titulo">Árbitro</h4>
           <div className="dp-arbitro">
-            <span className="dp-arbitro-avatar">{arbitro.bandera ? <img src={arbitro.bandera} alt="" /> : "ðŸ§‘â€âš–ï¸"}</span>
+            <span className="dp-arbitro-avatar">
+              {arbitro.bandera ? <img src={arbitro.bandera} alt="" /> : "👨‍⚖️"}
+            </span>
             <div>
               <div className="dp-arbitro-nombre">{arbitro.nombre}</div>
               <div className="dp-arbitro-meta">
-                {arbitro.pais}
-                {arbitro.liga ? ` Â· ${arbitro.liga}` : ""}
+                {[arbitro.pais, arbitro.liga].filter(Boolean).join(" · ")}
               </div>
             </div>
           </div>
+
           <div className="dp-arbitro-stats">
             {[
               { clave: "yellowCards", label: "Tarjetas", color: "#facc15" },
@@ -102,15 +116,19 @@ export default function DatosPartido({ sport = "soccer", eventId, league = null,
                 <div key={clave} className="dp-stat">
                   <div className="dp-stat-top">
                     <span>{label}</span>
-                    <strong>{s.valor}</strong>
+                    <strong>{fmt(s.valor)}</strong>
                     <span className="dp-stat-unidad">/ partido</span>
                   </div>
                   <div className="dp-barra">
                     <span style={{ width: `${pct}%`, background: color }} />
                   </div>
-                  <div className={`dp-stat-vs ${s.vs === "above" ? "alto" : "bajo"}`}>
-                    {s.vs === "above" ? "Por encima" : s.vs === "below" ? "Por debajo" : ""} de la media
-                    {s.media != null ? ` (${s.media})` : ""}
+                  <div className={`dp-stat-vs ${s.vs === "above" ? "alto" : s.vs === "below" ? "bajo" : ""}`}>
+                    {s.vs === "above"
+                      ? "Por encima de la media"
+                      : s.vs === "below"
+                        ? "Por debajo de la media"
+                        : "En la media"}
+                    {s.media != null ? ` (${fmt(s.media)})` : ""}
                   </div>
                 </div>
               );
@@ -137,9 +155,9 @@ export default function DatosPartido({ sport = "soccer", eventId, league = null,
               const otra = (goleadores.visita?.filas || [])[i];
               return (
                 <div key={fila.etiqueta} className="dp-gol-fila">
-                  <span className="dp-gol-val">{fila.valor}</span>
+                  <span className="dp-gol-val">{fmt(fila.valor)}</span>
                   <span className="dp-gol-label">{fila.etiqueta}</span>
-                  <span className="dp-gol-val">{otra?.valor ?? "-"}</span>
+                  <span className="dp-gol-val">{fmt(otra?.valor)}</span>
                 </div>
               );
             })}
