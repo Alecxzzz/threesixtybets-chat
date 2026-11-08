@@ -3942,3 +3942,23 @@ button {
   }
 }
 
+
+/* Embed oficial de SofaScore (alineaciones) */
+.sofa-embed {
+  display: block;
+  width: 100%;
+  max-width: 800px;
+  height: 780px;
+  margin: 0 auto;
+  border: 0;
+  border-radius: 14px;
+  background: #0f1117;
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .sofa-embed {
+    height: 640px;
+  }
+}
+

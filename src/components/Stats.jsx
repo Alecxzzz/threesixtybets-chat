@@ -12,7 +12,7 @@ import {
   removeFavorito,
 } from "../services/api";
 import PlayerLast5Modal from "./PlayerLast5Modal";
-import Alineacion from "./Alineacion";
+import SofaLineups from "./SofaLineups";
 
 const SPORTS = [
   { key: "soccer", label: "⚽ Futbol" },
@@ -685,10 +685,14 @@ function GameDetail({ sport, eventId, onBack }) {
 
       {/* Contenido en una sola columna de tarjetas (estilo app) */}
       <div className="sd-stack" data-activa={tab}>
-        {/* Alineacion: campo con los 22 titulares + suplentes */}
+        {/* Alineacion: embed oficial de SofaScore si hay id; si no, campo propio */}
         <div className="sd-card" data-tab="alineacion">
           <h3 style={sectionTitle()}>👥 Alineación</h3>
-          <Alineacion lineups={detail.lineups || []} equipos={detail.teams || []} />
+          <SofaLineups
+            eventId={eventId}
+            lineups={detail.lineups || []}
+            equipos={detail.teams || []}
+          />
         </div>
 
         {/* Analisis IA - PRIORIDAD arriba */}
