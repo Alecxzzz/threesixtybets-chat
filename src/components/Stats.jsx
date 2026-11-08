@@ -12,7 +12,6 @@ import {
   removeFavorito,
 } from "../services/api";
 import PlayerLast5Modal from "./PlayerLast5Modal";
-import RadarPartido from "./RadarPartido";
 
 const SPORTS = [
   { key: "soccer", label: "⚽ Futbol" },
@@ -178,62 +177,80 @@ function BasesDiamond({ situation }) {
 }
 
 /* ---------- Tablero estilo Sportradar ---------- */
+function EquipoHero({ equipo }) {
+  return (
+    <div className="sd-team">
+      {equipo?.logo ? (
+        <img className="sd-team-logo" src={equipo.logo} alt="" />
+      ) : (
+        <span className="sd-team-logo sd-team-logo--vacio" />
+      )}
+      <span className="sd-team-nombre">{equipo?.name || "-"}</span>
+      {equipo?.records?.[0] ? <span className="sd-team-rec">{equipo.records[0]}</span> : null}
+    </div>
+  );
+}
+
 function Scoreboard({ detail }) {
   const theme = SPORT_THEMES[detail.sport] || SPORT_THEMES.soccer;
   const away = detail.teams?.find((t) => t.homeAway !== "home") || detail.teams?.[0];
   const home = detail.teams?.find((t) => t.homeAway === "home") || detail.teams?.[1];
   const sit = detail.state === "in" ? detail.situation : null;
   const isMLB = detail.sport === "mlb";
+  const enVivo = detail.state === "in";
 
-  let statusText;
-  if (detail.state === "in") {
+  // Fecha estilo app ("07/11/2026 · 7:00 AM"), con la hora de kickoff si existe.
+  const fecha = [formatDate(detail.date), formatTime(detail.date)].filter(Boolean).join(" · ");
+
+  let estado;
+  if (enVivo) {
     if (sit && isMLB) {
-      statusText = `${sit.isTop ? "▲" : "▼"} ${sit.inning}ª entrada · ${sit.outs} out${sit.outs === 1 ? "" : "s"}`;
+      estado = `${sit.isTop ? "▲" : "▼"} ${sit.inning}ª · ${sit.outs} out${sit.outs === 1 ? "" : "s"}`;
     } else {
-      statusText = `🔴 ${detail.clock || detail.status}`;
+      estado = detail.clock || detail.status || "EN VIVO";
     }
   } else {
-    statusText = detail.status;
+    estado = detail.status || (detail.state === "post" ? "Finalizado" : fecha);
   }
 
   return (
-    <div style={{ background: theme.grad, borderRadius: 16, padding: "26px 24px", marginBottom: 20, boxShadow: "0 6px 24px rgba(0,0,0,.35)" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, minWidth: 120 }}>
-          {away?.logo && <img src={away.logo} alt="" width={64} height={64} style={{ objectFit: "contain", filter: "drop-shadow(0 2px 6px rgba(0,0,0,.5))" }} />}
-          <span style={{ fontWeight: 700, fontSize: 15, color: "#fff", textAlign: "center" }}>{away?.name}</span>
-          {away?.records?.[0] && <span style={{ fontSize: 12, color: "#ffffffaa" }}>{away.records[0]}</span>}
-        </div>
+    <div className="sd-hero">
+      <div className="sd-hero-top">
+        {fecha ? <span className="sd-pill">{fecha}</span> : null}
+      </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
-          <span style={{ fontSize: 52, fontWeight: 800, color: "#fff", fontVariantNumeric: "tabular-nums", textShadow: "0 2px 8px rgba(0,0,0,.4)" }}>
-            {away?.score ?? "-"}
+      <div className="sd-hero-row">
+        <EquipoHero equipo={home} />
+
+        <div className="sd-center">
+          <span className="sd-marcador">
+            {home?.score ?? "-"} - {away?.score ?? "-"}
           </span>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-            <span style={{ background: detail.state === "in" ? "#ef4444" : "rgba(255,255,255,.15)", color: "#fff", padding: "4px 14px", borderRadius: 999, fontSize: 13, fontWeight: 700, whiteSpace: "nowrap" }}>
-              {statusText}
-            </span>
-            {sit && isMLB && (
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <BasesDiamond situation={sit} />
-                <div style={{ display: "flex", gap: 4 }}>
-                  {[0, 1, 2].map((i) => (
-                    <span key={i} style={{ width: 10, height: 10, borderRadius: "50%", background: i < (sit.outs || 0) ? "#ef4444" : "#ffffff44" }} />
-                  ))}
-                </div>
+          <span className={`sd-estado${enVivo ? " is-live" : ""}`}>
+            {enVivo ? <span className="sd-live-dot" style={{ background: theme.accent }} /> : null}
+            {estado}
+          </span>
+          {sit && isMLB ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 2 }}>
+              <BasesDiamond situation={sit} />
+              <div style={{ display: "flex", gap: 3 }}>
+                {[0, 1, 2].map((i) => (
+                  <span
+                    key={i}
+                    style={{
+                      width: 7,
+                      height: 7,
+                      borderRadius: "50%",
+                      background: i < (sit.outs || 0) ? "#ef4444" : "#ffffff33",
+                    }}
+                  />
+                ))}
               </div>
-            )}
-          </div>
-          <span style={{ fontSize: 52, fontWeight: 800, color: "#fff", fontVariantNumeric: "tabular-nums", textShadow: "0 2px 8px rgba(0,0,0,.4)" }}>
-            {home?.score ?? "-"}
-          </span>
+            </div>
+          ) : null}
         </div>
 
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, minWidth: 120 }}>
-          {home?.logo && <img src={home.logo} alt="" width={64} height={64} style={{ objectFit: "contain", filter: "drop-shadow(0 2px 6px rgba(0,0,0,.5))" }} />}
-          <span style={{ fontWeight: 700, fontSize: 15, color: "#fff", textAlign: "center" }}>{home?.name}</span>
-          {home?.records?.[0] && <span style={{ fontSize: 12, color: "#ffffffaa" }}>{home.records[0]}</span>}
-        </div>
+        <EquipoHero equipo={away} />
       </div>
     </div>
   );
@@ -618,19 +635,19 @@ function GameDetail({ sport, eventId, onBack }) {
   const keyPlayers = detail.key_players || [];
 
   const sectionTitle = () => ({
-    color: "#e6edf3",
-    margin: "0 0 8px",
-    padding: "8px 14px",
-    background: `linear-gradient(90deg, ${theme.accent}22, transparent)`,
-    borderLeft: `4px solid ${theme.accent}`,
-    borderRadius: 6,
-    fontSize: 15,
-    transition: "all .2s",
+    color: "#eef2f7",
+    margin: "0 0 10px",
+    fontSize: 14,
+    fontWeight: 800,
+    letterSpacing: 0.2,
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
   });
 
   return (
     <section className="tool-page">
-    <div className="tool-panel" style={{ width: "100%", maxWidth: "100%", padding: "16px", boxSizing: "border-box" }}>
+    <div className="tool-panel" style={{ width: "100%", maxWidth: 820, margin: "0 auto", padding: "14px", boxSizing: "border-box" }}>
       <button
         onClick={onBack}
         style={backBtnStyle}
@@ -642,16 +659,10 @@ function GameDetail({ sport, eventId, onBack }) {
 
       <Scoreboard detail={detail} />
 
-      {/* Radar del partido (solo futbol): mapa de tiros con xG, momentum y
-          zonas de ataque. Sale del endpoint /stats/radar (FotMob). */}
-      <RadarPartido sport={sport} eventId={eventId} />
-
-      {/* Layout de 2 columnas: IA arriba izq, stats al lado */}
-      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-start" }}>
-        {/* Columna izquierda: Analisis IA (prioridad) + H2H */}
-        <div style={{ flex: "1 1 380px", minWidth: 320 }}>
-          {/* Analisis IA - PRIORIDAD arriba izq */}
-          <div style={{ marginBottom: 20 }}>
+      {/* Contenido en una sola columna de tarjetas (estilo app) */}
+      <div className="sd-stack">
+        {/* Analisis IA - PRIORIDAD arriba */}
+        <div className="sd-card">
             <h3 style={sectionTitle()}>🤖 Analisis de la IA</h3>
             {aiLoading && (
               <div style={{ background: "#11161d", border: `1px solid ${theme.accent}44`, borderRadius: 10, padding: 14, display: "flex", alignItems: "center", gap: 10 }}>
@@ -685,9 +696,9 @@ function GameDetail({ sport, eventId, onBack }) {
             )}
           </div>
 
-          {/* H2H / Local / Visitante con tabs */}
-          {(detail?.teams?.length > 0) && (
-            <div style={{ marginBottom: 20 }}>
+        {/* H2H / Local / Visitante con tabs */}
+        {(detail?.teams?.length > 0) && (
+          <div className="sd-card">
               <h3 style={sectionTitle()}>⚔️ Historial y últimos partidos</h3>
               {/* Favoritos rapidos por equipo */}
               <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
@@ -822,16 +833,13 @@ function GameDetail({ sport, eventId, onBack }) {
                   )}
                 </div>
               )}
-            </div>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Columna derecha: Estadisticas + Linescores + Jugadores */}
-        <div style={{ flex: "2 1 500px", minWidth: 320 }}>
-          {/* Linescores */}
-          {linesLen > 0 && (
-            <div style={{ overflowX: "auto", marginBottom: 20 }}>
-              <table style={{ margin: "0 auto", borderCollapse: "collapse", fontSize: 13 }}>
+        {/* Linescores */}
+        {linesLen > 0 && (
+          <div className="sd-card" style={{ overflowX: "auto" }}>
+            <table style={{ margin: "0 auto", borderCollapse: "collapse", fontSize: 13 }}>
                 <thead>
                   <tr style={{ color: "#8b95a1" }}>
                     <th style={{ padding: "4px 10px" }}></th>
@@ -861,7 +869,7 @@ function GameDetail({ sport, eventId, onBack }) {
 
           {/* Jugadores destacados */}
           {keyPlayers.length > 0 && (
-            <div style={{ marginBottom: 20 }}>
+            <div className="sd-card">
               <h3 style={sectionTitle()}>⭐ Jugadores destacados</h3>
               {detail.status === "in" && (
                 <div style={{ fontSize: 11, color: "#22c55e", fontWeight: 700, marginBottom: 8, display: "flex", alignItems: "center", gap: 4 }}>
@@ -932,7 +940,7 @@ function GameDetail({ sport, eventId, onBack }) {
           {/* Estadisticas por equipo */}
           {Object.keys(groups).length > 0 &&
             Object.entries(groups).map(([cat, list]) => (
-              <div key={cat} style={{ marginBottom: 20 }}>
+              <div key={cat} className="sd-card">
                 <h3 style={sectionTitle()}>📊 {cat}</h3>
                 {list.map((s, i) => (
                   <StatBar key={i} stat={s} awayColor="#38bdf8" homeColor="#f472b6" />
@@ -940,11 +948,12 @@ function GameDetail({ sport, eventId, onBack }) {
               </div>
             ))}
 
-          {/* Tabla de posiciones de la liga (solo futbol) */}
-          {sport === "soccer" && (
+        {/* Tabla de posiciones de la liga (solo futbol) */}
+        {sport === "soccer" && (
+          <div className="sd-card">
             <TablaPosiciones league={detail.league_code || detail.league || null} />
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {Object.keys(groups).length === 0 && linesLen === 0 && h2h.length === 0 && keyPlayers.length === 0 && !aiAnalysis && (

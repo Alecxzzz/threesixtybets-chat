@@ -545,19 +545,6 @@ export async function fetchGameDetail(session, sport, eventId) {
 }
 
 /**
- * Radar del partido (solo futbol): mapa de tiros con xG, momentum por minuto y
- * zonas de ataque. Viene de FotMob (ESPN no manda coordenadas).
- */
-export async function fetchRadar(session, sport, eventId) {
-  const params = new URLSearchParams({ sport, event_id: eventId });
-  const res = await fetch(`${API_URL}/stats/radar?${params}`, {
-    headers: authHeaders(session),
-  });
-
-  return readJson(res);
-}
-
-/**
  * Tabla de posiciones de una liga de futbol (grupos por zona + forma last 5).
  */
 export async function fetchStandings(session, league) {
