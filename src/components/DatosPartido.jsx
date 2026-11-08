@@ -16,6 +16,11 @@ function fmt(valor) {
   return n.toFixed(2);
 }
 
+// FotMob manda W/D/L; aquí se muestran en español (V/E/D).
+const LETRA_RESULTADO = { W: "V", D: "E", L: "D" };
+const CLASE_RESULTADO = { W: "g", D: "e", L: "p" };
+const TITULO_RESULTADO = { W: "Victoria", D: "Empate", L: "Derrota" };
+
 export default function DatosPartido({ sport = "soccer", eventId, league = null, equipos = [] }) {
   const [datos, setDatos] = useState(null);
 
@@ -68,18 +73,18 @@ export default function DatosPartido({ sport = "soccer", eventId, league = null,
             { equipo: fuera, fila: forma[1] },
           ].map(({ equipo, fila }, idx) =>
             fila?.length ? (
-              <div key={idx} className="dp-forma-fila">
-                <span className="dp-forma-equipo">
+              <div key={idx} className="dpf-fila">
+                <span className="dpf-equipo">
                   {equipo?.name || (idx === 0 ? "Local" : "Visitante")}
                 </span>
-                <span className="dp-forma-chips">
+                <span className="dpf-chips">
                   {fila.map((f, i) => (
                     <span
                       key={i}
-                      className={`dp-forma ${f.resultado === "W" ? "g" : f.resultado === "L" ? "p" : "e"}`}
-                      title={f.fecha || ""}
+                      className={`dpf-res ${CLASE_RESULTADO[f.resultado] || "e"}`}
+                      title={TITULO_RESULTADO[f.resultado] || ""}
                     >
-                      {f.resultado || "?"}
+                      {LETRA_RESULTADO[f.resultado] || f.resultado || "?"}
                     </span>
                   ))}
                 </span>

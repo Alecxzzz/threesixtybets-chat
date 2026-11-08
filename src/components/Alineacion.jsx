@@ -26,29 +26,42 @@ function colorNota(nota) {
 }
 
 /**
- * En el móvil el campo se pinta VERTICAL (como la app de FotMob): se aprovecha
- * todo el ancho de la pantalla y los jugadores salen mucho más grandes.
+ * Agrupa a los jugadores en LÍNEAS (portero, defensa, medio, ataque) según su
+ * x. Así se pueden repartir a la misma distancia y los nombres no se pisan.
  */
-function useCampoVertical() {
-  const [vertical, setVertical] = useState(
-    () => typeof window !== "undefined" && window.matchMedia("(max-width: 700px)").matches
-  );
-
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 700px)");
-    const alCambiar = () => setVertical(mq.matches);
-    mq.addEventListener("change", alCambiar);
-    return () => mq.removeEventListener("change", alCambiar);
-  }, []);
-
-  return vertical;
+function lineas(jugadores) {
+  const orden = [...(jugadores || [])].sort((a, b) => Number(a.x || 0) - Number(b.x || 0));
+  const grupos = [];
+  for (const j of orden) {
+    const x = Number(j.x || 0);
+    const ultimo = grupos[grupos.length - 1];
+    if (ultimo && Math.abs(x - ultimo.x) < 0.08) {
+      ultimo.jugadores.push(j);
+    } else {
+      grupos.push({ x, jugadores: [j] });
+    }
+  }
+  return grupos.map((g) => g.jugadores);
 }
 
-function Marca({ jugador, x, y, color, tipo, detalle }) {
+/**
+ * Nombre corto para el campo: solo el apellido (como FotMob), así no se pisan
+ * los textos aunque haya cinco jugadores en la misma línea.
+ */
+function nombreCorto(nombre) {
+  const partes = String(nombre || "").trim().split(/\s+/).filter(Boolean);
+  if (!partes.length) return "?";
+  const apellido = partes.length > 1 ? partes[partes.length - 1] : partes[0];
+  return apellido.length > 11 ? `${apellido.slice(0, 10)}…` : apellido;
+}
+
+function Marca({ jugador, x, y, tono, tipo, detalle }) {
   const nombre = String(jugador?.nombre || "").trim();
-  const corto = nombre.length > 12 ? `${nombre.slice(0, 11)}…` : nombre;
+  const corto = nombreCorto(nombre);
   const etiqueta = tipo === "probable" ? `${jugador?.posibilidad ?? 0}%` : jugador?.nota;
   const fondo = tipo === "probable" ? "#1d4ed8" : colorNota(jugador?.nota);
+  // El visitante lleva el nombre encima: así los dos equipos no se pisan en el medio
+  const arriba = tono === "visita";
 
   // Dato extra bajo el nombre segun el chip elegido
   let extra = "";
@@ -62,18 +75,21 @@ function Marca({ jugador, x, y, color, tipo, detalle }) {
         {`${nombre}${jugador?.dorsal ? ` · #${jugador.dorsal}` : ""}${jugador?.nota ? ` · nota ${jugador.nota}` : ""}`}
       </title>
 
-      <ellipse cx="0" cy="4.6" rx="3.1" ry="0.8" fill="rgba(0,0,0,.42)" />
-      <circle r="3.7" fill="rgba(255,255,255,.10)" />
-      <circle r="3.2" fill={color} stroke="rgba(255,255,255,.92)" strokeWidth="0.3" />
+      {/* sombra proyectada sobre el césped */}
+      <ellipse cx="0.25" cy="3.9" rx="3.15" ry="0.85" fill="rgba(0,0,0,.55)" />
+
+      {/* anillo con degradado: da volumen de esfera */}
+      <circle r="3.55" fill={`url(#alz-aro-${tono})`} />
+      <circle r="3.15" fill="#0b1118" opacity="0.65" />
 
       {jugador?.foto ? (
         <g clipPath="url(#alz-clip)">
           <image
             href={jugador.foto}
-            x="-3.2"
-            y="-3.2"
-            width="6.4"
-            height="6.4"
+            x="-3.15"
+            y="-3.15"
+            width="6.3"
+            height="6.3"
             preserveAspectRatio="xMidYMid slice"
           />
         </g>
@@ -83,36 +99,41 @@ function Marca({ jugador, x, y, color, tipo, detalle }) {
         </text>
       )}
 
+      {/* brillo de la parte alta + aro fino claro */}
+      <circle r="3.15" fill="url(#alz-brillo)" />
+      <circle r="3.15" fill="none" stroke="rgba(255,255,255,.8)" strokeWidth="0.2" />
+
       {/* nota / % de titularidad */}
       {etiqueta !== undefined && etiqueta !== null && etiqueta !== "" ? (
-        <g transform="translate(2.4 -2.4)">
-          <circle r="1.6" fill={fondo} stroke="#0b1118" strokeWidth="0.22" />
-          <text y="0.6" textAnchor="middle" fontSize="1.7" fontWeight="800" fill="#fff">
+        <g transform="translate(2.35 -2.35)">
+          <circle r="1.55" fill="rgba(0,0,0,.55)" />
+          <circle r="1.35" fill={fondo} stroke="#0b1118" strokeWidth="0.18" />
+          <text y="0.5" textAnchor="middle" fontSize="1.55" fontWeight="800" fill="#fff">
             {etiqueta}
           </text>
         </g>
       ) : null}
 
-      {/* dorsal + nombre, en texto limpio (sin pastilla) */}
+      {/* apellido, en texto limpio (sin pastilla) */}
       <text
-        y="5.9"
+        y={arriba ? -5.85 : 5.85}
         textAnchor="middle"
-        fontSize="2.15"
+        fontSize="2.05"
         fontWeight="800"
         fill="#ffffff"
-        style={{ paintOrder: "stroke", stroke: "rgba(6,12,10,.85)", strokeWidth: 0.55 }}
+        style={{ paintOrder: "stroke", stroke: "rgba(4,10,7,.9)", strokeWidth: 0.6 }}
       >
-        {`${jugador?.dorsal ? `${jugador.dorsal} ` : ""}${corto}`}
+        {corto}
       </text>
 
       {extra ? (
         <text
-          y="8.3"
+          y={arriba ? -8.15 : 8.15}
           textAnchor="middle"
-          fontSize="1.9"
+          fontSize="1.8"
           fontWeight="700"
-          fill="#9fb0c4"
-          style={{ paintOrder: "stroke", stroke: "rgba(6,12,10,.8)", strokeWidth: 0.45 }}
+          fill="#c3d2e2"
+          style={{ paintOrder: "stroke", stroke: "rgba(4,10,7,.85)", strokeWidth: 0.45 }}
         >
           {extra}
         </text>
@@ -169,7 +190,6 @@ export default function Alineacion({ sport = "soccer", eventId, league = null })
   const [cargando, setCargando] = useState(true);
   const [vista, setVista] = useState("campo");
   const [chip, setChip] = useState("nota");
-  const vertical = useCampoVertical();
 
   useEffect(() => {
     let cancelado = false;
@@ -214,20 +234,14 @@ export default function Alineacion({ sport = "soccer", eventId, league = null })
   const { local, visita, tipo } = datos;
   const probable = tipo === "probable";
 
-  // Horizontal: el local ataca hacia la derecha. Vertical: el local ataca hacia
-  // arriba (su portería queda abajo), así el portero siempre está abajo.
-  const px = (j, esLocal) => {
-    const x = Number(j.x || 0);
-    const y = Number(j.y || 0);
-    if (vertical) return 7 + y * 54;
-    return esLocal ? 4 + x * 45 : 96 - x * 45;
-  };
-
-  const py = (j, esLocal) => {
-    const x = Number(j.x || 0);
-    if (vertical) return esLocal ? 93 - x * 45 : 7 + x * 45;
-    return 7 + Number(j.y || 0) * 54;
-  };
+  // Campo VERTICAL (como la app de FotMob): el portero local queda abajo y el
+  // visitante arriba. x = de portería a portería, y = a lo ancho del campo.
+  const filasLocal = lineas(local?.titulares);
+  const filasVisita = lineas(visita?.titulares);
+  const totalFilas = Math.max(1, filasLocal.length + filasVisita.length);
+  const paso = 93 / totalFilas; // reparto vertical: de la y=6 a la y=99
+  const yLinea = (i, esLocal) => (esLocal ? 99 - (i + 0.5) * paso : 6 + (i + 0.5) * paso);
+  const px = (j) => 7 + Number(j.y || 0) * 54;
 
 
   return (
@@ -280,46 +294,111 @@ export default function Alineacion({ sport = "soccer", eventId, league = null })
 
       {vista === "campo" ? (
         <svg
-          viewBox={vertical ? "0 0 68 100" : "0 0 100 68"}
-          className={vertical ? "alz-campo alz-campo-v" : "alz-campo"}
+          viewBox="0 0 68 105"
+          className="alz-campo alz-campo-v"
           role="img"
           aria-label="Alineación del partido"
         >
           <defs>
             <clipPath id="alz-clip">
-              <circle r="3.2" />
+              <circle r="3.15" />
             </clipPath>
-            <linearGradient id="alz-cesped" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#1b5f35" />
-              <stop offset="100%" stopColor="#0d3a20" />
+
+            {/* Césped con volumen: degradado + viñeta */}
+            <linearGradient id="alz-cesped" x1="0" y1="0" x2="0.25" y2="1">
+              <stop offset="0%" stopColor="#2f8349" />
+              <stop offset="45%" stopColor="#1e6537" />
+              <stop offset="100%" stopColor="#0a2c18" />
             </linearGradient>
+            <radialGradient id="alz-vineta" cx="0.5" cy="0.43" r="0.8">
+              <stop offset="52%" stopColor="#ffffff" stopOpacity="0.08" />
+              <stop offset="100%" stopColor="#000000" stopOpacity="0.45" />
+            </radialGradient>
+
+            {/* Aros 3D de cada equipo (luz arriba a la izquierda) */}
+            <radialGradient id="alz-aro-local" cx="0.34" cy="0.26" r="0.8">
+              <stop offset="0%" stopColor="#8df0b0" />
+              <stop offset="55%" stopColor="#22c55e" />
+              <stop offset="100%" stopColor="#0f4527" />
+            </radialGradient>
+            <radialGradient id="alz-aro-visita" cx="0.34" cy="0.26" r="0.8">
+              <stop offset="0%" stopColor="#ffe0b8" />
+              <stop offset="55%" stopColor="#f97316" />
+              <stop offset="100%" stopColor="#6d2a10" />
+            </radialGradient>
+            <radialGradient id="alz-brillo" cx="0.32" cy="0.22" r="0.74">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.6" />
+              <stop offset="52%" stopColor="#ffffff" stopOpacity="0.05" />
+              <stop offset="100%" stopColor="#000000" stopOpacity="0.22" />
+            </radialGradient>
+
+            <filter id="alz-sombra-campo" x="-8%" y="-8%" width="116%" height="116%">
+              <feDropShadow dx="0" dy="1.4" stdDeviation="1.5" floodColor="#000000" floodOpacity="0.55" />
+            </filter>
           </defs>
 
-          {/* El cesped y las lineas se dibujan en horizontal (100x68) y se giran
-              cuando el campo es vertical, asi no hay que duplicar el dibujo. */}
-          <g transform={vertical ? "translate(68 0) rotate(90)" : undefined}>
-
-          <rect x="0.4" y="0.4" width="99.2" height="67.2" rx="2" fill="url(#alz-cesped)" stroke="rgba(255,255,255,.16)" strokeWidth="0.35" />
+          {/* Césped */}
+          <rect
+            x="0.5"
+            y="0.5"
+            width="67"
+            height="104"
+            rx="2.4"
+            fill="url(#alz-cesped)"
+            filter="url(#alz-sombra-campo)"
+          />
           {Array.from({ length: 10 }).map((_, i) => (
-            <rect key={i} x={0.4 + i * 9.92} y="0.4" width="9.92" height="67.2" fill={i % 2 ? "rgba(255,255,255,.03)" : "transparent"} />
+            <rect
+              key={i}
+              x="0.5"
+              y={0.5 + i * 10.4}
+              width="67"
+              height="10.4"
+              fill={i % 2 ? "rgba(255,255,255,.035)" : "transparent"}
+            />
           ))}
-          <g stroke="rgba(255,255,255,.20)" strokeWidth="0.32" fill="none">
-            <line x1="50" y1="0.4" x2="50" y2="67.6" />
-            <circle cx="50" cy="34" r="8.6" />
-            <rect x="0.4" y="13.84" width="15.7" height="40.32" />
-            <rect x="83.9" y="13.84" width="15.7" height="40.32" />
-            <rect x="0.4" y="24.84" width="5.24" height="18.32" />
-            <rect x="94.36" y="24.84" width="5.24" height="18.32" />
-          </g>
-          <circle cx="50" cy="34" r="0.6" fill="rgba(255,255,255,.35)" />
-          </g>
+          <rect x="0.5" y="0.5" width="67" height="104" rx="2.4" fill="url(#alz-vineta)" />
 
-          {(local?.titulares || []).map((j, i) => (
-            <Marca key={`l-${j.id || i}`} jugador={j} x={px(j, true)} y={py(j, true)} color={COLOR_LOCAL} tipo={tipo} detalle={chip} />
-          ))}
-          {(visita?.titulares || []).map((j, i) => (
-            <Marca key={`v-${j.id || i}`} jugador={j} x={px(j, false)} y={py(j, false)} color={COLOR_VISITA} tipo={tipo} detalle={chip} />
-          ))}
+          {/* Líneas */}
+          <g stroke="rgba(255,255,255,.28)" strokeWidth="0.3" fill="none">
+            <rect x="1.2" y="1.2" width="65.6" height="102.6" rx="1.6" />
+            <line x1="1.2" y1="52.5" x2="66.8" y2="52.5" />
+            <circle cx="34" cy="52.5" r="8.6" />
+            <rect x="13.84" y="1.2" width="40.32" height="16.5" />
+            <rect x="13.84" y="87.3" width="40.32" height="16.5" />
+            <rect x="24.84" y="1.2" width="18.32" height="5.6" />
+            <rect x="24.84" y="98.2" width="18.32" height="5.6" />
+            <path d="M 25.4 17.7 Q 34 26.4 42.6 17.7" />
+            <path d="M 25.4 87.3 Q 34 78.6 42.6 87.3" />
+          </g>
+          <circle cx="34" cy="52.5" r="0.55" fill="rgba(255,255,255,.5)" />
+
+          {filasLocal.map((fila, i) =>
+            fila.map((j, k) => (
+              <Marca
+                key={`l-${j.id || `${i}-${k}`}`}
+                jugador={j}
+                x={px(j)}
+                y={yLinea(i, true)}
+                tono="local"
+                tipo={tipo}
+                detalle={chip}
+              />
+            ))
+          )}
+          {filasVisita.map((fila, i) =>
+            fila.map((j, k) => (
+              <Marca
+                key={`v-${j.id || `${i}-${k}`}`}
+                jugador={j}
+                x={px(j)}
+                y={yLinea(i, false)}
+                tono="visita"
+                tipo={tipo}
+                detalle={chip}
+              />
+            ))
+          )}
         </svg>
       ) : (
         <div className="alz-lista">
