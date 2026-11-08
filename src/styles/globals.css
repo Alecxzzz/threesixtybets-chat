@@ -4330,3 +4330,270 @@ button {
   }
 }
 
+
+/* Chips de la alineación (nota / valor / edad / país) */
+.alz-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.alz-chip {
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid #262f3d;
+  background: #171d27;
+  color: #8b95a1;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.alz-chip.activo {
+  background: #22303f;
+  border-color: #3a4a5f;
+  color: #e9eff7;
+}
+
+/* ============================================================
+   Extras del partido: forma, insights, árbitro y goleadores
+   ============================================================ */
+.dp-extras {
+  display: contents;
+}
+
+.dp-titulo {
+  margin: 0 0 10px;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #eef2f7;
+}
+
+.dp-insights {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 7px;
+}
+
+.dp-insights li {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: #cfd6e2;
+  background: #10151d;
+  border-left: 3px solid #4ade80;
+  border-radius: 0 9px 9px 0;
+  padding: 8px 10px;
+}
+
+/* Forma reciente */
+.dp-forma-fila {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.dp-forma-equipo {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  color: #cfd6e2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dp-forma-chips {
+  display: flex;
+  gap: 4px;
+}
+
+.dp-forma {
+  width: 21px;
+  height: 21px;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: #06120a;
+}
+
+.dp-forma.g {
+  background: #22c55e;
+}
+
+.dp-forma.e {
+  background: #94a3b8;
+}
+
+.dp-forma.p {
+  background: #ef4444;
+  color: #fff;
+}
+
+/* Árbitro */
+.dp-arbitro {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.dp-arbitro-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #1b2230;
+  border: 1px solid #2e3849;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  font-size: 18px;
+}
+
+.dp-arbitro-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dp-arbitro-nombre {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #eef2f7;
+}
+
+.dp-arbitro-meta {
+  font-size: 11px;
+  color: #7c8698;
+}
+
+.dp-arbitro-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.dp-stat {
+  background: #10151d;
+  border: 1px solid #212a37;
+  border-radius: 11px;
+  padding: 9px 10px;
+}
+
+.dp-stat-top {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  font-size: 11.5px;
+  color: #8b95a1;
+}
+
+.dp-stat-top strong {
+  font-size: 17px;
+  color: #eef2f7;
+}
+
+.dp-stat-unidad {
+  font-size: 10px;
+  color: #6b7280;
+}
+
+.dp-barra {
+  height: 5px;
+  border-radius: 999px;
+  background: #1d2530;
+  margin: 7px 0 5px;
+  overflow: hidden;
+}
+
+.dp-barra span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+}
+
+.dp-stat-vs {
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.dp-stat-vs.alto {
+  color: #4ade80;
+}
+
+.dp-stat-vs.bajo {
+  color: #fbbf24;
+}
+
+/* Goleadores */
+.dp-gol-cab {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.dp-gol-jug {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.dp-gol-jug img {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: top center;
+  background: #1b2230;
+  border: 2px solid #2e3849;
+}
+
+.dp-gol-jug span {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #eef2f7;
+  text-align: center;
+}
+
+.dp-gol-filas {
+  display: grid;
+  gap: 2px;
+}
+
+.dp-gol-fila {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr 1fr;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+  border-top: 1px solid #1e2632;
+  font-size: 12.5px;
+}
+
+.dp-gol-val {
+  font-weight: 800;
+  color: #eef2f7;
+  text-align: center;
+}
+
+.dp-gol-label {
+  text-align: center;
+  font-size: 11.5px;
+  color: #8b95a1;
+}
+
+.dp-fuente {
+  font-size: 10px;
+  color: #4b5563;
+  text-align: right;
+}
+

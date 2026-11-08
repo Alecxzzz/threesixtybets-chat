@@ -25,12 +25,17 @@ function colorNota(nota) {
   return "#dc2626";
 }
 
-function Marca({ jugador, x, y, color, tipo }) {
+function Marca({ jugador, x, y, color, tipo, detalle }) {
   const nombre = String(jugador?.nombre || "").trim();
-  const corto = nombre.length > 11 ? `${nombre.slice(0, 10)}…` : nombre;
-  const ancho = Math.max(7, Math.min(12.5, corto.length * 1.05 + 2));
+  const corto = nombre.length > 12 ? `${nombre.slice(0, 11)}…` : nombre;
   const etiqueta = tipo === "probable" ? `${jugador?.posibilidad ?? 0}%` : jugador?.nota;
   const fondo = tipo === "probable" ? "#1d4ed8" : colorNota(jugador?.nota);
+
+  // Dato extra bajo el nombre segun el chip elegido
+  let extra = "";
+  if (detalle === "valor" && jugador?.valor) extra = `${Math.round(jugador.valor / 1e6)} M€`;
+  else if (detalle === "edad" && jugador?.edad) extra = `${jugador.edad} años`;
+  else if (detalle === "pais" && jugador?.pais) extra = jugador.pais;
 
   return (
     <g transform={`translate(${x} ${y})`}>
@@ -38,61 +43,61 @@ function Marca({ jugador, x, y, color, tipo }) {
         {`${nombre}${jugador?.dorsal ? ` · #${jugador.dorsal}` : ""}${jugador?.nota ? ` · nota ${jugador.nota}` : ""}`}
       </title>
 
-      <ellipse cx="0" cy="3.9" rx="2.9" ry="0.7" fill="rgba(0,0,0,.4)" />
-      <circle r="3.3" fill="rgba(255,255,255,.10)" />
-      <circle r="2.9" fill={color} stroke="rgba(255,255,255,.9)" strokeWidth="0.28" />
+      <ellipse cx="0" cy="4.6" rx="3.1" ry="0.8" fill="rgba(0,0,0,.42)" />
+      <circle r="3.7" fill="rgba(255,255,255,.10)" />
+      <circle r="3.2" fill={color} stroke="rgba(255,255,255,.92)" strokeWidth="0.3" />
 
       {jugador?.foto ? (
         <g clipPath="url(#alz-clip)">
           <image
             href={jugador.foto}
-            x="-2.9"
-            y="-2.9"
-            width="5.8"
-            height="5.8"
+            x="-3.2"
+            y="-3.2"
+            width="6.4"
+            height="6.4"
             preserveAspectRatio="xMidYMid slice"
           />
         </g>
       ) : (
-        <text y="0.9" textAnchor="middle" fontSize="2.4" fontWeight="800" fill="#fff">
+        <text y="1" textAnchor="middle" fontSize="2.5" fontWeight="800" fill="#fff">
           {(nombre || "?").slice(0, 2).toUpperCase()}
         </text>
       )}
 
-      {/* dorsal */}
-      <g transform="translate(2 -2)">
-        <circle r="1.45" fill="#0b1118" stroke="rgba(255,255,255,.55)" strokeWidth="0.18" />
-        <text y="0.58" textAnchor="middle" fontSize="1.75" fontWeight="800" fill="#e6edf3">
-          {jugador?.dorsal || "-"}
-        </text>
-      </g>
-
       {/* nota / % de titularidad */}
       {etiqueta !== undefined && etiqueta !== null && etiqueta !== "" ? (
-        <g transform="translate(0 -4.1)">
-          <rect x="-2.2" y="-1.5" width="4.4" height="2.6" rx="0.7" fill={fondo} />
-          <text y="0.42" textAnchor="middle" fontSize="1.8" fontWeight="800" fill="#fff">
+        <g transform="translate(2.4 -2.4)">
+          <circle r="1.6" fill={fondo} stroke="#0b1118" strokeWidth="0.22" />
+          <text y="0.6" textAnchor="middle" fontSize="1.7" fontWeight="800" fill="#fff">
             {etiqueta}
           </text>
         </g>
       ) : null}
 
-      {/* nombre */}
-      <g transform="translate(0 4.3)">
-        <rect
-          x={-ancho / 2}
-          y="0"
-          width={ancho}
-          height="2.7"
-          rx="1.35"
-          fill="rgba(6,12,10,.76)"
-          stroke="rgba(255,255,255,.10)"
-          strokeWidth="0.1"
-        />
-        <text y="1.95" textAnchor="middle" fontSize="1.85" fontWeight="700" fill="#e9eff7">
-          {corto}
+      {/* dorsal + nombre, en texto limpio (sin pastilla) */}
+      <text
+        y="5.9"
+        textAnchor="middle"
+        fontSize="2.15"
+        fontWeight="800"
+        fill="#ffffff"
+        style={{ paintOrder: "stroke", stroke: "rgba(6,12,10,.85)", strokeWidth: 0.55 }}
+      >
+        {`${jugador?.dorsal ? `${jugador.dorsal} ` : ""}${corto}`}
+      </text>
+
+      {extra ? (
+        <text
+          y="8.3"
+          textAnchor="middle"
+          fontSize="1.9"
+          fontWeight="700"
+          fill="#9fb0c4"
+          style={{ paintOrder: "stroke", stroke: "rgba(6,12,10,.8)", strokeWidth: 0.45 }}
+        >
+          {extra}
         </text>
-      </g>
+      ) : null}
     </g>
   );
 }
@@ -144,6 +149,7 @@ export default function Alineacion({ sport = "soccer", eventId, league = null })
   const [datos, setDatos] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [vista, setVista] = useState("campo");
+  const [chip, setChip] = useState("nota");
 
   useEffect(() => {
     let cancelado = false;
@@ -188,8 +194,8 @@ export default function Alineacion({ sport = "soccer", eventId, league = null })
   const { local, visita, tipo } = datos;
   const probable = tipo === "probable";
 
-  const px = (j, esLocal) => (esLocal ? 3 + Number(j.x || 0) * 47 : 97 - Number(j.x || 0) * 47);
-  const py = (j) => 2 + Number(j.y || 0) * 64;
+  const px = (j, esLocal) => (esLocal ? 4 + Number(j.x || 0) * 45 : 96 - Number(j.x || 0) * 45);
+  const py = (j) => 7 + Number(j.y || 0) * 54;
 
 
   return (
@@ -217,6 +223,24 @@ export default function Alineacion({ sport = "soccer", eventId, league = null })
         </div>
       </div>
 
+      <div className="alz-chips">
+        {[
+          { key: "nota", label: "Nota" },
+          { key: "valor", label: "Valor" },
+          { key: "edad", label: "Edad" },
+          { key: "pais", label: "País" },
+        ].map((c) => (
+          <button
+            key={c.key}
+            type="button"
+            className={chip === c.key ? "alz-chip activo" : "alz-chip"}
+            onClick={() => setChip(c.key)}
+          >
+            {c.label}
+          </button>
+        ))}
+      </div>
+
       <div className="alz-cabs">
         <CabeceraEquipo equipo={local} color={COLOR_LOCAL} />
         <CabeceraEquipo equipo={visita} color={COLOR_VISITA} />
@@ -226,7 +250,7 @@ export default function Alineacion({ sport = "soccer", eventId, league = null })
         <svg viewBox="0 0 100 68" className="alz-campo" role="img" aria-label="Alineación del partido">
           <defs>
             <clipPath id="alz-clip">
-              <circle r="2.9" />
+              <circle r="3.2" />
             </clipPath>
             <linearGradient id="alz-cesped" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#1b5f35" />
@@ -249,10 +273,10 @@ export default function Alineacion({ sport = "soccer", eventId, league = null })
           <circle cx="50" cy="34" r="0.6" fill="rgba(255,255,255,.35)" />
 
           {(local?.titulares || []).map((j, i) => (
-            <Marca key={`l-${j.id || i}`} jugador={j} x={px(j, true)} y={py(j)} color={COLOR_LOCAL} tipo={tipo} />
+            <Marca key={`l-${j.id || i}`} jugador={j} x={px(j, true)} y={py(j)} color={COLOR_LOCAL} tipo={tipo} detalle={chip} />
           ))}
           {(visita?.titulares || []).map((j, i) => (
-            <Marca key={`v-${j.id || i}`} jugador={j} x={px(j, false)} y={py(j)} color={COLOR_VISITA} tipo={tipo} />
+            <Marca key={`v-${j.id || i}`} jugador={j} x={px(j, false)} y={py(j)} color={COLOR_VISITA} tipo={tipo} detalle={chip} />
           ))}
         </svg>
       ) : (

@@ -13,6 +13,7 @@ import {
 } from "../services/api";
 import PlayerLast5Modal from "./PlayerLast5Modal";
 import Alineacion from "./Alineacion";
+import DatosPartido from "./DatosPartido";
 
 const SPORTS = [
   { key: "soccer", label: "⚽ Futbol" },
@@ -690,6 +691,14 @@ function GameDetail({ sport, eventId, onBack }) {
           <h3 style={sectionTitle()}>👥 Alineación</h3>
           <Alineacion sport={sport} eventId={eventId} league={detail.league_code || null} />
         </div>
+
+        {/* Extras del partido: forma, insights, arbitro y goleadores */}
+        <DatosPartido
+          sport={sport}
+          eventId={eventId}
+          league={detail.league_code || null}
+          equipos={detail.teams || []}
+        />
 
         {/* Analisis IA - PRIORIDAD arriba */}
         <div className="sd-card" data-tab="resumen">

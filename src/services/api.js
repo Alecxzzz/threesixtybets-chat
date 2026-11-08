@@ -560,6 +560,19 @@ export async function fetchAlineacion(session, sport, eventId, league) {
 }
 
 /**
+ * Extras del partido (FotMob): forma, insights, arbitro y goleadores.
+ */
+export async function fetchDatosPartido(session, sport, eventId, league) {
+  const params = new URLSearchParams({ sport, event_id: eventId });
+  if (league) params.set("league", league);
+  const res = await fetch(`${API_URL}/stats/datos-partido?${params}`, {
+    headers: authHeaders(session),
+  });
+
+  return readJson(res);
+}
+
+/**
  * Tabla de posiciones de una liga de futbol (grupos por zona + forma last 5).
  */
 export async function fetchStandings(session, league) {
