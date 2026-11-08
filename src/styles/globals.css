@@ -3490,3 +3490,72 @@ button {
   }
 }
 
+/* ------------------------------------------------------------
+   Dashboard compacto en movil: el hero y los KPIs ocupan menos
+   alto para que los picks se vean sin bajar tanto.
+   ------------------------------------------------------------ */
+@media (max-width: 768px) {
+  .dash-hero {
+    padding: 15px 13px;
+    margin-bottom: 12px;
+    border-radius: 14px;
+  }
+
+  .dash-hero-badge {
+    font-size: 10px;
+    padding: 4px 9px;
+    margin-bottom: 7px;
+  }
+
+  .dash-hero-title {
+    font-size: 20px;
+    margin-bottom: 4px;
+  }
+
+  .dash-hero-sub {
+    font-size: 12.5px;
+    line-height: 1.45;
+  }
+
+  /* Los 3 KPIs en una fila (antes se apilaban uno debajo de otro). */
+  .dash-stats-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .dash-kpi {
+    padding: 10px 10px 9px;
+    border-radius: 12px;
+    gap: 3px;
+  }
+
+  .dash-kpi-label {
+    font-size: 9px;
+    letter-spacing: 0.06em;
+  }
+
+  .dash-kpi-num {
+    font-size: 21px;
+  }
+
+  .dash-kpi-foot {
+    font-size: 9.5px;
+  }
+
+  .dash-seccion-titulo {
+    font-size: 15px;
+    margin-bottom: 8px;
+  }
+
+  .dash-picks {
+    gap: 10px;
+  }
+
+  .dash-pick {
+    padding: 12px;
+    gap: 8px;
+    border-radius: 14px;
+  }
+}
+
