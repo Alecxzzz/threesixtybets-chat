@@ -1154,9 +1154,9 @@ button {
 
 .event-card {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: 44px 26px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
   padding: 10px 14px;
   background: transparent;
@@ -1165,7 +1165,8 @@ button {
   color: #ececec;
   cursor: pointer;
   text-align: left;
-  transition: background 0.15s ease;
+  transition: background 0.16s ease, transform 0.16s ease, padding-left 0.16s ease;
+  animation: eventIn 0.32s ease both;
 }
 
 .event-card:last-child {
@@ -1173,29 +1174,59 @@ button {
 }
 
 .event-card:hover {
-  background: #263040;
+  background: linear-gradient(90deg, #22354a, #1b2430);
+  transform: translateX(2px);
 }
 
 .event-card.selected {
-  background: #1f4738;
+  background: linear-gradient(90deg, #1f4738, #16332a);
+  box-shadow: inset 3px 0 0 #4ade80;
 }
 
-.event-sport {
-  font-size: 11px;
+/* Hora de inicio */
+.event-hora {
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: #8b93a7;
-  background: #232a38;
-  border-radius: 6px;
-  padding: 4px 8px;
-  white-space: nowrap;
+  color: #9fb0c4;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.3px;
+}
+
+/* Icono del deporte en una ficha */
+.event-icono {
+  width: 26px;
+  height: 26px;
+  display: inline-grid;
+  place-items: center;
+  font-size: 15px;
+  line-height: 1;
+  background: #1f2734;
+  border: 1px solid #2e3849;
+  border-radius: 9px;
+}
+
+.event-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
 }
 
 .event-name {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 13.5px;
+  font-weight: 700;
   color: #ececec;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.event-liga {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #6f7d90;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1203,9 +1234,46 @@ button {
 
 .event-play {
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 800;
   color: #4ade80;
   white-space: nowrap;
+  opacity: 0.75;
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+
+.event-card:hover .event-play {
+  opacity: 1;
+  transform: translateX(2px);
+}
+
+/* Contador de partidos en la cabecera del panel */
+.events-count {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 800;
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.12);
+  border: 1px solid rgba(74, 222, 128, 0.3);
+  border-radius: 999px;
+  padding: 1px 8px;
+  letter-spacing: 0;
+}
+
+@keyframes eventIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .event-card {
+    animation: none;
+  }
 }
 
 .events-box-empty .events-live-dot {

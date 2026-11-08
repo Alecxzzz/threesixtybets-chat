@@ -43,6 +43,7 @@ export default function ESPNGratis() {
   const opcionesRef = useRef([]);
   const cambiarOpcionRef = useRef(null);
   const [opcionActiva, setOpcionActiva] = useState(0);
+  const [embedUrl, setEmbedUrl] = useState("");
 
   // El CSS global de la app pone body { overflow: hidden } (layout del chat):
   // en esta pagina independiente lo reactivamos para que se pueda scrollear.
@@ -122,6 +123,30 @@ export default function ESPNGratis() {
             url = opcionesRef.current[0]?.url || FALLBACK_STREAM;
           }
         }
+        if (!alive) return;
+
+        // Señal tipo embed (pagina HTML con su propio player): va en iframe.
+        const opcion = opcionesRef.current.find((o) => o.url === url);
+        if (opcion?.embed) {
+          if (hlsRef.current) {
+            hlsRef.current.destroy();
+            hlsRef.current = null;
+          }
+          if (video) {
+            try {
+              video.pause();
+              video.removeAttribute("src");
+              video.load();
+            } catch {
+              /* el video puede no haber cargado nada */
+            }
+          }
+          setEmbedUrl(url);
+          setPlayerState("listo");
+          return;
+        }
+        setEmbedUrl("");
+
         if (!alive || !video) return;
 
         if (hlsRef.current) {
@@ -246,6 +271,7 @@ export default function ESPNGratis() {
               videoRef={videoRef}
               opciones={opcionesRef.current}
               opcionActiva={opcionActiva}
+              embedUrl={embedUrl}
               onCambiar={(idx) => cambiarOpcionRef.current?.(idx)}
             />
 
@@ -295,7 +321,7 @@ export default function ESPNGratis() {
   );
 }
 
-function PlayerBox({ playerState, match, videoRef, opciones = [], opcionActiva = 0, onCambiar }) {
+function PlayerBox({ playerState, match, videoRef, opciones = [], opcionActiva = 0, onCambiar, embedUrl = "" }) {
   return (
     <div style={{ marginBottom: 14 }}>
     <div style={{ position: "relative", borderRadius: 14, overflow: "hidden", border: "1px solid #22303c", background: "#000" }}>
@@ -303,8 +329,18 @@ function PlayerBox({ playerState, match, videoRef, opciones = [], opcionActiva =
         ref={videoRef}
         controls
         playsInline
-        style={{ width: "100%", aspectRatio: "16/9", display: "block", background: "#000" }}
+        style={{ width: "100%", aspectRatio: "16/9", display: embedUrl ? "none" : "block", background: "#000" }}
       />
+      {embedUrl ? (
+        <iframe
+          title="Stream del partido"
+          src={embedUrl}
+          style={{ width: "100%", aspectRatio: "16/9", display: "block", border: 0, background: "#000" }}
+          allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+          allowFullScreen
+          referrerPolicy="origin"
+        />
+      ) : null}
       {playerState !== "listo" && (
         <div style={{
           position: "absolute", inset: 0, display: "flex", flexDirection: "column",
@@ -351,6 +387,7 @@ function PlayerBox({ playerState, match, videoRef, opciones = [], opcionActiva =
 
       {/* SELECTOR DE SENAL: Opcion 1 / 2 */}
       <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
+        {!embedUrl && (
         <button
           type="button"
           onClick={async () => {
@@ -377,6 +414,7 @@ function PlayerBox({ playerState, match, videoRef, opciones = [], opcionActiva =
         >
           ⛶ Picture-in-Picture
         </button>
+        )}
         {opciones.length > 1 && opciones.map((o, i) => (
           <button
             key={o.url || i}

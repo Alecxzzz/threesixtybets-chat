@@ -12,6 +12,39 @@ import {
   getStoredSession,
 } from "../services/api";
 
+// Icono por deporte (la agenda trae `sport` = soccer / nba / nfl / ...).
+const ICONO_DEPORTE = {
+  soccer: "⚽",
+  nba: "🏀",
+  nfl: "🏈",
+  nhl: "🏒",
+  mlb: "⚾",
+  tennis: "🎾",
+  mma: "🥊",
+  boxeo: "🥊",
+};
+
+function iconoDeporte(sport) {
+  return ICONO_DEPORTE[String(sport || "").toLowerCase()] || "🏆";
+}
+
+function horaEvento(iso) {
+  if (!iso) return "";
+  const fecha = new Date(iso);
+  if (Number.isNaN(fecha.getTime())) return "";
+  return fecha.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+/** Ordena la agenda por hora de inicio (los que no tienen hora, al final). */
+function ordenarPorHora(lista) {
+  return [...(lista || [])].sort((a, b) => {
+    const ta = a?.kickoff ? new Date(a.kickoff).getTime() : Number.MAX_SAFE_INTEGER;
+    const tb = b?.kickoff ? new Date(b.kickoff).getTime() : Number.MAX_SAFE_INTEGER;
+    if (ta !== tb) return ta - tb;
+    return String(a?.name || "").localeCompare(String(b?.name || ""));
+  });
+}
+
 function TV() {
   const [channels, setChannels] = useState(() =>
     [...staticChannels].sort((a, b) => a.name.localeCompare(b.name))
@@ -90,7 +123,7 @@ function TV() {
         // code", "THEATER MODE", botones PLAYER 1-7) y se veia muy mal.
         const jugables = (data?.events || []).filter((ev) => ev?.type !== "iframe");
         if (active && jugables.length) {
-          setTodayEvents(jugables);
+          setTodayEvents(ordenarPorHora(jugables));
         }
       })
       .catch(() => {})
@@ -797,19 +830,27 @@ function TV() {
               <div className="events-box-header">
                 <span className="events-live-dot" />
                 Partidos de hoy
+                <span className="events-count">{todayEvents.length}</span>
               </div>
               <div className="events-list">
-                {todayEvents.map((ev) => (
+                {todayEvents.map((ev, i) => (
                   <button
                     key={ev.id}
                     type="button"
                     className={`event-card ${
                       currentChannel?.id === ev.id ? "selected" : ""
                     }`}
+                    style={{ animationDelay: `${Math.min(i, 12) * 45}ms` }}
                     onClick={() => playEvent(ev)}
                   >
-                    <span className="event-sport">{ev.sport}</span>
-                    <span className="event-name">{ev.name}</span>
+                    <span className="event-hora">{horaEvento(ev.kickoff) || "--:--"}</span>
+                    <span className="event-icono" aria-hidden="true">
+                      {iconoDeporte(ev.sport)}
+                    </span>
+                    <span className="event-info">
+                      <span className="event-name">{ev.name}</span>
+                      {ev.liga ? <span className="event-liga">{ev.liga}</span> : null}
+                    </span>
                     <span className="event-play">Ver ▸</span>
                   </button>
                 ))}
