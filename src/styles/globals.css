@@ -3722,3 +3722,58 @@ button {
 }
 
 
+
+
+/* Pestañas del detalle del partido */
+.sd-tabs {
+  display: flex;
+  gap: 2px;
+  margin: 0 0 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  border-bottom: 1px solid #222a36;
+}
+
+.sd-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.sd-tab {
+  flex: 0 0 auto;
+  padding: 9px 12px;
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: #8b95a1;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sd-tab.activa {
+  color: #ffffff;
+  border-bottom-color: #4ade80;
+}
+
+/* Solo se ve la tarjeta de la pestana activa */
+.sd-stack[data-activa] .sd-card {
+  display: none;
+}
+
+.sd-stack[data-activa="resumen"] .sd-card[data-tab="resumen"],
+.sd-stack[data-activa="stats"] .sd-card[data-tab="stats"],
+.sd-stack[data-activa="h2h"] .sd-card[data-tab="h2h"],
+.sd-stack[data-activa="jugadores"] .sd-card[data-tab="jugadores"],
+.sd-stack[data-activa="tabla"] .sd-card[data-tab="tabla"] {
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .sd-tab {
+    padding: 8px 10px;
+    font-size: 12.5px;
+  }
+}

@@ -451,6 +451,7 @@ function GameDetail({ sport, eventId, onBack }) {
   const [aiStarted, setAiStarted] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [h2hTab, setH2hTab] = useState("local"); // "local" | "h2h" | "visitante"
+  const [tab, setTab] = useState("resumen"); // pestañas del detalle
   const [favs, setFavs] = useState({}); // clave "equipo:<id>" -> true
   const [shareCopied, setShareCopied] = useState(false);
 
@@ -659,10 +660,32 @@ function GameDetail({ sport, eventId, onBack }) {
 
       <Scoreboard detail={detail} />
 
+      {/* Pestañas del partido (estilo app): solo se muestra la seccion activa */}
+      <div className="sd-tabs" role="tablist" aria-label="Secciones del partido">
+        {[
+          { key: "resumen", label: "Resumen" },
+          { key: "stats", label: "Estadisticas" },
+          { key: "h2h", label: "H2H" },
+          { key: "jugadores", label: "Jugadores" },
+          { key: "tabla", label: "Tabla" },
+        ].map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            role="tab"
+            aria-selected={tab === t.key}
+            className={tab === t.key ? "sd-tab activa" : "sd-tab"}
+            onClick={() => setTab(t.key)}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
       {/* Contenido en una sola columna de tarjetas (estilo app) */}
-      <div className="sd-stack">
+      <div className="sd-stack" data-activa={tab}>
         {/* Analisis IA - PRIORIDAD arriba */}
-        <div className="sd-card">
+        <div className="sd-card" data-tab="resumen">
             <h3 style={sectionTitle()}>🤖 Analisis de la IA</h3>
             {aiLoading && (
               <div style={{ background: "#11161d", border: `1px solid ${theme.accent}44`, borderRadius: 10, padding: 14, display: "flex", alignItems: "center", gap: 10 }}>
@@ -698,7 +721,7 @@ function GameDetail({ sport, eventId, onBack }) {
 
         {/* H2H / Local / Visitante con tabs */}
         {(detail?.teams?.length > 0) && (
-          <div className="sd-card">
+          <div className="sd-card" data-tab="h2h">
               <h3 style={sectionTitle()}>⚔️ Historial y últimos partidos</h3>
               {/* Favoritos rapidos por equipo */}
               <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
@@ -838,7 +861,7 @@ function GameDetail({ sport, eventId, onBack }) {
 
         {/* Linescores */}
         {linesLen > 0 && (
-          <div className="sd-card" style={{ overflowX: "auto" }}>
+          <div className="sd-card" data-tab="resumen" style={{ overflowX: "auto" }}>
             <table style={{ margin: "0 auto", borderCollapse: "collapse", fontSize: 13 }}>
                 <thead>
                   <tr style={{ color: "#8b95a1" }}>
@@ -869,7 +892,7 @@ function GameDetail({ sport, eventId, onBack }) {
 
           {/* Jugadores destacados */}
           {keyPlayers.length > 0 && (
-            <div className="sd-card">
+            <div className="sd-card" data-tab="jugadores">
               <h3 style={sectionTitle()}>⭐ Jugadores destacados</h3>
               {detail.status === "in" && (
                 <div style={{ fontSize: 11, color: "#22c55e", fontWeight: 700, marginBottom: 8, display: "flex", alignItems: "center", gap: 4 }}>
@@ -940,7 +963,7 @@ function GameDetail({ sport, eventId, onBack }) {
           {/* Estadisticas por equipo */}
           {Object.keys(groups).length > 0 &&
             Object.entries(groups).map(([cat, list]) => (
-              <div key={cat} className="sd-card">
+              <div key={cat} className="sd-card" data-tab="stats">
                 <h3 style={sectionTitle()}>📊 {cat}</h3>
                 {list.map((s, i) => (
                   <StatBar key={i} stat={s} awayColor="#38bdf8" homeColor="#f472b6" />
@@ -950,7 +973,7 @@ function GameDetail({ sport, eventId, onBack }) {
 
         {/* Tabla de posiciones de la liga (solo futbol) */}
         {sport === "soccer" && (
-          <div className="sd-card">
+          <div className="sd-card" data-tab="tabla">
             <TablaPosiciones league={detail.league_code || detail.league || null} />
           </div>
         )}
