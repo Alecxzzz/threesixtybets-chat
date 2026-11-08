@@ -3766,7 +3766,7 @@ button {
 .sd-stack[data-activa="resumen"] .sd-card[data-tab="resumen"],
 .sd-stack[data-activa="stats"] .sd-card[data-tab="stats"],
 .sd-stack[data-activa="h2h"] .sd-card[data-tab="h2h"],
-.sd-stack[data-activa="jugadores"] .sd-card[data-tab="jugadores"],
+.sd-stack[data-activa="alineacion"] .sd-card[data-tab="alineacion"],
 .sd-stack[data-activa="tabla"] .sd-card[data-tab="tabla"] {
   display: block;
 }
@@ -3777,3 +3777,118 @@ button {
     font-size: 12.5px;
   }
 }
+
+/* ---------- Alineacion (campo + formaciones + suplentes) ---------- */
+.alz-cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.alz-equipo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.alz-der {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.alz-nombre {
+  font-size: 13px;
+  font-weight: 800;
+  color: #eef2f7;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.alz-formacion {
+  font-size: 11px;
+  font-weight: 700;
+  color: #8b95a1;
+  letter-spacing: 0.5px;
+}
+
+.alz-campo {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+}
+
+.alz-bancas {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.alz-banca {
+  border: 1px solid #222a36;
+  border-radius: 12px;
+  background: #10151d;
+  padding: 8px 10px;
+}
+
+.alz-banca summary {
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  color: #aab4c3;
+  list-style: none;
+}
+
+.alz-banca summary::-webkit-details-marker {
+  display: none;
+}
+
+.alz-banca summary::before {
+  content: "▸ ";
+  color: #4ade80;
+}
+
+.alz-banca[open] summary::before {
+  content: "▾ ";
+}
+
+.alz-banca ul {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.alz-banca li {
+  font-size: 12px;
+  color: #c9d1d9;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.alz-dorsal {
+  min-width: 20px;
+  text-align: right;
+  font-weight: 800;
+  color: #6b7280;
+  font-variant-numeric: tabular-nums;
+}
+
+.alz-pos {
+  color: #6b7280;
+  font-size: 11px;
+}
+
+@media (max-width: 480px) {
+  .alz-nombre {
+    font-size: 12px;
+  }
+}
+

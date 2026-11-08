@@ -12,6 +12,7 @@ import {
   removeFavorito,
 } from "../services/api";
 import PlayerLast5Modal from "./PlayerLast5Modal";
+import Alineacion from "./Alineacion";
 
 const SPORTS = [
   { key: "soccer", label: "⚽ Futbol" },
@@ -665,8 +666,8 @@ function GameDetail({ sport, eventId, onBack }) {
         {[
           { key: "resumen", label: "Resumen" },
           { key: "stats", label: "Estadisticas" },
+          { key: "alineacion", label: "Alineación" },
           { key: "h2h", label: "H2H" },
-          { key: "jugadores", label: "Jugadores" },
           { key: "tabla", label: "Tabla" },
         ].map((t) => (
           <button
@@ -684,6 +685,12 @@ function GameDetail({ sport, eventId, onBack }) {
 
       {/* Contenido en una sola columna de tarjetas (estilo app) */}
       <div className="sd-stack" data-activa={tab}>
+        {/* Alineacion: campo con los 22 titulares + suplentes */}
+        <div className="sd-card" data-tab="alineacion">
+          <h3 style={sectionTitle()}>👥 Alineación</h3>
+          <Alineacion lineups={detail.lineups || []} />
+        </div>
+
         {/* Analisis IA - PRIORIDAD arriba */}
         <div className="sd-card" data-tab="resumen">
             <h3 style={sectionTitle()}>🤖 Analisis de la IA</h3>
@@ -892,7 +899,7 @@ function GameDetail({ sport, eventId, onBack }) {
 
           {/* Jugadores destacados */}
           {keyPlayers.length > 0 && (
-            <div className="sd-card" data-tab="jugadores">
+            <div className="sd-card" data-tab="resumen">
               <h3 style={sectionTitle()}>⭐ Jugadores destacados</h3>
               {detail.status === "in" && (
                 <div style={{ fontSize: 11, color: "#22c55e", fontWeight: 700, marginBottom: 8, display: "flex", alignItems: "center", gap: 4 }}>
