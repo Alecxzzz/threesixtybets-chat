@@ -75,20 +75,43 @@ export default function ContextoPartido({ predictor, odds, injuries, equipos = [
 
       {bajas.length ? (
         <section className="sd-card dp-card" data-tab="resumen">
-          <h4 className="dp-titulo">🚑 Bajas</h4>
-          <ul className="ctx-bajas">
-            {bajas.slice(0, 12).map((b, i) => (
-              <li key={`${b.jugador}-${i}`}>
-                <span className={`ctx-estado ${b.estado === "Out" ? "fuera" : "duda"}`}>
-                  {b.estado === "Out" ? "BAJA" : "DUDA"}
-                </span>
-                <span className="ctx-jugador">{b.jugador}</span>
-                <span className="ctx-equipo">
-                  {[b.equipo, b.zona].filter(Boolean).join(" · ")}
-                </span>
-              </li>
-            ))}
-          </ul>
+          <h4 className="dp-titulo">🚑 Bajas y dudas</h4>
+          <div className="baj-columnas">
+            {[casa, fuera].map((equipo) => {
+              const suyas = bajas.filter(
+                (b) => !b.equipo || !equipo?.name || b.equipo === equipo.name
+              );
+              const nombre = equipo?.short_name || equipo?.name || "Equipo";
+              return (
+                <div key={nombre} className="baj-columna">
+                  <div className="baj-cab">
+                    {equipo?.logo ? <img src={equipo.logo} alt="" width={18} height={18} /> : null}
+                    <span>{nombre}</span>
+                    <em>{suyas.length}</em>
+                  </div>
+                  {suyas.length ? (
+                    suyas.map((b, i) => (
+                      <div key={`${b.jugador}-${i}`} className="baj-item">
+                        <span className="baj-foto">
+                          {b.foto ? <img src={b.foto} alt="" loading="lazy" /> : null}
+                        </span>
+                        <span className="baj-texto">
+                          <span className="baj-nombre">{b.corto || b.jugador}</span>
+                          <span className={b.grave ? "baj-estado fuera" : "baj-estado duda"}>
+                            <i aria-hidden="true">{b.grave ? "✚" : "✚"}</i>
+                            {b.grave ? "Baja" : "Duda"}
+                            {b.zona ? <u> · {b.zona}</u> : null}
+                          </span>
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="baj-vacio">Sin bajas</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </section>
       ) : null}
     </>

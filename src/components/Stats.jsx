@@ -16,6 +16,7 @@ import Alineacion from "./Alineacion";
 import DatosPartido from "./DatosPartido";
 import ContextoPartido from "./ContextoPartido";
 import NbaAnalytics from "./NbaAnalytics";
+import NbaPlantilla from "./NbaPlantilla";
 
 const SPORTS = [
   { key: "soccer", label: "⚽ Futbol" },
@@ -690,8 +691,12 @@ function GameDetail({ sport, eventId, onBack }) {
       <div className="sd-stack" data-activa={tab}>
         {/* Alineacion: oficial de FotMob o once probable, con fotos */}
         <div className="sd-card" data-tab="alineacion">
-          <h3 style={sectionTitle()}>👥 Alineación</h3>
-          <Alineacion sport={sport} eventId={eventId} league={detail.league_code || null} />
+          <h3 style={sectionTitle()}>{sport === "nba" ? "🏀 Plantilla y promedios" : "👥 Alineación"}</h3>
+          {sport === "nba" ? (
+            <NbaPlantilla equipos={detail.teams || []} />
+          ) : (
+            <Alineacion sport={sport} eventId={eventId} league={detail.league_code || null} />
+          )}
         </div>
 
         {/* Extras del partido: forma, insights, arbitro y goleadores */}
