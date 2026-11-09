@@ -14,6 +14,7 @@ import {
 import PlayerLast5Modal from "./PlayerLast5Modal";
 import Alineacion from "./Alineacion";
 import DatosPartido from "./DatosPartido";
+import ContextoPartido from "./ContextoPartido";
 
 const SPORTS = [
   { key: "soccer", label: "⚽ Futbol" },
@@ -697,6 +698,14 @@ function GameDetail({ sport, eventId, onBack }) {
           sport={sport}
           eventId={eventId}
           league={detail.league_code || null}
+          equipos={detail.teams || []}
+        />
+
+        {/* Modelo de ESPN, cuotas reales y bajas (NBA, NFL, MLB...) */}
+        <ContextoPartido
+          predictor={detail.predictor}
+          odds={detail.odds}
+          injuries={detail.injuries}
           equipos={detail.teams || []}
         />
 
