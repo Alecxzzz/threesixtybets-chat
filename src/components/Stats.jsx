@@ -15,6 +15,7 @@ import PlayerLast5Modal from "./PlayerLast5Modal";
 import Alineacion from "./Alineacion";
 import DatosPartido from "./DatosPartido";
 import ContextoPartido from "./ContextoPartido";
+import NbaAnalytics from "./NbaAnalytics";
 
 const SPORTS = [
   { key: "soccer", label: "⚽ Futbol" },
@@ -708,6 +709,16 @@ function GameDetail({ sport, eventId, onBack }) {
           injuries={detail.injuries}
           equipos={detail.teams || []}
         />
+
+        {/* Analytics NBA: curva de victoria, cuatro factores, pace y caja */}
+        {sport === "nba" ? (
+          <NbaAnalytics
+            equipos={detail.teams || []}
+            playersBox={detail.players_box || []}
+            runs={detail.runs || []}
+            winProbability={detail.win_probability || []}
+          />
+        ) : null}
 
         {/* Analisis IA - PRIORIDAD arriba */}
         <div className="sd-card" data-tab="resumen">

@@ -4770,3 +4770,389 @@ button {
   white-space: nowrap;
 }
 
+/* ============================================================
+   Panel NBA: curva, cuatro factores, ritmo, MVP, rachas y caja
+   ============================================================ */
+.nba-panel {
+  display: contents;
+}
+
+/* Curva de probabilidad */
+.nba-curva svg {
+  width: 100%;
+  height: 96px;
+  display: block;
+  border-radius: 10px;
+  background: #0c1117;
+  border: 1px solid #1d2530;
+}
+
+.nba-curva-pie {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 6px;
+  font-size: 11px;
+  color: #8b95a1;
+}
+
+.nba-curva-pie strong {
+  color: #eef2f7;
+}
+
+.nba-nota {
+  margin: 8px 0 0;
+  font-size: 10.5px;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+/* Cuatro factores */
+.nba-factor {
+  margin-bottom: 14px;
+}
+
+.nba-factor:last-of-type {
+  margin-bottom: 0;
+}
+
+.nba-factor-cab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.nba-factor-titulo {
+  flex: 1;
+  text-align: center;
+  color: #9aa6b6;
+  font-weight: 700;
+}
+
+.nba-val {
+  min-width: 52px;
+  font-weight: 800;
+  color: #98a2b3;
+  font-variant-numeric: tabular-nums;
+}
+
+.nba-val.gana {
+  color: #4ade80;
+}
+
+.nba-der {
+  text-align: right;
+}
+
+.nba-factor-barras {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  margin-top: 5px;
+}
+
+.nba-factor-barras span {
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #22c55e, #15803d);
+}
+
+.nba-factor-barras span:first-child {
+  justify-self: end;
+  background: linear-gradient(270deg, #22c55e, #15803d);
+}
+
+.nba-factor-barras span:last-child {
+  background: linear-gradient(90deg, #f97316, #9a3412);
+}
+
+/* MVP del partido */
+.nba-mvps {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.nba-mvp {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 12px;
+  background: #10151d;
+  border: 1px solid #212a37;
+}
+
+.nba-mvp-foto img {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: top center;
+  background: #1b2230;
+}
+
+.nba-mvp-nombre {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #eef2f7;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nba-mvp-nombre em {
+  color: #6b7280;
+  font-style: normal;
+  font-size: 11px;
+}
+
+.nba-mvp-linea {
+  font-size: 11.5px;
+  color: #9aa6b6;
+}
+
+.nba-mvp-linea strong {
+  color: #eef2f7;
+  font-size: 13px;
+}
+
+.nba-mvp-extra {
+  font-size: 10px;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+/* Ritmo y eficiencia */
+.nba-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.nba-chip {
+  padding: 5px 10px;
+  border-radius: 9px;
+  background: #10151d;
+  border: 1px solid #212a37;
+  font-size: 11.5px;
+  color: #8b95a1;
+}
+
+.nba-chip strong {
+  color: #eef2f7;
+  font-weight: 800;
+}
+
+.nba-rtg {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #121a23, #0d131a);
+  border: 1px solid #1d2530;
+}
+
+.nba-rtg-lado {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.nba-rtg-der {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.nba-rtg-num {
+  font-size: 22px;
+  font-weight: 900;
+  color: #4ade80;
+  line-height: 1.1;
+}
+
+.nba-rtg-der .nba-rtg-num {
+  color: #fb923c;
+}
+
+.nba-rtg-lbl {
+  font-size: 10.5px;
+  color: #8b95a1;
+}
+
+.nba-rtg-sub {
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.nba-rtg-sub.alto {
+  color: #4ade80;
+}
+
+.nba-rtg-sub.bajo {
+  color: #f87171;
+}
+
+.nba-rtg-medio {
+  font-size: 11px;
+  color: #4b5563;
+  font-weight: 800;
+}
+
+/* Rachas */
+.nba-rachas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 7px;
+}
+
+.nba-rachas li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12.5px;
+  color: #cfd6e2;
+}
+
+.nba-racha-chip {
+  width: 52px;
+  text-align: center;
+  padding: 3px 0;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.nba-racha-chip.casa {
+  background: #14532d;
+  color: #bbf7d0;
+}
+
+.nba-racha-chip.fuera {
+  background: #7c2d12;
+  color: #fed7aa;
+}
+
+.nba-racha-puntos {
+  color: #eef2f7;
+  font-size: 13px;
+}
+
+.nba-racha-meta {
+  margin-left: auto;
+  font-size: 10.5px;
+  color: #7c8698;
+}
+
+/* Caja completa */
+.nba-caja {
+  margin-top: 10px;
+  border: 1px solid #1d2530;
+  border-radius: 11px;
+  overflow: hidden;
+}
+
+.nba-caja summary {
+  cursor: pointer;
+  padding: 8px 11px;
+  background: #131a23;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #eef2f7;
+  list-style: none;
+}
+
+.nba-caja summary::-webkit-details-marker {
+  display: none;
+}
+
+.nba-caja-num {
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #1d2530;
+  font-size: 10.5px;
+  color: #9aa6b6;
+}
+
+.nba-tabla-wrap {
+  overflow-x: auto;
+}
+
+.nba-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+
+.nba-tabla th {
+  padding: 6px 4px;
+  font-size: 10px;
+  color: #7c8698;
+  font-weight: 800;
+  cursor: pointer;
+  user-select: none;
+}
+
+.nba-tabla th.activa {
+  color: #fb923c;
+}
+
+.nba-tabla th.nba-th-jug {
+  text-align: left;
+  padding-left: 10px;
+  cursor: default;
+}
+
+.nba-tabla td {
+  padding: 6px 4px;
+  text-align: center;
+  color: #cfd6e2;
+  border-top: 1px solid #171f29;
+  font-variant-numeric: tabular-nums;
+}
+
+.nba-tabla td.nba-td-jug {
+  text-align: left;
+  padding-left: 8px;
+}
+
+.nba-tabla tr:hover td {
+  background: #141b25;
+}
+
+.nba-td-jug img,
+.nba-sin-foto {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: top center;
+  background: #1b2230;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+.nba-td-nombre {
+  font-weight: 700;
+  color: #eef2f7;
+}
+
+.nba-titular {
+  color: #4ade80;
+  margin-right: 3px;
+}
+
+.nba-ts {
+  color: #fbbf24;
+  font-weight: 700;
+}
+
