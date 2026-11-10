@@ -754,14 +754,21 @@ export default function Dashboard({ session, onIrACreditos }) {
       const g = await generateDashboard(session, 120, true);
       const a = await analizarPendientes(session, { limite: 12 });
       const s = a?.resumen ?? {};
+      // El analista cuantitativo es de GOLES (Poisson sobre forma de ESPN): el
+      // endpoint filtra por sport="soccer". Si hoy solo hay picks de NBA/tenis/
+      // NFL, "Analizados" sale 0 y antes parecia un fallo, no una limitacion.
+      const nota = (s.analizados ?? 0) === 0
+        ? "\nℹ️ El analista solo modela FÚTBOL: no hay picks pendientes de fútbol ahora mismo."
+        : "";
       setAdminMsg({
         tipo: "ok",
         texto:
           "✅ Picks generados y pendientes analizados\n" +
-          `Generados: ${g?.generados ?? 0} | Analizados: ${s.analizados ?? 0}\n` +
+          `Generados: ${g?.generados ?? 0} | Analizados: ${s.analizados ?? 0} (solo fútbol)\n` +
           `✅ VALOR: ${s.valor ?? 0} | ➖ NEUTRO: ${s.neutro ?? 0} | ❌ EVITAR: ${s.evitar ?? 0}\n` +
           `Sin modelo: ${s.no_modelables ?? 0} | sin datos: ${s.sin_datos ?? 0}` +
           (s.ev_promedio_pct !== undefined ? ` | EV medio: ${s.ev_promedio_pct}%` : "") +
+          nota +
           "\n\n" + (a?.texto ?? ""),
       });
       const d = await fetchDashboard(session);
@@ -784,12 +791,21 @@ export default function Dashboard({ session, onIrACreditos }) {
     setAdminMsg(null);
     try {
       const r = await resolvePicks(session, { limite: 100, anular: false });
+      // "Sin datos" NO es un fallo del boton: es que la fuente no tiene ese
+      // partido (torneos ya cerrados, dobles de tenis) o el mercado no es
+      // verificable con el marcador (fumbles, primer juego al saque...). Esos
+      // picks se quedan PENDIENTE, nunca se anulan desde aqui.
+      const nota = (r?.sin_datos ?? 0) > 0
+        ? "\nℹ️ 'Sin datos' = la fuente no tiene ese partido/marcador (o el mercado no se puede comprobar). Siguen PENDIENTE."
+        : "";
       setAdminMsg({
         tipo: "ok",
         texto:
+          `📋 Pendientes revisados: ${r?.total_pendientes ?? 0}\n` +
           `✅ Picks resueltos: ${r?.resueltos ?? 0}\n` +
           `⏳ Aun en juego / sin marcador final: ${r?.en_juego ?? 0}\n` +
-          `🚫 Sin datos: ${r?.sin_datos ?? 0}\n` +
+          `🚫 Sin datos: ${r?.sin_datos ?? 0}` +
+          nota + "\n" +
           JSON.stringify(r?.detalle ?? [], null, 1),
       });
       const d = await fetchDashboard(session);
