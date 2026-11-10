@@ -1,5 +1,3 @@
-import { useState } from "react";
-
 /**
  * Panel de ANALYTICS NBA (todo calculado desde ESPN, nada inventado):
  *   - Curva de win probability jugada a jugada.
@@ -7,7 +5,10 @@ import { useState } from "react";
  *   - Ritmo y eficiencia: posesiones, Pace, OffRtg, NetRtg, TS%.
  *   - MVP del partido con Game Score (Hollinger).
  *   - Rachas (momentum) sacadas del play-by-play.
- *   - Caja completa ordenable por cualquier columna.
+ *
+ * La CAJA de jugadores ya NO se pinta aqui: vive en la pestaña Alineacion
+ * (NbaBoxscore), que es donde el usuario la busca. Aqui solo se usa
+ * `playersBox` para elegir al MVP de cada equipo.
  */
 
 const n1 = (v) => (v == null ? "-" : Number(v).toFixed(1));
@@ -114,80 +115,13 @@ function MejorJugador({ jugador, color }) {
   );
 }
 
-const COLUMNAS = [
-  { clave: "min", label: "MIN" },
-  { clave: "pts", label: "PTS" },
-  { clave: "reb", label: "REB" },
-  { clave: "ast", label: "AST" },
-  { clave: "fg3m", label: "3P" },
-  { clave: "stl", label: "ROB" },
-  { clave: "blk", label: "TAP" },
-  { clave: "to", label: "PER" },
-  { clave: "ts", label: "TS%" },
-  { clave: "plus", label: "+/-" },
-];
-
 export default function NbaAnalytics({ equipos = [], playersBox = [], runs = [], winProbability = [] }) {
   const casa = equipos.find((t) => t.homeAway === "home") || equipos[0] || {};
   const fuera = equipos.find((t) => t.homeAway !== "home") || equipos[1] || {};
   const anCasa = casa.analytics || null;
   const anFuera = fuera.analytics || null;
-  const [orden, setOrden] = useState({ clave: "game_score", asc: false });
 
   if (!anCasa && !anFuera && !playersBox.length) return null;
-
-  const ordenar = (clave) => setOrden((o) => ({ clave, asc: o.clave === clave ? !o.asc : false }));
-
-  const tabla = (equipo) => {
-    const filas = [...(equipo.jugadores || [])].sort((a, b) => {
-      const na = typeof a[orden.clave] === "number" ? a[orden.clave] : -999;
-      const nb = typeof b[orden.clave] === "number" ? b[orden.clave] : -999;
-      return orden.asc ? na - nb : nb - na;
-    });
-
-    return (
-      <div className="nba-tabla-wrap">
-        <table className="nba-tabla">
-          <thead>
-            <tr>
-              <th className="nba-th-jug">Jugador</th>
-              {COLUMNAS.map((c) => (
-                <th
-                  key={c.clave}
-                  className={orden.clave === c.clave ? "activa" : ""}
-                  onClick={() => ordenar(c.clave)}
-                >
-                  {c.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {filas.map((j) => (
-              <tr key={j.id || j.nombre}>
-                <td className="nba-td-jug">
-                  {j.foto ? <img src={j.foto} alt="" loading="lazy" /> : <span className="nba-sin-foto" />}
-                  <span className="nba-td-nombre">
-                    {j.titular ? (
-                      <b className="nba-titular" title="Titular">
-                        •
-                      </b>
-                    ) : null}
-                    {j.corto}
-                  </span>
-                </td>
-                {COLUMNAS.map((c) => (
-                  <td key={c.clave} className={c.clave === "ts" ? "nba-ts" : ""}>
-                    {c.clave === "ts" ? n1(j[c.clave]) : entero(j[c.clave])}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    );
-  };
 
   return (
     <div className="nba-panel">
@@ -306,23 +240,6 @@ export default function NbaAnalytics({ equipos = [], playersBox = [], runs = [],
               );
             })}
           </ul>
-        </section>
-      ) : null}
-
-      {playersBox.length ? (
-        <section className="sd-card dp-card" data-tab="stats">
-          <h4 className="dp-titulo">🗂️ Caja completa</h4>
-          <p className="nba-nota" style={{ marginTop: 0 }}>
-            Toca una columna para ordenar · • = titular
-          </p>
-          {playersBox.map((eq) => (
-            <details key={eq.equipo_id || eq.equipo} className="nba-caja" open>
-              <summary>
-                {eq.equipo} <span className="nba-caja-num">{eq.jugadores?.length || 0}</span>
-              </summary>
-              {tabla(eq)}
-            </details>
-          ))}
         </section>
       ) : null}
     </div>
