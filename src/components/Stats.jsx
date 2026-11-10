@@ -16,6 +16,7 @@ import Alineacion from "./Alineacion";
 import DatosPartido from "./DatosPartido";
 import ContextoPartido from "./ContextoPartido";
 import NbaAnalytics from "./NbaAnalytics";
+import NbaBoxscore from "./NbaBoxscore";
 import NbaPlantilla from "./NbaPlantilla";
 
 const SPORTS = [
@@ -639,6 +640,10 @@ function GameDetail({ sport, eventId, onBack }) {
   const linesLen = Math.max(away?.linescores?.length || 0, home?.linescores?.length || 0);
   const h2h = detail.head_to_head || [];
   const keyPlayers = detail.key_players || [];
+  // Boxscore EN VIVO: ESPN lo publica en cuanto arranca el partido (y queda al
+  // terminar). Si aun no hay caja, la pestaña muestra los promedios de ESPN.
+  const hayBoxscore =
+    sport === "nba" && (detail.players_box || []).some((b) => (b.jugadores || []).length > 0);
 
   const sectionTitle = () => ({
     color: "#eef2f7",
@@ -689,11 +694,33 @@ function GameDetail({ sport, eventId, onBack }) {
 
       {/* Contenido en una sola columna de tarjetas (estilo app) */}
       <div className="sd-stack" data-activa={tab}>
-        {/* Alineacion: oficial de FotMob o once probable, con fotos */}
+        {/* Alineacion: boxscore en vivo (NBA), oficial de FotMob o once probable */}
         <div className="sd-card" data-tab="alineacion">
-          <h3 style={sectionTitle()}>{sport === "nba" ? "🏀 Plantilla y promedios" : "👥 Alineación"}</h3>
+          <h3 style={sectionTitle()}>
+            {sport === "nba"
+              ? hayBoxscore
+                ? "🏀 Boxscore en vivo"
+                : "🏀 Plantilla y promedios"
+              : "👥 Alineación"}
+          </h3>
           {sport === "nba" ? (
-            <NbaPlantilla equipos={detail.teams || []} />
+            hayBoxscore ? (
+              <>
+                <NbaBoxscore
+                  playersBox={detail.players_box || []}
+                  equipos={detail.teams || []}
+                  estado={detail.state}
+                  status={detail.status}
+                  clock={detail.clock}
+                />
+                <details className="nba-caja bs-promedios">
+                  <summary>📊 Promedios de temporada de la plantilla</summary>
+                  <NbaPlantilla equipos={detail.teams || []} />
+                </details>
+              </>
+            ) : (
+              <NbaPlantilla equipos={detail.teams || []} />
+            )
           ) : (
             <Alineacion sport={sport} eventId={eventId} league={detail.league_code || null} />
           )}

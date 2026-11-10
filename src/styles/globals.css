@@ -5296,6 +5296,86 @@ button {
 }
 
 /* ============================================================
+   Boxscore EN VIVO (NBA): barra de estado + totales por equipo
+   ============================================================ */
+.bs-panel {
+  gap: 10px;
+}
+
+.bs-barra {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.bs-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(248, 113, 113, 0.12);
+  border: 1px solid rgba(248, 113, 113, 0.45);
+  color: #f87171;
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+}
+
+.bs-live i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #f87171;
+  animation: bs-pulso 1.4s ease-in-out infinite;
+}
+
+@keyframes bs-pulso {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.75); }
+}
+
+.bs-final {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #1b2230;
+  border: 1px solid #2a3442;
+  color: #9aa6b6;
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: 0.4px;
+}
+
+.bs-equipo .pl-equipo-cab img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+.bs-totales td {
+  border-top: 1px solid #2a3442;
+  background: #131a23;
+  color: #eef2f7;
+  font-weight: 800;
+}
+
+.bs-totales td.nba-td-jug {
+  color: #9aa6b6;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+}
+
+.bs-promedios {
+  margin-top: 12px;
+}
+
+.bs-promedios[open] summary {
+  border-bottom: 1px solid #1d2530;
+}
+
+/* ============================================================
    Bajas y dudas (dos columnas, estilo SofaScore)
    ============================================================ */
 .baj-columnas {
