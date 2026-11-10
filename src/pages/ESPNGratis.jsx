@@ -32,6 +32,27 @@ function restar(iso) {
 const STREAM_FIJO = "https://barinaslive1.boldmss.com/ESPN_2/ESPN_2.isml/ESPN_2.m3u8";
 const FALLBACK_STREAM = `${API_URL}/hls-proxy?url=${encodeURIComponent(STREAM_FIJO)}`;
 
+// DASH: se carga desde el CDN SOLO si el partido trae una opcion .mpd
+// (dash.js pesa ~300 KB y el 90% de las señales son HLS). El paquete npm
+// dash.js@4 trae el campo "exports" mal formado y rompe el build de Vite.
+const DASH_CDN = "https://cdn.dashjs.org/latest/dash.all.min.js";
+let dashPromesa = null;
+
+function cargarDashJs() {
+  if (window.dashjs?.MediaPlayer) return Promise.resolve(window.dashjs);
+  if (dashPromesa) return dashPromesa;
+  dashPromesa = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = DASH_CDN;
+    script.async = true;
+    script.onload = () =>
+      window.dashjs?.MediaPlayer ? resolve(window.dashjs) : reject(new Error("dash.js sin MediaPlayer"));
+    script.onerror = () => reject(new Error("no se pudo cargar dash.js"));
+    document.head.appendChild(script);
+  });
+  return dashPromesa;
+}
+
 export default function ESPNGratis() {
   const [match, setMatch] = useState(null);
   const [cargando, setCargando] = useState(true);
@@ -39,6 +60,7 @@ export default function ESPNGratis() {
   const [restanteMs, setRestanteMs] = useState(0);
   const videoRef = useRef(null);
   const hlsRef = useRef(null);
+  const dashRef = useRef(null);
   const reintentosRef = useRef(0);
   const opcionesRef = useRef([]);
   const cambiarOpcionRef = useRef(null);
@@ -107,6 +129,62 @@ export default function ESPNGratis() {
         return null;
       }
     }
+    // --- Utilidades del reproductor -------------------------------------
+    function soltarDash() {
+      if (dashRef.current) {
+        try {
+          dashRef.current.reset();
+        } catch {
+          /* el player ya estaba muerto */
+        }
+        dashRef.current = null;
+      }
+    }
+
+    /** Pasa a la siguiente opcion cuando una señal muere. */
+    function siguienteOpcion(urlActual) {
+      const idx = opcionesRef.current.findIndex((o) => o.url === urlActual);
+      const siguiente = opcionesRef.current[(idx + 1) % Math.max(1, opcionesRef.current.length)];
+      if (reintentosRef.current < 6 && siguiente) {
+        reintentosRef.current += 1;
+        setTimeout(() => { if (alive) iniciar(siguiente.url); }, 2500);
+      } else {
+        setPlayerState("error");
+      }
+    }
+
+    /** DASH (.mpd): hls.js no lo reproduce. Con llave ClearKey el navegador
+     *  descifra solo (CDM org.w3.clearkey), sin servidor de licencias. */
+    async function iniciarDash(opcion, video) {
+      let dashjs;
+      try {
+        dashjs = await cargarDashJs();
+      } catch {
+        if (alive) setPlayerState("error");
+        return;
+      }
+      if (!alive || !video) return;
+      soltarDash();
+      const player = dashjs.MediaPlayer().create();
+      dashRef.current = player;
+      const drm = opcion.drm;
+      if (drm?.type === "clearkey" && drm.kid && drm.key) {
+        player.setProtectionData({
+          "org.w3.clearkey": {
+            clearkeys: { [String(drm.kid).toLowerCase()]: String(drm.key).toLowerCase() },
+          },
+        });
+      }
+      player.on("error", () => {
+        if (dashRef.current !== player) return;
+        setPlayerState("cargando");
+        siguienteOpcion(opcion.url);
+      });
+      player.initialize(video, opcion.url, true);
+      reintentosRef.current = 0;
+      setPlayerState("listo");
+    }
+
     async function iniciar(urlPropia) {
       setPlayerState("cargando");
       const video = videoRef.current;
@@ -132,6 +210,7 @@ export default function ESPNGratis() {
             hlsRef.current.destroy();
             hlsRef.current = null;
           }
+          soltarDash();
           if (video) {
             try {
               video.pause();
@@ -149,10 +228,17 @@ export default function ESPNGratis() {
 
         if (!alive || !video) return;
 
+        // DASH (.mpd): hls.js no lo abre -> dash.js (+ ClearKey si trae llave).
+        if (opcion?.dash) {
+          await iniciarDash(opcion, video);
+          return;
+        }
+
         if (hlsRef.current) {
           hlsRef.current.destroy();
           hlsRef.current = null;
         }
+        soltarDash();
         if (Hls.isSupported()) {
           const hls = new Hls({ enableWorker: true, lowLatencyMode: false });
           hlsRef.current = hls;
@@ -166,14 +252,7 @@ export default function ESPNGratis() {
             if (!data?.fatal) return;
             // Senal congelada/muerta: cambiar SOLO a la siguiente opcion
             // (el backend entrega opciones validadas en vivo).
-            const idx = opcionesRef.current.findIndex((o) => o.url === url);
-            const siguiente = opcionesRef.current[(idx + 1) % Math.max(1, opcionesRef.current.length)];
-            if (reintentosRef.current < 6 && siguiente) {
-              reintentosRef.current += 1;
-              setTimeout(() => { if (alive) iniciar(siguiente.url); }, 2500);
-            } else {
-              setPlayerState("error");
-            }
+            siguienteOpcion(url);
           });
         } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
           video.src = url;
@@ -210,6 +289,14 @@ export default function ESPNGratis() {
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
+      }
+      if (dashRef.current) {
+        try {
+          dashRef.current.reset();
+        } catch {
+          /* ya estaba destruido */
+        }
+        dashRef.current = null;
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
