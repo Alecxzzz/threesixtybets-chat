@@ -1096,6 +1096,9 @@ export default function Dashboard({ session, onIrACreditos }) {
           <a href="/privacidad" style={{ color: "#4ade80", fontWeight: 700, fontSize: 12 }}>
             Política de Privacidad
           </a>
+          <a href="mailto:3sixtybets@gmail.com" style={{ color: "#4ade80", fontWeight: 700, fontSize: 12 }}>
+            Soporte
+          </a>
         </div>
       </footer>
     </div>

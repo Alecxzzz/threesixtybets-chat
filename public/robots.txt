@@ -1,0 +1,19 @@
+# 3SIXTYBETS - reglas para buscadores
+# Solo se indexan las paginas publicas; el area privada no aporta y no debe
+# aparecer en Google (dashboard, chat, TV, perfil, panel admin).
+User-agent: *
+Allow: /
+Allow: /espn-gratis
+Allow: /privacidad
+Allow: /terminos
+Disallow: /dashboard
+Disallow: /chat
+Disallow: /tv
+Disallow: /perfil
+Disallow: /parlay
+Disallow: /track
+Disallow: /props
+Disallow: /creditos
+Disallow: /admin
+
+Sitemap: https://threesixtybets.xyz/sitemap.xml

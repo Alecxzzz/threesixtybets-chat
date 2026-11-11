@@ -432,6 +432,7 @@ export default function ESPNGratis() {
         }}>
           <a href="/terminos" style={{ color: "#4ade80", fontWeight: 700 }}>Términos y Condiciones</a>
           <a href="/privacidad" style={{ color: "#4ade80", fontWeight: 700 }}>Política de Privacidad</a>
+          <a href="mailto:3sixtybets@gmail.com" style={{ color: "#4ade80", fontWeight: 700 }}>Soporte</a>
           <span style={{ color: "#5c6670" }}>Solo mayores de 18 años</span>
         </div>
       </div>
