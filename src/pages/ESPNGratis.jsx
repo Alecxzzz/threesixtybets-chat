@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
+import NbaBoxscore from "../components/NbaBoxscore";
 
 const API_URL = (
   import.meta.env.VITE_API_URL ||
@@ -305,6 +306,8 @@ export default function ESPNGratis() {
   const home = match?.teams?.[0] || {};
   const away = match?.teams?.[1] || {};
   const enVivo = match?.estado === "in";
+  // Cuartos y boxscore SOLO con el partido ya iniciado (antes no existen).
+  const iniciado = match?.estado === "in" || match?.estado === "post";
   const minutosRestantes = Math.ceil(restanteMs / 60000);
 
   return (
@@ -351,6 +354,9 @@ export default function ESPNGratis() {
             </div>
             )}
 
+            {/* CUARTOS: pegados al marcador y solo con el partido iniciado */}
+            {iniciado && <Cuartos equipos={match.teams || []} />}
+
             {/* REPRODUCTOR */}
             <PlayerBox
               playerState={playerState}
@@ -375,6 +381,20 @@ export default function ESPNGratis() {
                 </span>
               </div>
             )}
+
+            {/* BOXSCORE EN VIVO: la misma tabla de la ficha del partido */}
+            {iniciado && (match.boxscore || []).length ? (
+              <>
+                <h3 style={{ margin: "4px 0 8px", fontSize: 15 }}>🗂️ Boxscore en vivo</h3>
+                <NbaBoxscore
+                  playersBox={match.boxscore}
+                  equipos={match.teams || []}
+                  estado={match.estado}
+                  status={match.status || ""}
+                  clock={match.reloj || ""}
+                />
+              </>
+            ) : null}
 
             {/* ESTADISTICAS */}
             <h3 style={{ margin: "4px 0 8px", fontSize: 15 }}>📊 Estadisticas</h3>
@@ -407,6 +427,59 @@ export default function ESPNGratis() {
     </div>
   );
 }
+
+/** Marcador por cuartos (Q1..Q4 y prorrogas) debajo del marcador principal. */
+function Cuartos({ equipos = [] }) {
+  const filas = equipos.filter((t) => (t.linescores || []).length);
+  if (!filas.length) return null;
+  const cuartos = Math.max(...filas.map((t) => (t.linescores || []).length));
+
+  const cabecera = { color: "#8b95a1", fontWeight: 800, fontSize: 11, padding: "2px 6px" };
+  const celda = { textAlign: "center", padding: "4px 6px", fontVariantNumeric: "tabular-nums" };
+
+  return (
+    <div style={{
+      background: "#111820", border: "1px solid #22303c", borderRadius: 12,
+      padding: "10px 12px", marginBottom: 14,
+    }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+        <thead>
+          <tr>
+            <th style={{ ...cabecera, textAlign: "left" }} />
+            {Array.from({ length: cuartos }, (_, i) => (
+              <th key={i} style={cabecera}>{i < 4 ? `Q${i + 1}` : `P${i - 3}`}</th>
+            ))}
+            <th style={{ ...cabecera, color: "#4ade80" }}>T</th>
+          </tr>
+        </thead>
+        <tbody>
+          {filas.map((t, idx) => (
+            <tr key={t.id || t.name || idx}>
+              <td style={{ padding: "4px 0" }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  {t.logo ? <img src={t.logo} alt="" width={16} height={16} /> : null}
+                  <span style={{ fontWeight: 700 }}>{t.short_name || t.abbr || t.name}</span>
+                </span>
+              </td>
+              {Array.from({ length: cuartos }, (_, i) => {
+                const q = (t.linescores || [])[i];
+                // El backend normaliza, pero por si llega un string crudo.
+                const texto = q?.displayValue ?? q?.value ?? (typeof q === "string" ? q : "-");
+                return (
+                  <td key={i} style={{ ...celda, color: "#cfd6e2" }}>
+                    {texto}
+                  </td>
+                );
+              })}
+              <td style={{ ...celda, fontWeight: 800, color: "#4ade80" }}>{t.score ?? "-"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 
 function PlayerBox({ playerState, match, videoRef, opciones = [], opcionActiva = 0, onCambiar, embedUrl = "" }) {
   return (
