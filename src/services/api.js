@@ -328,7 +328,10 @@ export async function analizarPendientes(session, { limite = 12, conLlm = false 
   const res = await fetch(`${API_URL}/analisis/pendientes`, {
     method: "POST",
     headers: authHeaders(session),
-    body: JSON.stringify({ limite, con_llm: !!conLlm }),
+    // sport: "" = analizar TODOS los deportes. El backend usa "soccer" por
+    // defecto, y asi los picks de NBA se quedaban sin analizar (el panel
+    // mostraba "Analizados: 0" aunque hubiera picks generados).
+    body: JSON.stringify({ limite, con_llm: !!conLlm, sport: "" }),
   });
   return readJson(res);
 }

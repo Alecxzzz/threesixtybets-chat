@@ -754,17 +754,17 @@ export default function Dashboard({ session, onIrACreditos }) {
       const g = await generateDashboard(session, 120, true);
       const a = await analizarPendientes(session, { limite: 12 });
       const s = a?.resumen ?? {};
-      // El analista cuantitativo es de GOLES (Poisson sobre forma de ESPN): el
-      // endpoint filtra por sport="soccer". Si hoy solo hay picks de NBA/tenis/
-      // NFL, "Analizados" sale 0 y antes parecia un fallo, no una limitacion.
+      // El modelo cuantitativo cubre FÚTBOL (Poisson de goles) y NBA (normal
+      // sobre puntos, con la misma base de ESPN). Si hoy solo hay picks de
+      // otros deportes, "Analizados" sale 0 y parece un fallo: se explica.
       const nota = (s.analizados ?? 0) === 0
-        ? "\nℹ️ El analista solo modela FÚTBOL: no hay picks pendientes de fútbol ahora mismo."
+        ? "\nℹ️ El analista modela FÚTBOL y NBA: no hay picks pendientes de esos deportes ahora mismo."
         : "";
       setAdminMsg({
         tipo: "ok",
         texto:
           "✅ Picks generados y pendientes analizados\n" +
-          `Generados: ${g?.generados ?? 0} | Analizados: ${s.analizados ?? 0} (solo fútbol)\n` +
+          `Generados: ${g?.generados ?? 0} | Analizados: ${s.analizados ?? 0} (fútbol y NBA)\n` +
           `✅ VALOR: ${s.valor ?? 0} | ➖ NEUTRO: ${s.neutro ?? 0} | ❌ EVITAR: ${s.evitar ?? 0}\n` +
           `Sin modelo: ${s.no_modelables ?? 0} | sin datos: ${s.sin_datos ?? 0}` +
           (s.ev_promedio_pct !== undefined ? ` | EV medio: ${s.ev_promedio_pct}%` : "") +
