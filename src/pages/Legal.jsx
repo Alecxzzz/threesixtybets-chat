@@ -5,6 +5,7 @@
  * obligatorias para el usuario: cualquiera debe poder leerlas antes de
  * registrarse o pagar. Si cambian las condiciones se actualiza ACTUALIZADO.
  */
+import { useEffect } from "react";
 
 const ACTUALIZADO = "11 de noviembre de 2026";
 const MARCA = "3SIXTYBETS";
@@ -12,7 +13,11 @@ const DOMINIO = "threesixtybets.xyz";
 const CONTACTO = "soporte@threesixtybets.xyz";
 
 const DARK = {
-  minHeight: "100vh",
+  // Scroll PROPIO de la página: aunque globals.css deje el body con
+  // overflow:hidden (layout del chat), este contenedor se desplaza solo.
+  height: "100vh",
+  overflowY: "auto",
+  WebkitOverflowScrolling: "touch",
   background: "#0b0f14",
   color: "#e6edf3",
   fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
@@ -318,6 +323,25 @@ function Terminos() {
 
 export default function Legal({ tipo = "privacidad" }) {
   const esTerminos = String(tipo).toLowerCase().startsWith("term");
+
+  // globals.css pone `body { overflow: hidden }` por el layout del chat (que
+  // scrollea en su propio contenedor). En una pagina larga como esta eso deja
+  // el texto cortado sin poder bajar: se reactiva el scroll y se restaura al
+  // salir (mismo arreglo que ya usa la pagina de /espn-gratis).
+  useEffect(() => {
+    const body = document.body;
+    const html = document.documentElement;
+    const previo = { overflow: body.style.overflow, height: body.style.height };
+    body.style.overflow = "auto";
+    body.style.height = "auto";
+    html.style.height = "auto";
+    return () => {
+      body.style.overflow = previo.overflow;
+      body.style.height = previo.height;
+      html.style.height = "";
+    };
+  }, []);
+
   return (
     <div style={DARK}>
       <div style={{ maxWidth: 860, margin: "0 auto" }}>
