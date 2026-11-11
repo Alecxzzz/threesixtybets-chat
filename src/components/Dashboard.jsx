@@ -805,6 +805,12 @@ export default function Dashboard({ session, onIrACreditos }) {
           `✅ Picks resueltos: ${r?.resueltos ?? 0}\n` +
           `⏳ Aun en juego / sin marcador final: ${r?.en_juego ?? 0}\n` +
           `🚫 Sin datos: ${r?.sin_datos ?? 0}` +
+          // Los mercados no verificables no se intentan; se informan aparte
+          // para que la cuenta cuadre (antes 32 = 3 + 10 y faltaban 19).
+          ((r?.omitidos ?? 0) > 0 ? `\n⏭️ Omitidos (mercado no verificable): ${r.omitidos}` : "") +
+          ((r?.purgados ?? 0) > 0
+            ? `\n🗑️ Purgados (+72h sin poder verificarse): ${r.purgados}`
+            : "") +
           nota + "\n" +
           JSON.stringify(r?.detalle ?? [], null, 1),
       });
