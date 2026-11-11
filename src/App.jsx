@@ -286,7 +286,18 @@ function hasAccessExpired(user) {
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [page, setPage] = useState("dashboard");
+  const [page, setPage] = useState(() => {
+    // Permite abrir una seccion por enlace (ej. /?page=credits desde la pagina
+    // publica de /espn-gratis, para que el CTA de suscripcion funcione).
+    try {
+      const pedida = (new URLSearchParams(window.location.search).get("page") || "").toLowerCase();
+      const validas = ["chat", "dashboard", "tv", "stats", "props", "credits",
+                       "admin", "transactions", "keys"];
+      return validas.includes(pedida) ? pedida : "dashboard";
+    } catch {
+      return "dashboard";
+    }
+  });
   const [session, setSession] = useState(getStoredSession);
   const [premiumBlocked, setPremiumBlocked] = useState(false);
 

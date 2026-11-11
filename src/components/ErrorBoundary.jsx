@@ -1,4 +1,5 @@
 import { Component } from "react";
+import { reportarError } from "../utils/telemetria";
 
 const RELOAD_FLAG = "eb_auto_reload_at";
 const RELOAD_COOLDOWN_MS = 30000;
@@ -23,6 +24,13 @@ export default class ErrorBoundary extends Component {
   componentDidCatch(error, info) {
     // Log util si conectan el telefono a devtools.
     console.error("[3SIXTYBETS] Error en la interfaz:", error, info?.componentStack);
+    // Aviso al backend para que quede en el log del servidor: asi los fallos
+    // reales de los usuarios no se pierden (no hay servicio externo de errores).
+    try {
+      reportarError(error, info?.componentStack);
+    } catch {
+      /* nunca romper por reportar */
+    }
     try {
       const last = Number(sessionStorage.getItem(RELOAD_FLAG) || 0);
       if (Date.now() - last > RELOAD_COOLDOWN_MS) {

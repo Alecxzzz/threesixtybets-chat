@@ -368,6 +368,30 @@ export default function ESPNGratis() {
               onCambiar={(idx) => cambiarOpcionRef.current?.(idx)}
             />
 
+            {/* CTA SUSCRIPCION: aqui se ve gratis; el resto del dia es Premium */}
+            <div style={{
+              background: "linear-gradient(180deg,#121a23,#0c1219)",
+              border: "1px solid #1d2530", borderRadius: 12,
+              padding: "12px 14px", marginBottom: 14,
+            }}>
+              <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 4 }}>
+                ¿Quieres ver TODOS los partidos?
+              </div>
+              <p style={{ margin: "0 0 10px", fontSize: 12.5, color: "#8b95a1", lineHeight: 1.5 }}>
+                Planes desde <strong style={{ color: "#e6edf3" }}>$10</strong> (15 días) ·
+                <strong style={{ color: "#e6edf3" }}> $15</strong> (30 días) ·
+                <strong style={{ color: "#e6edf3" }}> $25</strong> (60 días).
+                Pago con tarjeta o criptomonedas.
+              </p>
+              <a href="/?page=credits" style={{
+                display: "inline-block", padding: "10px 18px", borderRadius: 10,
+                background: "rgba(74,222,128,0.14)", border: "1px solid #4ade80",
+                color: "#4ade80", fontWeight: 800, fontSize: 13, textDecoration: "none",
+              }}>
+                SUSCRÍBETE — Todo el fútbol en vivo
+              </a>
+            </div>
+
             {/* TIEMPO RESTANTE */}
             {playerState === "listo" && match?.cierre && (
               <div style={{

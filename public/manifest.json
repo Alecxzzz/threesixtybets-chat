@@ -1,0 +1,35 @@
+{
+  "name": "3SIXTYBETS AI",
+  "short_name": "3SIXTYBETS",
+  "description": "Pronosticos con datos reales, estadisticas de partidos y TV en vivo.",
+  "lang": "es",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f1117",
+  "theme_color": "#0f1117",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Partido gratis",
+      "url": "/espn-gratis"
+    },
+    {
+      "name": "Mi dashboard",
+      "url": "/"
+    }
+  ]
+}

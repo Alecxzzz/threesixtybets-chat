@@ -294,6 +294,17 @@ function Chat({ session }) {
             </select>
           </label>
         </div>
+
+        {/* Aviso legal del chat: la IA puede equivocarse y sus respuestas no
+            son una garantia ni una invitacion a apostar. */}
+        <p style={{
+          margin: "8px 2px 0", fontSize: 11, lineHeight: 1.5, color: "#5c6670",
+        }}>
+          La IA puede equivocarse: verifica cuotas, alineaciones y resultados en la
+          fuente oficial. Solo mayores de 18 años.{" "}
+          <a href="/terminos" style={{ color: "#4ade80" }}>Términos</a> ·{" "}
+          <a href="/privacidad" style={{ color: "#4ade80" }}>Privacidad</a>
+        </p>
       </div>
     </section>
   );
