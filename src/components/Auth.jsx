@@ -134,6 +134,16 @@ function Auth({ onAuth }) {
           <button className="auth-submit" type="submit" disabled={loading}>
             {loading ? "Procesando..." : isSignUp ? "Crear cuenta" : "Entrar"}
           </button>
+
+          {/* Al registrarte aceptas las condiciones: los enlaces deben estar
+              SIEMPRE visibles antes de crear la cuenta. */}
+          <p className="auth-legal" style={{ marginTop: 12, fontSize: 11.5, color: "#8b95a1", textAlign: "center", lineHeight: 1.5 }}>
+            Al continuar aceptas los{" "}
+            <a href="/terminos" style={{ color: "#4ade80" }}>Términos y Condiciones</a>{" "}
+            y la{" "}
+            <a href="/privacidad" style={{ color: "#4ade80" }}>Política de Privacidad</a>.
+            Solo para mayores de 18 años.
+          </p>
         </form>
       </section>
     </main>

@@ -3,13 +3,29 @@ import { createRoot } from "react-dom/client";
 import App from "./App.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import ESPNGratis from "./pages/ESPNGratis.jsx";
+import Legal from "./pages/Legal.jsx";
 
-// Ruta publica especial: reproductor ESPN Deportes gratis (2 horas), sin
-// registro. No pasa por el App ni por la pantalla de Auth.
-if (window.location.pathname.toLowerCase().includes("espn-gratis")) {
+// Rutas publicas que NO pasan por el App ni por la pantalla de Auth:
+//   /espn-gratis  -> reproductor ESPN Deportes gratis (2 horas)
+//   /privacidad   -> Politica de Privacidad
+//   /terminos     -> Terminos y Condiciones
+// Las legales deben poder leerse sin cuenta (antes de registrarse o pagar).
+const ruta = window.location.pathname.toLowerCase();
+const esLegal = ruta.includes("privacidad") || ruta.includes("terminos")
+  || ruta.includes("terms") || ruta.includes("privacy");
+
+if (ruta.includes("espn-gratis")) {
   createRoot(document.getElementById("root")).render(
     <ErrorBoundary>
       <ESPNGratis />
+    </ErrorBoundary>
+  );
+} else if (esLegal) {
+  createRoot(document.getElementById("root")).render(
+    <ErrorBoundary>
+      <Legal tipo={ruta.includes("privacidad") || ruta.includes("privacy")
+        ? "privacidad"
+        : "terminos"} />
     </ErrorBoundary>
   );
 } else {

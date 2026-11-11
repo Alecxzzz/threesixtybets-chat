@@ -1089,6 +1089,14 @@ export default function Dashboard({ session, onIrACreditos }) {
         tomada basándose en esta información es de absoluta responsabilidad del
         usuario. Plataforma exclusiva para mayores de 18 años.
         <PagosAceptados />
+        <div style={{ marginTop: 10, display: "flex", gap: 14, flexWrap: "wrap", justifyContent: "center" }}>
+          <a href="/terminos" style={{ color: "#4ade80", fontWeight: 700, fontSize: 12 }}>
+            Términos y Condiciones
+          </a>
+          <a href="/privacidad" style={{ color: "#4ade80", fontWeight: 700, fontSize: 12 }}>
+            Política de Privacidad
+          </a>
+        </div>
       </footer>
     </div>
   );

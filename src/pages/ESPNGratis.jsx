@@ -423,6 +423,17 @@ export default function ESPNGratis() {
             )}
           </>
         )}
+
+        {/* PIE LEGAL: enlaces obligatorios, siempre accesibles sin login */}
+        <div style={{
+          marginTop: 22, paddingTop: 14, borderTop: "1px solid #22303c",
+          display: "flex", gap: 14, flexWrap: "wrap", justifyContent: "center",
+          fontSize: 12,
+        }}>
+          <a href="/terminos" style={{ color: "#4ade80", fontWeight: 700 }}>Términos y Condiciones</a>
+          <a href="/privacidad" style={{ color: "#4ade80", fontWeight: 700 }}>Política de Privacidad</a>
+          <span style={{ color: "#5c6670" }}>Solo mayores de 18 años</span>
+        </div>
       </div>
     </div>
   );
