@@ -64,7 +64,7 @@ function Privacidad() {
 
       <h2 style={H2}>2. Qué datos recogemos</h2>
       <ul style={{ paddingLeft: 20, margin: "0 0 10px" }}>
-        <li style={LI}><strong>Datos de cuenta:</strong> correo electrónico, nombre de usuario, contraseña cifrada (hash) y fecha de registro.</li>
+        <li style={LI}><strong>Datos de cuenta:</strong> correo electrónico, nombre de usuario, contraseña (que nunca se guarda en texto legible) y fecha de registro.</li>
         <li style={LI}><strong>Datos de uso:</strong> pronósticos consultados, mensajes enviados al chat, partidos y canales abiertos, y sus fechas.</li>
         <li style={LI}><strong>Datos técnicos:</strong> dirección IP, navegador, dispositivo e identificadores de sesión, necesarios para la seguridad.</li>
         <li style={LI}><strong>Datos de pago:</strong> plan contratado, importe, fecha, estado y la referencia de la pasarela. <strong>No almacenamos números de tarjeta ni claves de billeteras</strong>.</li>
@@ -95,36 +95,39 @@ function Privacidad() {
 
       <h2 style={H2}>5. Con quién los compartimos</h2>
       <p style={P}>
-        Solo con proveedores que nos permiten operar, que actúan como encargados
-        del tratamiento y tratan únicamente los datos necesarios:
+        No vendemos ni alquilamos tus datos. Solo los comunicamos a{" "}
+        <strong>categorías de proveedores</strong> que resultan imprescindibles para
+        prestar el servicio, y únicamente con los datos necesarios para su función:
       </p>
       <ul style={{ paddingLeft: 20, margin: "0 0 10px" }}>
-        <li style={LI}><strong>Hosting y base de datos:</strong> Railway y Aiven (servidores y base de datos cifrada).</li>
-        <li style={LI}><strong>Frontend:</strong> Vercel (entrega del sitio web).</li>
-        <li style={LI}><strong>Pagos:</strong> Pagadito y las redes de criptomonedas que elijas, que reciben lo necesario para procesar el cobro.</li>
-        <li style={LI}><strong>Inteligencia artificial:</strong> proveedores de modelos de lenguaje que procesan el texto de tus consultas para generar el análisis. No les enviamos tu contraseña ni datos de pago.</li>
-        <li style={LI}><strong>Fuentes deportivas y de video:</strong> ESPN, FotMob y repositorios de señales de terceros, con los que no compartimos datos personales.</li>
+        <li style={LI}><strong>Proveedores de infraestructura y alojamiento</strong> (servidores y base de datos donde se ejecuta la Plataforma).</li>
+        <li style={LI}><strong>Proveedores de entrega y seguridad del sitio web</strong>.</li>
+        <li style={LI}><strong>Procesadores de pago</strong> (pasarela habilitada en la web y redes de criptomonedas que elijas), que reciben lo necesario para procesar el cobro.</li>
+        <li style={LI}><strong>Proveedores de modelos de inteligencia artificial</strong>, que procesan el texto de tus consultas para generar el análisis. No les enviamos tu contraseña ni datos de pago.</li>
+        <li style={LI}><strong>Fuentes públicas de datos deportivos y de video</strong>, con las que no compartimos datos personales.</li>
       </ul>
       <p style={P}>
         También podemos comunicar datos si una autoridad competente lo exige
-        legalmente.
+        legalmente o para proteger derechos e integridad de la Plataforma y de sus
+        usuarios.
       </p>
 
       <h2 style={H2}>6. Cuánto tiempo los conservamos</h2>
       <p style={P}>
-        Mientras tu cuenta esté activa. Si la eliminas, borramos tus datos
-        personales salvo los que debamos conservar por obligaciones legales,
-        contables o de prevención de fraude (normalmente hasta 5 años desde la
-        última operación). Las copias de seguridad se rotan y desaparecen en un
-        plazo máximo de 30 días.
+        Mientras tu cuenta esté activa y, después, solo durante los plazos que
+        exijan las obligaciones legales, contables o de prevención de fraude
+        aplicables. Cumplidos esos plazos, los datos se eliminan o se anonimizan de
+        forma segura.
       </p>
 
       <h2 style={H2}>7. Seguridad</h2>
       <p style={P}>
-        Las contraseñas se almacenan con hash, el acceso va cifrado por HTTPS y el
-        acceso a la base de datos está restringido. Ningún sistema es infalible:
-        si detectamos una brecha que te afecte, te lo notificaremos y, cuando
-        corresponda, lo comunicaremos a la autoridad competente.
+        Aplicamos medidas técnicas y organizativas razonables para proteger la
+        información frente a accesos no autorizados, pérdida o alteración, y
+        limitamos el acceso interno a lo estrictamente necesario. Ningún sistema es
+        infalible: si se produjera un incidente que te afecte de forma relevante, te
+        lo notificaremos y, cuando corresponda, lo comunicaremos a la autoridad
+        competente.
       </p>
 
       <h2 style={H2}>8. Tus derechos</h2>
@@ -145,9 +148,9 @@ function Privacidad() {
 
       <h2 style={H2}>10. Transferencias internacionales</h2>
       <p style={P}>
-        Algunos proveedores están fuera de tu país (Estados Unidos o la Unión
-        Europea). Estas transferencias se amparan en cláusulas contractuales tipo u
-        otro mecanismo legal equivalente.
+        Algunos de esos proveedores pueden estar ubicados fuera de tu país. Cuando
+        ocurre, la transferencia se ampara en los mecanismos legales previstos para
+        garantizar un nivel de protección adecuado.
       </p>
 
       <h2 style={H2}>11. Cambios en esta política</h2>
@@ -212,7 +215,7 @@ function Terminos() {
       <h2 style={H2}>4. Planes, pagos y devoluciones</h2>
       <ul style={{ paddingLeft: 20, margin: "0 0 10px" }}>
         <li style={LI}>Los planes son de duración limitada (por ejemplo 15, 30 o 60 días) y su precio se muestra antes de pagar.</li>
-        <li style={LI}>El pago se procesa por Pagadito o por transferencia de criptomonedas a la dirección indicada. La confirmación puede tardar; el acceso se activa al verificarse.</li>
+        <li style={LI}>El pago se procesa por la pasarela habilitada en la web o por la transferencia de criptomonedas a la dirección indicada. La confirmación puede tardar; el acceso se activa al verificarse.</li>
         <li style={LI}>Los pagos en cripto son irreversibles: revisa la red y la dirección antes de enviar.</li>
         <li style={LI}>No hay devolución por el tiempo no utilizado, salvo error imputable a nosotros o fallo técnico que impida usar el servicio y no podamos resolver. Las reclamaciones se atienden en {CONTACTO} dentro de los 7 días siguientes al cobro.</li>
         <li style={LI}>Las operaciones con tarjeta pueden generar comisiones de la entidad emisora, ajenas a la Plataforma.</li>
@@ -263,10 +266,9 @@ function Terminos() {
       <h2 style={H2}>9. Disponibilidad y cambios del servicio</h2>
       <p style={P}>
         Procuramos mantener el servicio disponible, pero puede haber interrupciones
-        por mantenimiento, fallos de proveedores (datos deportivos, IA, pagos,
-        hosting) o causas de fuerza mayor. Podemos añadir, modificar o retirar
-        funciones. Si un cambio elimina de forma sustancial lo contratado, ofreceremos
-        una compensación proporcional.
+        por mantenimiento, fallos de proveedores externos o causas de fuerza mayor.
+        Podemos añadir, modificar o retirar funciones. Si un cambio elimina de forma
+        sustancial lo contratado, ofreceremos una compensación proporcional.
       </p>
 
       <h2 style={H2}>10. Límite de responsabilidad</h2>
