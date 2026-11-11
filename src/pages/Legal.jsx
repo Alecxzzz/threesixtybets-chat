@@ -10,7 +10,7 @@ import { useEffect } from "react";
 const ACTUALIZADO = "11 de noviembre de 2026";
 const MARCA = "3SIXTYBETS";
 const DOMINIO = "threesixtybets.xyz";
-const CONTACTO = "soporte@threesixtybets.xyz";
+const CONTACTO = "3sixtybets@gmail.com";
 
 const DARK = {
   // Scroll PROPIO de la página: aunque globals.css deje el body con
@@ -217,7 +217,8 @@ function Terminos() {
         <li style={LI}>Los planes son de duración limitada (por ejemplo 15, 30 o 60 días) y su precio se muestra antes de pagar.</li>
         <li style={LI}>El pago se procesa por la pasarela habilitada en la web o por la transferencia de criptomonedas a la dirección indicada. La confirmación puede tardar; el acceso se activa al verificarse.</li>
         <li style={LI}>Los pagos en cripto son irreversibles: revisa la red y la dirección antes de enviar.</li>
-        <li style={LI}>No hay devolución por el tiempo no utilizado, salvo error imputable a nosotros o fallo técnico que impida usar el servicio y no podamos resolver. Las reclamaciones se atienden en {CONTACTO} dentro de los 7 días siguientes al cobro.</li>
+        <li style={LI}>No hay devolución por el tiempo no utilizado, salvo error imputable a nosotros o fallo técnico que impida usar el servicio y no podamos resolver. Las reclamaciones se atienden en{" "}
+          <a href={`mailto:${CONTACTO}`} style={LINK}>{CONTACTO}</a> dentro de los 7 días siguientes al cobro.</li>
         <li style={LI}>Las operaciones con tarjeta pueden generar comisiones de la entidad emisora, ajenas a la Plataforma.</li>
       </ul>
 
