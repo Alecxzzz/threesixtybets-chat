@@ -563,6 +563,21 @@ export async function fetchAlineacion(session, sport, eventId, league) {
 }
 
 /**
+ * Tracker en vivo del partido: el widget `live_action` de Opta que sirve
+ * FotMob dentro de matchDetails. Devuelve `{ ok, url, en_vivo }` y se pinta
+ * en un <iframe>; si el partido no tiene tracker, `ok: false` con `motivo`.
+ */
+export async function fetchTracker(session, sport, eventId, league) {
+  const params = new URLSearchParams({ sport, event_id: eventId });
+  if (league) params.set("league", league);
+  const res = await fetch(`${API_URL}/stats/tracker?${params}`, {
+    headers: authHeaders(session),
+  });
+
+  return readJson(res);
+}
+
+/**
  * Extras del partido (FotMob): forma, insights, arbitro y goleadores.
  */
 export async function fetchDatosPartido(session, sport, eventId, league) {

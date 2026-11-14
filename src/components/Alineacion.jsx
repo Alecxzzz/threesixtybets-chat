@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { getStoredSession, fetchAlineacion } from "../services/api";
+import { getStoredSession, fetchAlineacion, fetchTracker } from "../services/api";
 import FichaJugador from "./FichaJugador";
 
 /**
@@ -86,6 +86,17 @@ function Marca({ jugador, x, y, tono, tipo, detalle, goles = 0, asistencias = 0,
   // El visitante lleva el nombre encima: así los dos equipos no se pisan en el medio
   const arriba = tono === "visita";
 
+  // Entrada "corriendo": el jugador arranca unos metros hacia el circulo
+  // central y se coloca en su sitio. El desplazamiento viaja en las custom
+  // properties --dx/--dy y lo aplica la animacion CSS del <g> interior.
+  const haciaX = 34 - x;
+  const haciaY = 52.5 - y;
+  const largo = Math.hypot(haciaX, haciaY) || 1;
+  const carrera = 6.2;
+  const deriva = Math.sin(indice * 1.7) * 1.2; // curva distinta en cada uno
+  const dx = ((haciaX / largo) * carrera - (haciaY / largo) * deriva).toFixed(2);
+  const dy = ((haciaY / largo) * carrera + (haciaX / largo) * deriva).toFixed(2);
+
   // Dato extra bajo el nombre segun el chip elegido
   let extra = "";
   if (detalle === "valor" && jugador?.valor) extra = `${Math.round(jugador.valor / 1e6)} M€`;
@@ -96,7 +107,7 @@ function Marca({ jugador, x, y, tono, tipo, detalle, goles = 0, asistencias = 0,
     <g
       transform={`translate(${x} ${y})`}
       className="alz-jug"
-      style={{ animationDelay: `${Math.min(indice, 22) * 45}ms` }}
+      style={{ "--retraso": `${Math.min(indice, 22) * 42}ms` }}
       role="button"
       tabIndex={0}
       aria-label={`${nombre}. Ver sus estadísticas del partido`}
@@ -108,6 +119,9 @@ function Marca({ jugador, x, y, tono, tipo, detalle, goles = 0, asistencias = 0,
         }
       }}
     >
+      {/* Capa que se mueve: este <g> no tiene transform propio, asi que la
+          animacion CSS no pisa la posicion del <g> de fuera. */}
+      <g className="alz-jug-mueve" style={{ "--dx": `${dx}px`, "--dy": `${dy}px` }}>
       <title>
         {`${nombre}${jugador?.dorsal ? ` · #${jugador.dorsal}` : ""}${jugador?.nota ? ` · nota ${jugador.nota}` : ""}${goles ? ` · ${goles} gol(es)` : ""}${asistencias ? ` · ${asistencias} asistencia(s)` : ""}`}
       </title>
@@ -202,6 +216,7 @@ function Marca({ jugador, x, y, tono, tipo, detalle, goles = 0, asistencias = 0,
           {extra}
         </text>
       ) : null}
+      </g>
     </g>
   );
 }
@@ -353,6 +368,68 @@ function FilaBaja({ jugador }) {
   );
 }
 
+/**
+ * Tracker en vivo del partido.
+ *
+ * El backend devuelve la URL del widget `live_action` de Opta que FotMob
+ * publica dentro de matchDetails (`content.superlive`). Esa pagina responde
+ * sin `X-Frame-Options` ni `Content-Security-Policy`, asi que se embebe en un
+ * iframe: el dibujo del campo, la pelota y las acciones se actualizan solos,
+ * sin que nosotros mantengamos nada.
+ *
+ * El widget puede pedir un clic para arrancar (los navegadores bloquean el
+ * audio/autoplay); es normal.
+ */
+function TrackerPartido({ eventId, league = null }) {
+  const [sesion] = useState(() => getStoredSession());
+  const [estado, setEstado] = useState(null);
+
+  useEffect(() => {
+    if (!sesion || !eventId) return undefined;
+    let cancelado = false;
+    fetchTracker(sesion, "soccer", eventId, league)
+      .then((r) => {
+        if (cancelado) return;
+        if (r?.ok && r.url) setEstado({ url: r.url, enVivo: r.en_vivo });
+        else setEstado({ error: r?.detalle || "Este partido no tiene tracker en vivo." });
+      })
+      .catch(() => {
+        if (!cancelado) setEstado({ error: "No se pudo cargar el tracker." });
+      });
+
+    return () => {
+      cancelado = true;
+    };
+  }, [sesion, eventId, league]);
+
+  if (!sesion || !eventId) {
+    return <p className="alz-vacio">Inicia sesión para ver el tracker.</p>;
+  }
+
+  if (!estado) {
+    return (
+      <div className="alz-cargando">
+        <span className="alz-spinner" aria-hidden="true" />
+        Cargando tracker…
+      </div>
+    );
+  }
+
+  if (estado.error) return <p className="alz-vacio">{estado.error}</p>;
+
+  return (
+    <div className="alz-tracker">
+      <iframe
+        src={estado.url}
+        title="Tracker del partido en vivo"
+        loading="lazy"
+        allow="autoplay; fullscreen"
+        referrerPolicy="no-referrer-when-downgrade"
+      />
+    </div>
+  );
+}
+
 export default function Alineacion({ sport = "soccer", eventId, league = null }) {
   const [datos, setDatos] = useState(null);
   const [cargando, setCargando] = useState(true);
@@ -481,6 +558,13 @@ export default function Alineacion({ sport = "soccer", eventId, league = null })
           >
             Lista
           </button>
+          <button
+            type="button"
+            className={vista === "tracker" ? "alz-tab activo" : "alz-tab"}
+            onClick={() => setVista("tracker")}
+          >
+            Tracker
+          </button>
         </div>
       </div>
 
@@ -507,7 +591,9 @@ export default function Alineacion({ sport = "soccer", eventId, league = null })
         <CabeceraEquipo equipo={visita} color={COLOR_VISITA} />
       </div>
 
-      {vista === "campo" ? (
+      {vista === "tracker" ? (
+        <TrackerPartido eventId={eventId} league={league} />
+      ) : vista === "campo" ? (
         <svg
           viewBox="0 0 68 105"
           className="alz-campo alz-campo-v"
@@ -704,7 +790,7 @@ export default function Alineacion({ sport = "soccer", eventId, league = null })
         />
       ) : null}
 
-      <div className="alz-fuente">Alineación: FotMob</div>
+      <div className="alz-fuente">Alineación</div>
     </div>
   );
 }

@@ -488,11 +488,29 @@
 /* ============================================================ ALINEACION
    Animacion del XI, chips de gol/asistencia y ficha del jugador.
 
-   IMPORTANTE: cada jugador es un <g transform="translate(x y)"> con la
-   posicion en el ATRIBUTO transform. Si se animara `transform` por CSS se
-   pisaria ese atributo y todos los jugadores caerian al (0,0). Por eso se
-   anima `opacity` en el grupo y `scale` (propiedad independiente) en los
-   circulos.                                                        */
+  IMPORTANTE: cada jugador es un <g transform="translate(x y)"> con la
+   posicion en el ATRIBUTO transform. Ese grupo NO se anima nunca (solo
+   opacity y el `scale` del hover, que es otra propiedad): si se animara su
+   transform se pisaria el atributo y los 22 jugadores caerian al (0,0). El
+   movimiento de entrada lo hace el <g> interior (.alz-jug-mueve), que no
+   tiene transform propio.                                          */
+
+/* El jugador llega CORRIENDO desde el centro del campo hasta su sitio. El
+   desplazamiento inicial sale de las custom properties --dx/--dy que pone
+   React, y la animacion vive en un <g> interior SIN transform propio: si se
+   animara el <g> exterior se pisaria su atributo transform y los 22
+   jugadores caerian al (0,0). El cubic-bezier pasa de 1 y da un rebote
+   minimo al frenar. */
+@keyframes alz-entra {
+  from {
+    transform: translate(var(--dx, 0px), var(--dy, 0px));
+    opacity: 0.12;
+  }
+  to {
+    transform: translate(0px, 0px);
+    opacity: 1;
+  }
+}
 
 @keyframes alz-fade {
   from { opacity: 0; }
@@ -508,7 +526,7 @@
   cursor: pointer;
   transform-box: fill-box;
   transform-origin: center;
-  animation: alz-fade 0.4s ease both;
+  animation: alz-fade 0.34s ease var(--retraso, 0ms) both;
   transition: scale 0.18s ease;
 }
 
@@ -518,10 +536,16 @@
   outline: none;
 }
 
-.alz-jug > circle {
+.alz-jug-mueve > circle {
   transform-box: fill-box;
   transform-origin: center;
   animation: alz-pop 0.5s cubic-bezier(0.2, 0.8, 0.25, 1) both;
+}
+
+/* Capa interior del jugador: la que se mueve. `both` + el retraso lo dejan
+   escondido en su punto de salida hasta que le toca entrar. */
+.alz-jug-mueve {
+  animation: alz-entra 0.62s cubic-bezier(0.2, 0.85, 0.25, 1.12) var(--retraso, 0ms) both;
 }
 
 /* chips de gol / asistencia en la vista lista */
@@ -1003,8 +1027,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .alz-jug-mueve,
   .alz-jug,
-  .alz-jug > circle,
+  .alz-jug-mueve > circle,
   .fj-fondo {
     animation: none;
   }

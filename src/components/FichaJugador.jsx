@@ -39,7 +39,7 @@ const GRUPOS = {
 };
 
 const STATS_ES = {
-  "FotMob rating": "Nota FotMob",
+  "FotMob rating": "Nota",
   "Minutes played": "Minutos jugados",
   Goals: "Goles",
   Assists: "Asistencias",
@@ -110,28 +110,76 @@ function MiniCampo({ disparos }) {
   if (!tiros.length) {
     return <p className="fj-vacio">Sin remates en este partido.</p>;
   }
+
+  // Resumen por resultado: es lo que se pinta en la leyenda.
+  const cuenta = { gol: 0, puerta: 0, fuera: 0, bloqueado: 0 };
+  const clase = (t) => {
+    if (t.resultado === "Goal") return "gol";
+    if (t.a_puerta) return "puerta";
+    if (/block/i.test(t.resultado || "")) return "bloqueado";
+    return "fuera";
+  };
+
   return (
-    <svg viewBox="0 0 100 64" className="fj-campo" role="img" aria-label="Mapa de remates">
-      <rect x="0" y="0" width="100" height="64" rx="2" fill="#0f2418" />
-      {/* area grande y pequena a la derecha (porteria atacada) */}
-      <path d="M83 13 H99 V51 H83" fill="none" stroke="#4a7d61" strokeWidth="0.8" />
-      <path d="M94 24 H99 V40 H94" fill="none" stroke="#4a7d61" strokeWidth="0.8" />
-      <path d="M99 27 V37" stroke="#7dd3fc" strokeWidth="1.4" />
-      <path d="M99 0 V64" stroke="#2f4a3a" strokeWidth="0.5" />
-      {tiros.map((t, i) => {
-        const x = Math.max(2, Math.min(98, Number(t.x) || 0));
-        const y = Math.max(2, Math.min(62, (Number(t.y) || 0) * 0.64));
-        const color = t.resultado === "Goal" ? "#22c55e" : t.a_puerta ? "#e2e8f0" : "#ef4444";
-        return (
-          <g key={i}>
-            <circle cx={x} cy={y} r="2.6" fill={color} fillOpacity="0.85" stroke="#04120a" strokeWidth="0.4" />
-            <text x={x} y={y + 0.9} textAnchor="middle" fontSize="2.1" fontWeight="800" fill="#04120a">
-              {t.min}
-            </text>
-          </g>
-        );
-      })}
-    </svg>
+    <>
+      <svg viewBox="0 0 100 64" className="fj-campo" role="img" aria-label="Mapa de remates">
+        <rect x="0" y="0" width="100" height="64" rx="2" fill="#0f2418" />
+        {/* area grande y pequena a la derecha (porteria atacada) */}
+        <path d="M83 13 H99 V51 H83" fill="none" stroke="#4a7d61" strokeWidth="0.8" />
+        <path d="M94 24 H99 V40 H94" fill="none" stroke="#4a7d61" strokeWidth="0.8" />
+        <path d="M99 27 V37" stroke="#7dd3fc" strokeWidth="1.4" />
+        <path d="M99 0 V64" stroke="#2f4a3a" strokeWidth="0.5" />
+
+        {tiros.map((t, i) => {
+          const k = clase(t);
+          cuenta[k] += 1;
+          const cx = Math.max(2, Math.min(96, Number(t.x) || 0));
+          const cy = Math.max(2, Math.min(62, (Number(t.y) || 0) * 0.64));
+          // Donde cruzo la linea de gol: x_porteria viene en metros desde el
+          // centro de la porteria (-3.66 .. +3.66). Se lleva al dibujo.
+          const metros = Number(t.x_porteria);
+          const destino = Number.isFinite(metros)
+            ? Math.max(26, Math.min(38, 32 + metros * 1.64))
+            : 32;
+          const color =
+            k === "gol" ? "#22c55e" : k === "puerta" ? "#e2e8f0" : k === "bloqueado" ? "#94a3b8" : "#ef4444";
+
+          return (
+            <g key={i} className={`fj-tiro fj-tiro--${k}`}>
+              {/* trayectoria del remate hasta la porteria */}
+              <line
+                x1={cx}
+                y1={cy}
+                x2={98}
+                y2={destino}
+                stroke={color}
+                strokeWidth={k === "gol" ? 1.1 : 0.6}
+                strokeOpacity={k === "gol" ? 0.95 : 0.55}
+                strokeDasharray={k === "fuera" ? "1.6 1.4" : k === "bloqueado" ? "0.8 1.2" : "none"}
+                strokeLinecap="round"
+              />
+              <circle cx={cx} cy={cy} r="2.6" fill={color} fillOpacity="0.9" stroke="#04120a" strokeWidth="0.4" />
+              <text x={cx} y={cy + 0.9} textAnchor="middle" fontSize="2.1" fontWeight="800" fill="#04120a">
+                {t.min}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+
+      <ul className="fj-leyenda">
+        {[
+          ["gol", "Gol"],
+          ["puerta", "A puerta"],
+          ["fuera", "Fuera"],
+          ["bloqueado", "Bloqueado"],
+        ].map(([k, etiqueta]) => (
+          <li key={k} className={`fj-leyenda-item fj-leyenda--${k}`}>
+            <i /> {etiqueta} <b>{cuenta[k]}</b>
+          </li>
+        ))}
+      </ul>
+    </>
   );
 }
 
@@ -223,7 +271,7 @@ export default function FichaJugador({ jugador, stats, aporte, onClose, onPrev, 
           <section className="fj-der">
             {grupos.length === 0 ? (
               <p className="fj-vacio">
-                FotMob no publico estadisticas individuales de este jugador en este partido.
+                No hay estadísticas individuales de este partido.
               </p>
             ) : (
               grupos.map((g) => (
@@ -247,7 +295,7 @@ export default function FichaJugador({ jugador, stats, aporte, onClose, onPrev, 
         </div>
 
         <footer className="fj-pie">
-          <span className="fj-fuente">Perfil del jugador · FotMob</span>
+          <span className="fj-fuente">Ficha del jugador</span>
           <button type="button" className="fj-cerrar" onClick={onClose}>
             Cerrar
           </button>
