@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { getStoredSession, fetchAlineacion } from "../services/api";
+import FichaJugador from "./FichaJugador";
 
 /**
  * Alineación del partido con FOTOS de todos los jugadores.
@@ -291,6 +292,19 @@ export default function Alineacion({ sport = "soccer", eventId, league = null })
   const statsJugador = datos?.stats_jugador || {};
   const aporteDe = (jugador) => aportes[String(jugador?.id)] || { goles: 0, asistencias: 0 };
   const abrirJugador = (jugador) => setSel(jugador || null);
+
+  // Recorrido con las flechas ‹ › de la ficha (titulares, en orden de campo).
+  const ordenJugadores = useMemo(
+    () => [...(datos?.local?.titulares || []), ...(datos?.visita?.titulares || [])],
+    [datos]
+  );
+
+  const moverJugador = (paso) => {
+    if (!sel || !ordenJugadores.length) return;
+    const i = ordenJugadores.findIndex((j) => j.id === sel.id);
+    const n = (i + paso + ordenJugadores.length) % ordenJugadores.length;
+    setSel(ordenJugadores[n]);
+  };
 
   // Escape cierra la ficha del jugador.
   useEffect(() => {
@@ -601,71 +615,16 @@ export default function Alineacion({ sport = "soccer", eventId, league = null })
         ))}
       </div>
 
-      {/* Ficha del jugador: stats EN VIVO de este partido */}
+      {/* Ficha del jugador: panel estilo FotMob (shot map + stats del partido) */}
       {sel ? (
-        <div
-          className="alz-modal"
-          role="dialog"
-          aria-modal="true"
-          aria-label={`Estadísticas de ${sel.nombre || "jugador"}`}
-          onClick={() => setSel(null)}
-        >
-          <div className="alz-modal-panel" onClick={(ev) => ev.stopPropagation()}>
-            <button
-              type="button"
-              className="alz-modal-x"
-              onClick={() => setSel(null)}
-              aria-label="Cerrar"
-            >
-              ×
-            </button>
-
-            <div className="alz-modal-cab">
-              {sel.foto ? (
-                <img className="alz-modal-foto" src={sel.foto} alt="" />
-              ) : (
-                <span className="alz-modal-foto alz-modal-inicial">
-                  {(sel.nombre || "?").slice(0, 1)}
-                </span>
-              )}
-              <div className="alz-modal-id">
-                <h3>{sel.nombre}</h3>
-                <p>
-                  {sel.dorsal ? `#${sel.dorsal}` : ""}
-                  {sel.nota != null ? ` · nota ${sel.nota}` : ""}
-                  {aporteDe(sel).goles ? ` · ${aporteDe(sel).goles} gol(es)` : ""}
-                  {aporteDe(sel).asistencias
-                    ? ` · ${aporteDe(sel).asistencias} asist.`
-                    : ""}
-                </p>
-              </div>
-            </div>
-
-            {(statsJugador[String(sel.id)]?.grupos || []).length === 0 ? (
-              <p className="alz-modal-vacio">
-                FotMob no publicó estadísticas individuales de este jugador en
-                este partido.
-              </p>
-            ) : (
-              (statsJugador[String(sel.id)]?.grupos || []).map((g) => (
-                <div key={g.grupo} className="alz-modal-grupo">
-                  <h4>{g.grupo}</h4>
-                  <ul>
-                    {(g.filas || []).map((f, i) => (
-                      <li key={`${g.grupo}-${i}`}>
-                        <span>{f.etiqueta}</span>
-                        <b>
-                          {f.valor}
-                          {f.total != null ? ` / ${f.total}` : ""}
-                        </b>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
+        <FichaJugador
+          jugador={sel}
+          stats={statsJugador[String(sel.id)]}
+          aporte={aporteDe(sel)}
+          onClose={() => setSel(null)}
+          onPrev={() => moverJugador(-1)}
+          onNext={() => moverJugador(1)}
+        />
       ) : null}
 
       <div className="alz-fuente">Alineación: FotMob</div>
