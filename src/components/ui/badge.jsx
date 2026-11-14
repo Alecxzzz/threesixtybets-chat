@@ -22,6 +22,10 @@ const badgeVariants = cva(
         // (design-system.css) en vez de utilidades bg-gold/text-gold: el Badge
         // que trajo el CLI no las tenia y variant="gold" se quedaba sin fondo
         // ni color ("GOLDEN PICK" salia en texto plano).
+        fuego: "ds-badge ds-badge--fuego",
+        valor: "ds-badge ds-badge--valor",
+        suave: "ds-badge ds-badge--suave",
+        locked: "ds-badge ds-badge--locked",
         success: "ds-badge ds-badge--success",
         gold: "ds-badge ds-badge--gold",
         neutral: "ds-badge ds-badge--neutral",

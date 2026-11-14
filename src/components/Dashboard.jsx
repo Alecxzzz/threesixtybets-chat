@@ -20,9 +20,9 @@ import { Progress } from "./ui/progress";
  */
 
 function ConfianzaBadge({ confianza }) {
-  if (confianza === "ALTA") return <Badge variant="neutral">🔥 Bomba</Badge>;
-  if (confianza === "MEDIA") return <Badge variant="outline">⭐ Valor</Badge>;
-  if (confianza === "BAJA") return <Badge variant="outline">Riesgo</Badge>;
+  if (confianza === "ALTA") return <Badge variant="fuego">🔥 Bomba</Badge>;
+  if (confianza === "MEDIA") return <Badge variant="valor">⭐ Valor</Badge>;
+  if (confianza === "BAJA") return <Badge variant="suave">Riesgo</Badge>;
   return null;
 }
 
@@ -967,7 +967,7 @@ export default function Dashboard({ session, onIrACreditos }) {
             >
               <div className="dp-badges">
                 {p.golden && <Badge variant="gold">GOLDEN PICK</Badge>}
-                <Badge variant="secondary">🔒 Premium</Badge>
+                <Badge variant="locked">🔒 Premium</Badge>
               </div>
               <div className="dp-evento">
                 <div className="dp-fila-equipo">

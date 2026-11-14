@@ -420,22 +420,46 @@
 }
 
 /* ---------------------------------------------- BADGES de 3SIXTYBETS
-   Variantes propias del Badge de shadcn (success / gold / neutral).
-   Van aqui y no con utilidades de Tailwind para no depender de que el tema
-   genere bg-gold, y para clavar los mismos colores de siempre.
-   `gold` es SOLO para GOLDEN PICK: ambar reservado, como el resto del panel. */
+   Variantes propias del Badge de shadcn. Los colores son EXACTAMENTE los que
+   ya tenia globals.css (.b-fuego/.b-valor/.b-suave/.b-locked): se conserva el
+   aspecto de siempre, solo que a traves del componente.
+   `gold` queda reservado a GOLDEN PICK. */
+
+.ds-badge--fuego {
+  color: #ffb1c0;
+  background: rgba(244, 63, 94, 0.14);
+  border-color: rgba(244, 63, 94, 0.4);
+}
+
+.ds-badge--valor {
+  color: #a89bff;
+  background: rgba(124, 108, 255, 0.14);
+  border-color: rgba(124, 108, 255, 0.4);
+}
+
+.ds-badge--suave {
+  color: #fcd34d;
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+.ds-badge--locked {
+  color: #fbbf24;
+  background: #3a2f10;
+  border-color: #78550f;
+}
 
 .ds-badge--gold {
   background: linear-gradient(135deg, #ffe08a, #f5c542);
-  border-color: transparent;
+  border-color: #f5c542;
   color: #111111;
   font-weight: 800;
 }
 
 .ds-badge--success {
-  background: rgba(34, 197, 94, 0.12);
+  background: rgba(34, 197, 94, 0.14);
   border-color: rgba(34, 197, 94, 0.45);
-  color: #5ee08d;
+  color: #4ade80;
 }
 
 .ds-badge--neutral {
