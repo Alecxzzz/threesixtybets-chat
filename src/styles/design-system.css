@@ -419,6 +419,31 @@
   max-width: 380px;
 }
 
+/* ---------------------------------------------- BADGES de 3SIXTYBETS
+   Variantes propias del Badge de shadcn (success / gold / neutral).
+   Van aqui y no con utilidades de Tailwind para no depender de que el tema
+   genere bg-gold, y para clavar los mismos colores de siempre.
+   `gold` es SOLO para GOLDEN PICK: ambar reservado, como el resto del panel. */
+
+.ds-badge--gold {
+  background: linear-gradient(135deg, #ffe08a, #f5c542);
+  border-color: transparent;
+  color: #111111;
+  font-weight: 800;
+}
+
+.ds-badge--success {
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.45);
+  color: #5ee08d;
+}
+
+.ds-badge--neutral {
+  background: rgba(255, 255, 255, 0.055);
+  border-color: var(--ds-border);
+  color: var(--ds-text-2);
+}
+
 /* ============================================================ ALINEACION
    Animacion del XI, chips de gol/asistencia y ficha del jugador.
 

@@ -18,6 +18,13 @@ const badgeVariants = cva(
           "border-border text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
         ghost: "[a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
         link: "text-primary underline-offset-4 [a&]:hover:underline",
+        // Variantes de 3SIXTYBETS. Se apoyan en clases propias
+        // (design-system.css) en vez de utilidades bg-gold/text-gold: el Badge
+        // que trajo el CLI no las tenia y variant="gold" se quedaba sin fondo
+        // ni color ("GOLDEN PICK" salia en texto plano).
+        success: "ds-badge ds-badge--success",
+        gold: "ds-badge ds-badge--gold",
+        neutral: "ds-badge ds-badge--neutral",
       },
     },
     defaultVariants: {
