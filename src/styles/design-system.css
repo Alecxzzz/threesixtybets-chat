@@ -11,11 +11,12 @@
    ========================================================================= */
 
 :root {
-  /* Ancho y guias: header y contenido comparten la MISMA guia lateral.
-     Antes: header 32px / dashboard clamp(20,3vw,44) = 43.2px -> 11px de
-     desalineacion visible en pantallas anchas. */
-  --ds-max: 1200px;
-  --ds-pad-x: max(16px, calc((100% - var(--ds-max)) / 2));
+  /* Ancho: SIN tope fijo. Un max-width de 1200px dejaba dos franjas muertas
+     enormes en pantallas anchas (reportado en produccion). Ahora es fluido:
+     solo padding lateral, y la linea de texto larga se limita aparte con
+     `max-width: 68ch` en el subtitulo del hero.
+     Header y contenido usan la MISMA guia, asi que siguen alineados. */
+  --ds-pad-x: clamp(16px, 2vw, 40px);
 
   /* Paleta minima: 3 niveles de texto en vez de 23 colores sueltos.
      Ratios medidos sobre #141826 (superficie de tarjeta):
@@ -366,6 +367,22 @@
   gap: 18px;
   padding: 16px 18px;
   border-radius: var(--ds-radius);
+}
+
+/* Con el panel a ancho completo, la nota se queda a la derecha dentro de la
+   propia tarjeta en vez de dejar media franja vacia. */
+.dash-efect-nota {
+  margin: 0 0 0 auto;
+  max-width: 46ch;
+  text-align: right;
+}
+
+@media (max-width: 820px) {
+  .dash-efect-nota {
+    margin: 0;
+    max-width: none;
+    text-align: left;
+  }
 }
 
 /* Las flechas ‹ › vuelven a tener sentido: el carrusel esta activo.

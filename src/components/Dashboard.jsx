@@ -920,12 +920,14 @@ export default function Dashboard({ session, onIrACreditos }) {
           </div>
           {/* "Pendientes de hoy" y "Acertados hoy" se quitaron: repetian los
               KPIs de arriba (32 y 13) dos secciones seguidas. */}
+          {/* La nota va DENTRO de la tarjeta, a la derecha: con el panel a ancho
+              completo, suelta debajo dejaba media franja vacia. */}
+          <p className="dash-efect-nota">
+            {usarHoy
+              ? "Efectividad de los pronosticos resueltos hoy. El rendimiento pasado no garantiza resultados futuros."
+              : "Resultados historicos de la IA. El rendimiento pasado no garantiza resultados futuros."}
+          </p>
         </Card>
-        <p className="dash-efect-nota">
-          {usarHoy
-            ? "Efectividad de los pronosticos resueltos hoy. El rendimiento pasado no garantiza resultados futuros."
-            : "Resultados historicos de la IA. El rendimiento pasado no garantiza resultados futuros."}
-        </p>
       </section>
 
       {/* ===== TABS ===== */}
