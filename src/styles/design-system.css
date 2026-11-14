@@ -91,33 +91,11 @@
 }
 
 /* ---------------------------------------------------------------- FASE 1.3
-   PICKS: el peor defecto del panel.
-   32 tarjetas en un carrusel horizontal de 8.694px = 24,2x de scroll
-   horizontal en movil. Pasa a grid que fluye en vertical.                     */
+   PICKS: se conserva el carrusel horizontal original de globals.css.
+   Se probo un grid vertical, pero en escritorio estiraba la pagina a 4.200px
+   y las tarjetas cortas quedaban con hueco bajo el boton al igualar alturas.
+   El carrusel se mantiene tal cual estaba.                                   */
 
-.dash-picks {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
-  align-items: stretch;
-  gap: var(--ds-gap);
-  overflow-x: visible;
-  overflow-y: visible;
-  padding-bottom: 0;
-}
-
-.dash-pick {
-  min-width: 0;
-  max-width: none;
-  flex: none;
-  height: 100%;
-}
-
-/* En movil el grid ya es de 1 columna: la tarjeta ocupa el ancho real. */
-@media (max-width: 768px) {
-  .dash-picks {
-    grid-template-columns: 1fr;
-  }
-}
 
 /* ---------------------------------------------------------------- FASE 1.4
    Areas tactiles. Habia 16 controles por debajo de 44x44:
@@ -390,10 +368,10 @@
   border-radius: var(--ds-radius);
 }
 
-/* Las flechas ‹ › movian un carrusel horizontal que ya no existe:
-   sin track que desplazar serian dos botones muertos.                        */
-.dash-tabs-nav {
-  display: none;
+/* Las flechas ‹ › vuelven a tener sentido: el carrusel esta activo.
+   Tabs a la izquierda, flechas a la derecha, como en el diseno original.     */
+.dash-tabs-wrap {
+  justify-content: space-between;
 }
 
 .dash-tabs {
@@ -440,139 +418,3 @@
 .props-search {
   max-width: 380px;
 }
-
-
-/* ------------------------------------------------- FASE 4: tabla de Props
-   Escritorio = tabla paginada; movil = tarjeta. Los bordes se declaran aqui
-   de forma explicita porque sin preflight Tailwind no aporta color de borde
-   por defecto (border-b quedaria con currentColor).                          */
-
-.props-solo-desktop {
-  display: block;
-}
-
-.props-solo-movil {
-  display: none;
-}
-
-@media (max-width: 900px) {
-  .props-solo-desktop {
-    display: none;
-  }
-
-  .props-solo-movil {
-    display: block;
-  }
-}
-
-.props-tabla {
-  border: 1px solid var(--ds-border);
-  border-radius: var(--ds-radius);
-  background: var(--ds-surface);
-  overflow: hidden;
-}
-
-.props-tabla table {
-  font-size: 13.5px;
-  border-collapse: collapse;
-}
-
-.props-tabla thead tr {
-  background: var(--ds-surface-2);
-}
-
-.props-tabla th {
-  height: 42px;
-  padding: 0 14px;
-  color: var(--ds-text-3);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  border-bottom: 1px solid var(--ds-border);
-}
-
-.props-tabla td {
-  padding: 10px 14px;
-  color: var(--ds-text-2);
-  border-bottom: 1px solid var(--ds-border);
-  vertical-align: middle;
-}
-
-.props-tabla tbody tr:last-child td {
-  border-bottom: 0;
-}
-
-.props-tabla tbody tr:hover {
-  background: rgba(255, 255, 255, 0.03);
-}
-
-.props-tabla td b {
-  color: var(--ds-text);
-  font-variant-numeric: tabular-nums;
-}
-
-.props-tabla td small {
-  color: var(--ds-text-3);
-  font-size: 11.5px;
-  margin-left: 6px;
-}
-
-.props-tabla-jugador {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.props-avatar--sm {
-  width: 32px;
-  height: 32px;
-  flex: 0 0 32px;
-  font-size: 11px;
-}
-
-.props-tabla-id {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.3;
-  min-width: 0;
-}
-
-.props-tabla-id b {
-  font-size: 13.5px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.props-tabla-id small {
-  color: var(--ds-text-3);
-  font-size: 11.5px;
-  margin-left: 0;
-}
-
-.props-tabla-prop {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.props-tabla-dash {
-  color: var(--ds-text-3);
-}
-
-.props-paginacion {
-  margin-top: 18px;
-  gap: 8px;
-}
-
-.props-paginacion-info {
-  color: var(--ds-text-3);
-  font-size: 12px;
-  padding-inline: 10px;
-  white-space: nowrap;
-}
-
-
-
