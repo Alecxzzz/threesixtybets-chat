@@ -1,0 +1,88 @@
+/*
+ * Tailwind v4 para 3SIXTYBETS.
+ *
+ * IMPORTANTE: se importan SOLO theme + utilities, NO preflight.
+ * preflight es el reset global de Tailwind y pisaria reglas de
+ * src/styles/globals.css (5.484 lineas en produccion: shell, sidebar,
+ * chat, TV...). Con esta importacion parcial, Tailwind aporta utilidades
+ * y variables sin tocar un solo estilo existente.
+ *
+ * Los tokens de abajo son la fuente unica de color/tipografia del
+ * design system nuevo (shadcn/ui). Estan calculados para AA sobre el
+ * fondo oscuro real del sitio (#0b0e14 / #141826).
+ */
+
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-gold: var(--gold);
+  --color-gold-foreground: var(--gold-foreground);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+}
+
+:root {
+  color-scheme: dark;
+
+  /* Superficies */
+  --background: #0b0e14;
+  --foreground: #eef1f6;
+  --card: #141826;
+  --card-foreground: #eef1f6;
+  --popover: #171b2b;
+  --popover-foreground: #eef1f6;
+
+  /* Marca */
+  --primary: #22c55e;
+  --primary-foreground: #06130a;
+  --accent: #6d5df6;
+  --accent-foreground: #ffffff;
+  --gold: #f5c542;
+  --gold-foreground: #16130a;
+
+  /* Neutros */
+  --secondary: #1b2032;
+  --secondary-foreground: #eef1f6;
+  --muted: #1a1f2e;
+  /* 6.0:1 sobre --card: reemplaza los #5d6577 / #6d7690 que fallaban AA */
+  --muted-foreground: #8e97ac;
+
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+
+  --border: #262c3d;
+  --input: #303749;
+  --ring: #22c55e;
+
+  --radius: 0.75rem;
+
+  --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}

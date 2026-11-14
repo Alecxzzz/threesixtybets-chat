@@ -1,0 +1,578 @@
+/* ============================================================================
+   DESIGN SYSTEM 3SIXTYBETS - capa de correccion visual
+   ----------------------------------------------------------------------------
+   Se importa DESPUES de globals.css y de tailwind.css (ver main.jsx), asi que
+   gana en cascada sin borrar ni reescribir una sola regla existente. Todo el
+   sitio sigue igual: aqui solo se corrigen los defectos medidos del panel.
+
+   FASE 1  layout, responsive y areas tactiles
+   FASE 2  contraste y escala tipografica
+   FASE 3  jerarquia y unificacion de acentos
+   ========================================================================= */
+
+:root {
+  /* Ancho y guias: header y contenido comparten la MISMA guia lateral.
+     Antes: header 32px / dashboard clamp(20,3vw,44) = 43.2px -> 11px de
+     desalineacion visible en pantallas anchas. */
+  --ds-max: 1200px;
+  --ds-pad-x: max(16px, calc((100% - var(--ds-max)) / 2));
+
+  /* Paleta minima: 3 niveles de texto en vez de 23 colores sueltos.
+     Ratios medidos sobre #141826 (superficie de tarjeta):
+       --ds-text   15.9:1   --ds-text-2  9.5:1   --ds-text-3  6.0:1 */
+  --ds-text: #eef1f6;
+  --ds-text-2: #c3cad8;
+  --ds-text-3: #8e97ac; /* antes #5d6577 = 3.23:1 (fallaba AA) */
+
+  --ds-border: #262c3d;
+  --ds-surface: #141826;
+  --ds-surface-2: #10131f;
+
+  /* Un acento por funcion, no cuatro compitiendo:
+     verde = accion/positivo | morado = navegacion | ambar = GOLDEN only */
+  --ds-green: #22c55e;
+  --ds-green-text: #5ee08d;
+  --ds-purple: #6d5df6;
+  --ds-gold: #f5c542;
+
+  --ds-radius: 14px;
+  --ds-gap: 14px;
+
+  --ds-tabbar-h: 56px;
+  --ds-font-xs: 11px;
+  --ds-font-sm: 12px;
+  --ds-font-md: 13px;
+}
+
+/* ---------------------------------------------------------------- FASE 1.1
+   Ancho maximo legible + alineacion con el header.
+   globals.css tenia max-width:none -> lineas de 1.343px.                      */
+
+.header,
+.dashboard {
+  padding-left: var(--ds-pad-x);
+  padding-right: var(--ds-pad-x);
+}
+
+/* La pagina de Props tenia su propio ancho completo: la tabla quedaba en
+   1.360px dentro de un viewport de 1.440 y desalineada con el header.        */
+.props-page {
+  padding-left: var(--ds-pad-x);
+  padding-right: var(--ds-pad-x);
+}
+
+
+.dashboard {
+  /* Un solo contenedor de scroll (evita scroll encadenado en iOS) */
+  overscroll-behavior-y: contain;
+  scroll-behavior: smooth;
+}
+
+/* ---------------------------------------------------------------- FASE 1.2
+   KPIs: se elimina la "guerra" de media queries.
+   globals.css ponia 1 columna a <=900px y volvia a 3 a <=768px: en un movil
+   de 390px quedaban 3 tarjetas de 114px.                                      */
+
+.dash-stats-row {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--ds-gap);
+}
+
+@media (max-width: 820px) {
+  .dash-stats-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 430px) {
+  .dash-stats-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------------------------------------------------------------- FASE 1.3
+   PICKS: el peor defecto del panel.
+   32 tarjetas en un carrusel horizontal de 8.694px = 24,2x de scroll
+   horizontal en movil. Pasa a grid que fluye en vertical.                     */
+
+.dash-picks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  align-items: stretch;
+  gap: var(--ds-gap);
+  overflow-x: visible;
+  overflow-y: visible;
+  padding-bottom: 0;
+}
+
+.dash-pick {
+  min-width: 0;
+  max-width: none;
+  flex: none;
+  height: 100%;
+}
+
+/* En movil el grid ya es de 1 columna: la tarjeta ocupa el ancho real. */
+@media (max-width: 768px) {
+  .dash-picks {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------------------------------------------------------------- FASE 1.4
+   Areas tactiles. Habia 16 controles por debajo de 44x44:
+   menu 34, estrella 26, flechas 38, "Compartir carta" 36, tabbar 43.          */
+
+.menu-btn,
+.dash-arrow,
+.dp-fav,
+.dp-share,
+.dp-unlock,
+.dash-analyze,
+.dash-tab,
+.props-tab,
+.tabbar button {
+  min-height: 44px;
+}
+
+/* Acciones del header (Soporte / Mi perfil / Sign out) y chips de filtro:
+   median 33-41px de alto.                                                     */
+.header .sign-out-btn,
+.header .user-pill {
+  min-height: 44px;
+}
+
+.props-chip {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+}
+
+
+.menu-btn,
+.dash-arrow,
+.dp-fav {
+  min-width: 44px;
+}
+
+/* La estrella conserva el icono pequeno pero gana zona de toque real. */
+.dp-fav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+/* ---------------------------------------------------------------- FASE 1.5
+   La tabbar fija (56px + safe-area) tapaba el final del contenido:
+   .dashboard tenia padding-bottom: 14px.                                      */
+
+@media (max-width: 768px) {
+  .dashboard {
+    padding-bottom: calc(var(--ds-tabbar-h) + 24px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .tabbar button {
+    min-height: 48px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+}
+
+/* ---------------------------------------------------------------- FASE 2.1
+   Contraste AA. Los grises #5d6577 (3.23:1) y #6d7690 (4.17:1) se usaban
+   en 42+ etiquetas de 9 a 11.5px: ilegibles sobre fondo oscuro.               */
+
+.dash-kpi-label,
+.dash-kpi-foot,
+.dash-efect-label,
+.dash-efect-nota,
+.dash-aviso,
+.dp-liga,
+.dp-hero-k,
+.dp-metric-k,
+.dp-logo-fallback,
+.tabbar button {
+  color: var(--ds-text-3);
+}
+
+.dp-fav {
+  color: var(--ds-text-3);
+}
+
+/* Etiquetas de muy bajo tamano (9px / 9.5px) suben a 11px: por debajo de
+   eso ni el mejor contraste se lee. */
+.dash-kpi-label {
+  font-size: var(--ds-font-xs);
+  line-height: 1.25;
+  letter-spacing: 0.055em;
+  text-wrap: balance;
+}
+
+.dash-kpi-foot {
+  font-size: var(--ds-font-xs);
+  line-height: 1.3;
+}
+
+.dash-efect-label {
+  font-size: var(--ds-font-sm);
+  color: var(--ds-text-2);
+}
+
+.dash-efect-nota,
+.dash-aviso {
+  font-size: var(--ds-font-sm);
+  line-height: 1.5;
+}
+
+.dp-liga {
+  font-size: 11.5px;
+}
+
+.dp-hero-k,
+.dp-metric-k {
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+}
+
+.dp-logo-fallback {
+  color: var(--ds-text-2);
+}
+
+/* ---------------------------------------------------------------- FASE 2.2
+   Escala tipografica de 5 pasos en el panel (habia 20 tamanos distintos
+   entre 9.5 y 34px). No se toca nada fuera de .dashboard.                     */
+
+.dash-kpi-num {
+  font-size: clamp(26px, 3vw, 34px);
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+  color: var(--ds-text);
+}
+
+.dash-efect-num {
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-seccion-titulo {
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  color: var(--ds-text-2);
+}
+
+/* ---------------------------------------------------------------- FASE 3.1
+   Hero: 190px de altura para un titulo estatico empujaba los picks fuera de
+   la primera pantalla. Ahora es una franja compacta.                          */
+
+.dash-hero {
+  padding: 18px 20px;
+  margin-bottom: 16px;
+  border-radius: 16px;
+}
+
+.dash-hero-title {
+  font-size: clamp(21px, 2.3vw, 27px);
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  margin: 6px 0 4px;
+}
+
+.dash-hero-sub {
+  font-size: 13px;
+  line-height: 1.5;
+  max-width: 68ch;
+  color: var(--ds-text-2);
+}
+
+.dash-hero-badge {
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+}
+
+@media (max-width: 768px) {
+  .dash-hero {
+    padding: 14px 15px;
+    margin-bottom: 12px;
+  }
+
+  .dash-hero-title {
+    font-size: 19px;
+  }
+
+  .dash-hero-sub {
+    font-size: 12.5px;
+  }
+}
+
+/* ---------------------------------------------------------------- FASE 3.2
+   Acentos: el ambar queda reservado a GOLDEN PICK. Las etiquetas que
+   competian con el (BOMBA, deporte, etc.) pasan a neutro.                     */
+
+.dp-badge {
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid var(--ds-border);
+  color: var(--ds-text-2);
+  font-weight: 600;
+}
+
+/* Solo la tarjeta golden conserva ambar. */
+.dash-pick:not(.pick-golden) .dp-badge--gold {
+  background: rgba(255, 255, 255, 0.055);
+  border-color: var(--ds-border);
+  color: var(--ds-text-2);
+}
+
+/* Tabs: morado = navegacion interna, con contraste de texto suficiente. */
+.dash-tab {
+  color: var(--ds-text-2);
+  min-height: 44px;
+}
+
+.dash-tab.activa {
+  color: #ffffff;
+}
+
+/* ---------------------------------------------------------------- A11Y */
+.dashboard :is(button, a, input, select, [tabindex]):focus-visible {
+  outline: 2px solid var(--ds-green);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard *,
+  .tabbar * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+/* ------------------------------------------------------- FASE 4: shadcn/ui
+   Los KPIs y la tarjeta de efectividad ahora son <Card> de shadcn (mismos
+   classNames historicos, para no perder ni un estilo de globals.css).
+   Aqui se fija la geometria para que el componente no meta su propio
+   py-5/gap-4 y el panel conserve la densidad visual que ya tenia.            */
+
+.dash-kpi {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 5px;
+  padding: 16px 18px;
+  border-radius: var(--ds-radius);
+  min-height: 106px;
+}
+
+/* Acento de cada KPI re-afirmado: las utilidades de Tailwind del Card
+   (border-border / bg-card) vienen antes en la cascada.                      */
+.dash-kpi.kpi-verde {
+  border-color: rgba(34, 197, 94, 0.42);
+}
+
+.dash-kpi.kpi-morado {
+  border-color: rgba(109, 93, 246, 0.45);
+}
+
+.dash-kpi-bar {
+  height: 6px;
+  width: 100%;
+  margin-top: 2px;
+}
+
+.dash-efect-card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 18px;
+  padding: 16px 18px;
+  border-radius: var(--ds-radius);
+}
+
+/* Las flechas ‹ › movian un carrusel horizontal que ya no existe:
+   sin track que desplazar serian dos botones muertos.                        */
+.dash-tabs-nav {
+  display: none;
+}
+
+.dash-tabs {
+  display: inline-flex;
+  flex: 0 0 auto;
+  width: fit-content;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--ds-surface-2);
+  border: 1px solid var(--ds-border);
+}
+
+.dash-tab {
+  flex: 0 0 auto;
+  padding: 8px 18px;
+  border-radius: 9px;
+}
+
+/* Las tres acciones del header eran botones verdes solidos: pesaban mas que
+   el CTA real de la pagina y competian con el acento positivo.               */
+.header .sign-out-btn,
+.header .perfil-btn {
+  background: transparent;
+  color: var(--ds-text-2);
+  border: 1px solid var(--ds-border);
+  font-weight: 600;
+}
+
+.header .sign-out-btn:hover,
+.header .perfil-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ds-text);
+}
+
+/* Selector de deporte: es navegacion, asi que usa el morado, igual que las
+   pestanas del dashboard. El verde queda para accion/positivo.               */
+.props-tab.on {
+  background: linear-gradient(135deg, var(--ds-purple), #5546e0);
+  border-color: transparent;
+  color: #ffffff;
+}
+
+.props-search {
+  max-width: 380px;
+}
+
+
+/* ------------------------------------------------- FASE 4: tabla de Props
+   Escritorio = tabla paginada; movil = tarjeta. Los bordes se declaran aqui
+   de forma explicita porque sin preflight Tailwind no aporta color de borde
+   por defecto (border-b quedaria con currentColor).                          */
+
+.props-solo-desktop {
+  display: block;
+}
+
+.props-solo-movil {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .props-solo-desktop {
+    display: none;
+  }
+
+  .props-solo-movil {
+    display: block;
+  }
+}
+
+.props-tabla {
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius);
+  background: var(--ds-surface);
+  overflow: hidden;
+}
+
+.props-tabla table {
+  font-size: 13.5px;
+  border-collapse: collapse;
+}
+
+.props-tabla thead tr {
+  background: var(--ds-surface-2);
+}
+
+.props-tabla th {
+  height: 42px;
+  padding: 0 14px;
+  color: var(--ds-text-3);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--ds-border);
+}
+
+.props-tabla td {
+  padding: 10px 14px;
+  color: var(--ds-text-2);
+  border-bottom: 1px solid var(--ds-border);
+  vertical-align: middle;
+}
+
+.props-tabla tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.props-tabla tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.props-tabla td b {
+  color: var(--ds-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.props-tabla td small {
+  color: var(--ds-text-3);
+  font-size: 11.5px;
+  margin-left: 6px;
+}
+
+.props-tabla-jugador {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.props-avatar--sm {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  font-size: 11px;
+}
+
+.props-tabla-id {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+  min-width: 0;
+}
+
+.props-tabla-id b {
+  font-size: 13.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.props-tabla-id small {
+  color: var(--ds-text-3);
+  font-size: 11.5px;
+  margin-left: 0;
+}
+
+.props-tabla-prop {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.props-tabla-dash {
+  color: var(--ds-text-3);
+}
+
+.props-paginacion {
+  margin-top: 18px;
+  gap: 8px;
+}
+
+.props-paginacion-info {
+  color: var(--ds-text-3);
+  font-size: 12px;
+  padding-inline: 10px;
+  white-space: nowrap;
+}
+
+
+

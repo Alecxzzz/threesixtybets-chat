@@ -6,6 +6,11 @@ import ESPNGratis from "./pages/ESPNGratis.jsx";
 import Legal from "./pages/Legal.jsx";
 import NotFound from "./pages/NotFound.jsx";
 import { registrarVista } from "./utils/telemetria";
+// Orden de cascada IMPORTANTE: globals.css entra via App.jsx (primero),
+// despues Tailwind (solo utilities, sin preflight) y al final la capa de
+// correccion del dashboard, que debe ganar siempre.
+import "./styles/tailwind.css";
+import "./styles/design-system.css";
 
 // Conteo de visitas propio (sin cookies ni terceros). Se hace antes de montar
 // para que cuente también las páginas que fallan al renderizar.

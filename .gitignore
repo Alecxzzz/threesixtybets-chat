@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# Verificacion visual local: capturas y script con credenciales de prueba.
+# Se quedan fuera del repo a proposito.
+_verify/
+_verify.mjs
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

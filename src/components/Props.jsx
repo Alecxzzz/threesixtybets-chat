@@ -9,6 +9,21 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { fetchProps, fetchPropsTrack } from "../services/api";
+import { Badge } from "./ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "./ui/table";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+} from "./ui/pagination";
 import "./Props.css";
 
 const DEPORTES = [
@@ -214,6 +229,82 @@ function Esqueleto() {
 }
 
 
+/* Tabla (escritorio): misma informacion que la tarjeta pero escaneable en
+   columnas. En movil se sigue usando la tarjeta: una tabla de 5 columnas en
+   390px obligaria a scroll horizontal, que es justo lo que se elimino. */
+function TablaProps({ filas }) {
+  return (
+    <div className="props-tabla">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Jugador</TableHead>
+            <TableHead>Prop</TableHead>
+            <TableHead className="text-right">Racha</TableHead>
+            <TableHead className="text-right">Cuota</TableHead>
+            <TableHead className="text-right">Edge</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {filas.map((p) => {
+            const positivo = p.edge != null && p.edge > 0;
+            return (
+              <TableRow
+                key={p.id || `${p.jugador}-${p.prop}-${p.linea}-${p.lado}`}
+              >
+                <TableCell>
+                  <div className="props-tabla-jugador">
+                    <span className="props-avatar props-avatar--sm">
+                      {iniciales(p.jugador)}
+                    </span>
+                    <span className="props-tabla-id">
+                      <b>{p.jugador}</b>
+                      <small>{p.equipo || "—"}</small>
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="props-tabla-prop">
+                    <span>{p.prop_raw || p.prop}</span>
+                    <Badge variant="neutral">
+                      {p.lado === "under" ? "MENOS" : "MÁS"} {p.linea}
+                    </Badge>
+                  </div>
+                </TableCell>
+                <TableCell className="text-right">
+                  <b>
+                    {p.cumple ?? 0}/{p.n_partidos ?? 0}
+                  </b>
+                  <small>{p.pct != null ? ` · ${p.pct}%` : ""}</small>
+                </TableCell>
+                <TableCell className="text-right">
+                  <b>
+                    {p.cuota != null && !isNaN(Number(p.cuota))
+                      ? Number(p.cuota).toFixed(2)
+                      : "-"}
+                  </b>
+                  <small>{p.implicita ?? "-"}%</small>
+                </TableCell>
+                <TableCell className="text-right">
+                  {p.edge != null ? (
+                    <Badge variant={positivo ? "success" : "destructive"}>
+                      {positivo ? "+" : ""}
+                      {p.edge}%
+                    </Badge>
+                  ) : (
+                    <span className="props-tabla-dash">—</span>
+                  )}
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
+
 export default function Props({ session }) {
   const [sport, setSport] = useState("soccer");
   const [estado, setEstado] = useState("cargando");
@@ -226,6 +317,10 @@ export default function Props({ session }) {
   const [soloMas, setSoloMas] = useState(false);
   const [q, setQ] = useState("");
   const [record, setRecord] = useState(null);
+  // Paginacion: la API puede devolver 100+ props; en un solo grid no hay
+  // forma de recorrerlos.
+  const [pagina, setPagina] = useState(1);
+  const POR_PAGINA = 12;
 
   useEffect(() => {
     let vivo = true;
@@ -282,17 +377,39 @@ export default function Props({ session }) {
 
   const conValor = props.filter((p) => p.edge != null && p.edge > 0).length;
 
+  // Cualquier cambio de filtro/orden vuelve a la primera pagina. Se hace en
+  // los handlers (no en un useEffect) para no disparar renders en cascada.
+  const totalPaginas = Math.max(1, Math.ceil(visibles.length / POR_PAGINA));
+  const paginaActual = Math.min(pagina, totalPaginas);
+  const paginadas = visibles.slice(
+    (paginaActual - 1) * POR_PAGINA,
+    paginaActual * POR_PAGINA
+  );
+
 
   return (
     <div className="props-page">
       <div className="props-head">
         <div>
           <h1>
-            Props de jugador <span className="props-badge">+{meta.pct_minima}%</span>
+            Props de jugador
+            {meta.pct_minima > 0 && (
+              <span className="props-badge">+{meta.pct_minima}%</span>
+            )}
           </h1>
           <p>
-            Solo props que el jugador cumplio al menos el {meta.pct_minima}% de
-            sus ultimos 5 partidos, frente a la cuota que paga el bookmaker.
+            {meta.pct_minima > 0 ? (
+              <>
+                Solo props que el jugador cumplio al menos el {meta.pct_minima}%
+                de sus ultimos 5 partidos, frente a la cuota que paga el
+                bookmaker.
+              </>
+            ) : (
+              <>
+                Props del dia frente a la cuota que paga el bookmaker: la racha
+                del jugador contra la probabilidad implicita.
+              </>
+            )}
             {meta.descartadas > 0
               ? ` ${meta.descartadas} descartadas por debajo del minimo.`
               : ""}
@@ -344,7 +461,10 @@ export default function Props({ session }) {
             role="tab"
             aria-selected={sport === d.key}
             className={`props-tab ${sport === d.key ? "on" : ""}`}
-            onClick={() => sport !== d.key && setSport(d.key)}
+            onClick={() => {
+              if (sport !== d.key) setSport(d.key);
+              setPagina(1);
+            }}
           >
             <span aria-hidden="true">{d.icon}</span> {d.label}
           </button>
@@ -358,21 +478,30 @@ export default function Props({ session }) {
             type="search"
             placeholder="Buscar jugador..."
             value={q}
-            onChange={(e) => setQ(e.target.value)}
+            onChange={(e) => {
+              setQ(e.target.value);
+              setPagina(1);
+            }}
             aria-label="Buscar jugador"
           />
           <div className="props-chips">
             <button
               type="button"
               className={`props-chip ${!soloMas ? "on" : ""}`}
-              onClick={() => setSoloMas(false)}
+              onClick={() => {
+                setSoloMas(false);
+                setPagina(1);
+              }}
             >
               Todas
             </button>
             <button
               type="button"
               className={`props-chip ${soloMas ? "on" : ""}`}
-              onClick={() => setSoloMas(true)}
+              onClick={() => {
+                setSoloMas(true);
+                setPagina(1);
+              }}
             >
               Solo MAS
             </button>
@@ -380,7 +509,10 @@ export default function Props({ session }) {
           <select
             className="props-sort"
             value={orden}
-            onChange={(e) => setOrden(e.target.value)}
+            onChange={(e) => {
+              setOrden(e.target.value);
+              setPagina(1);
+            }}
             aria-label="Ordenar"
           >
             {ORDENES.map((o) => (
@@ -423,15 +555,69 @@ export default function Props({ session }) {
         )}
 
         {estado === "ok" && visibles.length > 0 && (
-          <div className="props-grid">
-            {visibles.map((p, i) => (
-              <Tarjeta
-                key={p.id || `${p.jugador}-${p.prop}-${p.linea}-${p.lado}`}
-                p={p}
-                indice={i}
-              />
-            ))}
-          </div>
+          <>
+            {/* Escritorio: tabla paginada */}
+            <div className="props-solo-desktop">
+              <TablaProps filas={paginadas} />
+            </div>
+
+            {/* Movil: tarjeta (una tabla de 5 columnas en 390px no cabe) */}
+            <div className="props-solo-movil">
+              <div className="props-grid">
+                {paginadas.map((p, i) => (
+                  <Tarjeta
+                    key={p.id || `${p.jugador}-${p.prop}-${p.linea}-${p.lado}`}
+                    p={p}
+                    indice={i}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {totalPaginas > 1 && (
+              <Pagination className="props-paginacion">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationLink
+                      href="#"
+                      size="default"
+                      aria-label="Pagina anterior"
+                      aria-disabled={paginaActual === 1}
+                      className={
+                        paginaActual === 1 ? "pointer-events-none opacity-40" : ""
+                      }
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setPagina((n) => Math.max(1, n - 1));
+                      }}
+                    >
+                      ‹ Anterior
+                    </PaginationLink>
+                  </PaginationItem>
+                  <PaginationItem>
+                    <span className="props-paginacion-info">
+                      Pagina {paginaActual} de {totalPaginas} ·{" "}
+                      {visibles.length} props
+                    </span>
+                  </PaginationItem>
+                  <PaginationItem>
+                    <PaginationLink
+                      href="#"
+                      size="default"
+                      aria-label="Pagina siguiente"
+                      aria-disabled={paginaActual === totalPaginas}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setPagina((n) => Math.min(totalPaginas, n + 1));
+                      }}
+                    >
+                      Siguiente ›
+                    </PaginationLink>
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            )}
+          </>
         )}
       </div>
     </div>

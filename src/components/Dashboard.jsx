@@ -5,9 +5,13 @@ import {
   generateDashboard,
   analizarPendientes,
   toggleFavoritoPick,
+  fetchFavoritosPicks,
 } from "../services/api";
 import PagosAceptados from "./PagosAceptados";
 import LiveScoresWidget from "./LiveScoresWidget";
+import { Card } from "./ui/card";
+import { Badge } from "./ui/badge";
+import { Progress } from "./ui/progress";
 
 /**
  * Dashboard - pagina principal de 3SIXTYBETS.
@@ -16,12 +20,9 @@ import LiveScoresWidget from "./LiveScoresWidget";
  */
 
 function ConfianzaBadge({ confianza }) {
-  if (confianza === "ALTA")
-    return <span className="dp-badge b-fuego">🔥 Bomba</span>;
-  if (confianza === "MEDIA")
-    return <span className="dp-badge b-valor">⭐ Valor</span>;
-  if (confianza === "BAJA")
-    return <span className="dp-badge b-suave">Riesgo</span>;
+  if (confianza === "ALTA") return <Badge variant="neutral">🔥 Bomba</Badge>;
+  if (confianza === "MEDIA") return <Badge variant="outline">⭐ Valor</Badge>;
+  if (confianza === "BAJA") return <Badge variant="outline">Riesgo</Badge>;
   return null;
 }
 
@@ -568,7 +569,7 @@ async function compartirPick(ev, p) {
 
 function GoldenBadge({ p }) {
   if (!esGolden(p)) return null;
-  return <span className="dp-badge b-golden">GOLDEN PICK</span>;
+  return <Badge variant="gold">GOLDEN PICK</Badge>;
 }
 
 function RingEfectividad({ porcentaje }) {
@@ -878,7 +879,7 @@ export default function Dashboard({ session, onIrACreditos }) {
 
       {/* ===== STATS ===== */}
       <section className="dash-stats-row">
-        <div className="dash-kpi">
+        <Card className="dash-kpi">
           <span className="dash-kpi-label">PRONÓSTICOS DEL DÍA</span>
           <span className="dash-kpi-num">{stats.pronosticos_del_dia}</span>
           <span className="dash-kpi-foot">
@@ -886,25 +887,28 @@ export default function Dashboard({ session, onIrACreditos }) {
               .map(([d, n]) => `${d}: ${n}`)
               .join(" · ") || "esperando análisis de la IA"}
           </span>
-        </div>
-        <div className="dash-kpi kpi-verde">
+        </Card>
+        <Card className="dash-kpi kpi-verde">
           <span className="dash-kpi-label">ACERTADOS POR LA IA</span>
           <span className="dash-kpi-num">{stats.pronosticos_acertados_por_la_ia}</span>
           <span className="dash-kpi-foot">solo se muestran los aciertos</span>
-        </div>
-        <div className="dash-kpi kpi-morado">
-          <span className="dash-kpi-label">EFECTIVIDAD {usarHoy ? "DE HOY" : "HISTÓRICA"}</span>
+        </Card>
+        <Card className="dash-kpi kpi-morado">
+          <span className="dash-kpi-label">
+            EFECTIVIDAD {usarHoy ? "DE HOY" : "HISTÓRICA"}
+          </span>
           <span className="dash-kpi-num">{porcentaje}%</span>
+          <Progress value={porcentaje} className="dash-kpi-bar" aria-label="Efectividad" />
           <span className="dash-kpi-foot">
             {aciertosMostrar} de {resueltosMostrar} picks resueltos
           </span>
-        </div>
+        </Card>
       </section>
 
       {/* ===== EFECTIVIDAD ===== */}
       <section className="dash-efectividad">
         <h2 className="dash-seccion-titulo">📊 Efectividad de los pronósticos</h2>
-        <div className="dash-efect-card">
+        <Card className="dash-efect-card">
           <RingEfectividad porcentaje={porcentaje} />
           <div className="dash-efect-item">
             <span className="dash-efect-num">
@@ -914,15 +918,9 @@ export default function Dashboard({ session, onIrACreditos }) {
               Picks resueltos {usarHoy ? "hoy" : "(histórico)"}
             </span>
           </div>
-          <div className="dash-efect-item">
-            <span className="dash-efect-num">{stats.pronosticos_del_dia}</span>
-            <span className="dash-efect-label">Pendientes de hoy</span>
-          </div>
-          <div className="dash-efect-item">
-            <span className="dash-efect-num">{stats.pronosticos_acertados_por_la_ia}</span>
-            <span className="dash-efect-label">Acertados hoy</span>
-          </div>
-        </div>
+          {/* "Pendientes de hoy" y "Acertados hoy" se quitaron: repetian los
+              KPIs de arriba (32 y 13) dos secciones seguidas. */}
+        </Card>
         <p className="dash-efect-nota">
           {usarHoy
             ? "Efectividad de los pronosticos resueltos hoy. El rendimiento pasado no garantiza resultados futuros."
@@ -968,8 +966,8 @@ export default function Dashboard({ session, onIrACreditos }) {
               className={`dash-pick pick-bloqueado${p.golden ? " pick-golden" : ""}`}
             >
               <div className="dp-badges">
-                {p.golden && <span className="dp-badge b-golden">GOLDEN PICK</span>}
-                <span className="dp-badge b-locked">🔒 Premium</span>
+                {p.golden && <Badge variant="gold">GOLDEN PICK</Badge>}
+                <Badge variant="secondary">🔒 Premium</Badge>
               </div>
               <div className="dp-evento">
                 <div className="dp-fila-equipo">
@@ -1012,11 +1010,9 @@ export default function Dashboard({ session, onIrACreditos }) {
             <div className="dp-badges">
               <ConfianzaBadge confianza={p.confidence} />
               <GoldenBadge p={p} />
-              {p.verificado >= 2 && (
-                <span className="dp-badge b-verif">x2 verificado</span>
-              )}
+              {p.verificado >= 2 && <Badge variant="success">x2 verificado</Badge>}
               {p.result === "ACIERTO" && (
-                <span className="dp-badge b-acierto">✓ Acertado</span>
+                <Badge variant="success">✓ Acertado</Badge>
               )}
               <FavoritoBoton
                 activo={favoritos.has(String(p.id))}
