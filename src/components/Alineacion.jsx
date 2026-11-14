@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getStoredSession, fetchAlineacion } from "../services/api";
 
 /**
@@ -77,7 +77,7 @@ function nombreCorto(nombre) {
   return apellido.length > 11 ? `${apellido.slice(0, 10)}…` : apellido;
 }
 
-function Marca({ jugador, x, y, tono, tipo, detalle }) {
+function Marca({ jugador, x, y, tono, tipo, detalle, goles = 0, asistencias = 0, indice = 0, onAbrir }) {
   const nombre = String(jugador?.nombre || "").trim();
   const corto = nombreCorto(nombre);
   const etiqueta = tipo === "probable" ? `${jugador?.posibilidad ?? 0}%` : jugador?.nota;
@@ -92,9 +92,23 @@ function Marca({ jugador, x, y, tono, tipo, detalle }) {
   else if (detalle === "pais" && jugador?.pais) extra = jugador.pais;
 
   return (
-    <g transform={`translate(${x} ${y})`}>
+    <g
+      transform={`translate(${x} ${y})`}
+      className="alz-jug"
+      style={{ animationDelay: `${Math.min(indice, 22) * 45}ms` }}
+      role="button"
+      tabIndex={0}
+      aria-label={`${nombre}. Ver sus estadísticas del partido`}
+      onClick={() => onAbrir?.(jugador)}
+      onKeyDown={(ev) => {
+        if (ev.key === "Enter" || ev.key === " ") {
+          ev.preventDefault();
+          onAbrir?.(jugador);
+        }
+      }}
+    >
       <title>
-        {`${nombre}${jugador?.dorsal ? ` · #${jugador.dorsal}` : ""}${jugador?.nota ? ` · nota ${jugador.nota}` : ""}`}
+        {`${nombre}${jugador?.dorsal ? ` · #${jugador.dorsal}` : ""}${jugador?.nota ? ` · nota ${jugador.nota}` : ""}${goles ? ` · ${goles} gol(es)` : ""}${asistencias ? ` · ${asistencias} asistencia(s)` : ""}`}
       </title>
 
       {/* sombra proyectada sobre el césped */}
@@ -136,6 +150,33 @@ function Marca({ jugador, x, y, tono, tipo, detalle }) {
         </g>
       ) : null}
 
+      {/* goles y asistencias EN VIVO, sobre el jugador */}
+      {goles > 0 ? (
+        <g transform="translate(-2.75 -2.6)">
+          <circle r="1.7" fill="#0b1118" stroke="#facc15" strokeWidth="0.25" />
+          <text y="0.62" textAnchor="middle" fontSize="1.85">⚽</text>
+          {goles > 1 ? (
+            <text x="1.9" y="-1.2" textAnchor="middle" fontSize="1.7" fontWeight="800" fill="#facc15">
+              {goles}
+            </text>
+          ) : null}
+        </g>
+      ) : null}
+
+      {asistencias > 0 ? (
+        <g transform="translate(-2.75 2.7)">
+          <circle r="1.55" fill="#0b1118" stroke="#38bdf8" strokeWidth="0.25" />
+          <text y="0.58" textAnchor="middle" fontSize="1.6" fontWeight="800" fill="#7dd3fc">
+            A
+          </text>
+          {asistencias > 1 ? (
+            <text x="1.8" y="-1.1" textAnchor="middle" fontSize="1.6" fontWeight="800" fill="#7dd3fc">
+              {asistencias}
+            </text>
+          ) : null}
+        </g>
+      ) : null}
+
       {/* apellido, en texto limpio (sin pastilla) */}
       <text
         y={arriba ? -5.85 : 5.85}
@@ -164,10 +205,21 @@ function Marca({ jugador, x, y, tono, tipo, detalle }) {
   );
 }
 
-function FilaJugador({ jugador, tipo, color }) {
+function FilaJugador({ jugador, tipo, color, goles = 0, asistencias = 0, onAbrir }) {
   const etiqueta = tipo === "probable" ? `${jugador?.posibilidad ?? 0}%` : jugador?.nota;
   return (
-    <li className="alz-fila">
+    <li
+      className={`alz-fila${onAbrir ? " alz-fila-click" : ""}`}
+      role={onAbrir ? "button" : undefined}
+      tabIndex={onAbrir ? 0 : undefined}
+      onClick={() => onAbrir?.(jugador)}
+      onKeyDown={(ev) => {
+        if (onAbrir && (ev.key === "Enter" || ev.key === " ")) {
+          ev.preventDefault();
+          onAbrir(jugador);
+        }
+      }}
+    >
       <span className="alz-fila-foto">
         {jugador?.foto ? (
           <img src={jugador.foto} alt="" loading="lazy" />
@@ -179,6 +231,8 @@ function FilaJugador({ jugador, tipo, color }) {
         {jugador?.dorsal || "-"}
       </span>
       <span className="alz-fila-nombre">{jugador?.nombre}</span>
+      {goles > 0 ? <span className="alz-fila-aporte gol">⚽{goles > 1 ? ` ${goles}` : ""}</span> : null}
+      {asistencias > 0 ? <span className="alz-fila-aporte asist">A{asistencias > 1 ? ` ${asistencias}` : ""}</span> : null}
       {etiqueta != null && etiqueta !== "" ? (
         <span
           className="alz-fila-nota"
@@ -212,6 +266,41 @@ export default function Alineacion({ sport = "soccer", eventId, league = null })
   const [cargando, setCargando] = useState(true);
   const [vista, setVista] = useState("campo");
   const [chip, setChip] = useState("nota");
+  const [sel, setSel] = useState(null);
+
+  // Goles y asistencias por jugador a partir de los eventos del partido (FotMob).
+  // Un gol en propia puerta NO cuenta como gol del jugador.
+  const aportes = useMemo(() => {
+    const mapa = {};
+    for (const e of datos?.eventos || []) {
+      if (e.tipo !== "Goal") continue;
+      const autor = String(e.jugador_id || "");
+      if (autor && !e.propio) {
+        mapa[autor] = mapa[autor] || { goles: 0, asistencias: 0 };
+        mapa[autor].goles += 1;
+      }
+      const asistente = String(e.asistente_id || "");
+      if (asistente) {
+        mapa[asistente] = mapa[asistente] || { goles: 0, asistencias: 0 };
+        mapa[asistente].asistencias += 1;
+      }
+    }
+    return mapa;
+  }, [datos]);
+
+  const statsJugador = datos?.stats_jugador || {};
+  const aporteDe = (jugador) => aportes[String(jugador?.id)] || { goles: 0, asistencias: 0 };
+  const abrirJugador = (jugador) => setSel(jugador || null);
+
+  // Escape cierra la ficha del jugador.
+  useEffect(() => {
+    if (!sel) return undefined;
+    const alPulsar = (ev) => {
+      if (ev.key === "Escape") setSel(null);
+    };
+    window.addEventListener("keydown", alPulsar);
+    return () => window.removeEventListener("keydown", alPulsar);
+  }, [sel]);
 
   useEffect(() => {
     let cancelado = false;
@@ -404,6 +493,10 @@ export default function Alineacion({ sport = "soccer", eventId, league = null })
                 tono="local"
                 tipo={tipo}
                 detalle={chip}
+                goles={aporteDe(jugador).goles}
+                asistencias={aporteDe(jugador).asistencias}
+                indice={i * 5 + k}
+                onAbrir={abrirJugador}
               />
             ))
           )}
@@ -417,6 +510,10 @@ export default function Alineacion({ sport = "soccer", eventId, league = null })
                 tono="visita"
                 tipo={tipo}
                 detalle={chip}
+                goles={aporteDe(jugador).goles}
+                asistencias={aporteDe(jugador).asistencias}
+                indice={i * 5 + k}
+                onAbrir={abrirJugador}
               />
             ))
           )}
@@ -431,7 +528,15 @@ export default function Alineacion({ sport = "soccer", eventId, league = null })
               <CabeceraEquipo equipo={equipo} color={color} />
               <ul className="alz-filas">
                 {(equipo?.titulares || []).map((j, i) => (
-                  <FilaJugador key={`${j.id || i}`} jugador={j} tipo={tipo} color={color} />
+                  <FilaJugador
+                    key={`${j.id || i}`}
+                    jugador={j}
+                    tipo={tipo}
+                    color={color}
+                    goles={aporteDe(j).goles}
+                    asistencias={aporteDe(j).asistencias}
+                    onAbrir={abrirJugador}
+                  />
                 ))}
               </ul>
             </div>
@@ -454,7 +559,15 @@ export default function Alineacion({ sport = "soccer", eventId, league = null })
                 </summary>
                 <ul className="alz-filas">
                   {equipo.suplentes.map((j, i) => (
-                    <FilaJugador key={`s-${j.id || i}`} jugador={j} tipo="oficial" color={color} />
+                    <FilaJugador
+                      key={`s-${j.id || i}`}
+                      jugador={j}
+                      tipo="oficial"
+                      color={color}
+                      goles={aporteDe(j).goles}
+                      asistencias={aporteDe(j).asistencias}
+                      onAbrir={abrirJugador}
+                    />
                   ))}
                 </ul>
               </details>
@@ -487,6 +600,73 @@ export default function Alineacion({ sport = "soccer", eventId, league = null })
           </div>
         ))}
       </div>
+
+      {/* Ficha del jugador: stats EN VIVO de este partido */}
+      {sel ? (
+        <div
+          className="alz-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Estadísticas de ${sel.nombre || "jugador"}`}
+          onClick={() => setSel(null)}
+        >
+          <div className="alz-modal-panel" onClick={(ev) => ev.stopPropagation()}>
+            <button
+              type="button"
+              className="alz-modal-x"
+              onClick={() => setSel(null)}
+              aria-label="Cerrar"
+            >
+              ×
+            </button>
+
+            <div className="alz-modal-cab">
+              {sel.foto ? (
+                <img className="alz-modal-foto" src={sel.foto} alt="" />
+              ) : (
+                <span className="alz-modal-foto alz-modal-inicial">
+                  {(sel.nombre || "?").slice(0, 1)}
+                </span>
+              )}
+              <div className="alz-modal-id">
+                <h3>{sel.nombre}</h3>
+                <p>
+                  {sel.dorsal ? `#${sel.dorsal}` : ""}
+                  {sel.nota != null ? ` · nota ${sel.nota}` : ""}
+                  {aporteDe(sel).goles ? ` · ${aporteDe(sel).goles} gol(es)` : ""}
+                  {aporteDe(sel).asistencias
+                    ? ` · ${aporteDe(sel).asistencias} asist.`
+                    : ""}
+                </p>
+              </div>
+            </div>
+
+            {(statsJugador[String(sel.id)]?.grupos || []).length === 0 ? (
+              <p className="alz-modal-vacio">
+                FotMob no publicó estadísticas individuales de este jugador en
+                este partido.
+              </p>
+            ) : (
+              (statsJugador[String(sel.id)]?.grupos || []).map((g) => (
+                <div key={g.grupo} className="alz-modal-grupo">
+                  <h4>{g.grupo}</h4>
+                  <ul>
+                    {(g.filas || []).map((f, i) => (
+                      <li key={`${g.grupo}-${i}`}>
+                        <span>{f.etiqueta}</span>
+                        <b>
+                          {f.valor}
+                          {f.total != null ? ` / ${f.total}` : ""}
+                        </b>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      ) : null}
 
       <div className="alz-fuente">Alineación: FotMob</div>
     </div>
