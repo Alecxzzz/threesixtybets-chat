@@ -262,6 +262,97 @@ function CabeceraEquipo({ equipo, color }) {
   );
 }
 
+/** Fila del banquillo: dorsal, nombre y rol (Portero/Defensa/Medio/Delantero). */
+function FilaBanca({ jugador, color, onAbrir }) {
+  return (
+    <li
+      className="alz-fila alz-fila-click"
+      role="button"
+      tabIndex={0}
+      onClick={() => onAbrir?.(jugador)}
+      onKeyDown={(ev) => {
+        if (ev.key === "Enter" || ev.key === " ") {
+          ev.preventDefault();
+          onAbrir?.(jugador);
+        }
+      }}
+    >
+      <span className="alz-fila-foto">
+        <span className="alz-fila-inicial">{(jugador?.nombre || "?").slice(0, 1)}</span>
+        {jugador?.foto ? (
+          <img
+            className="alz-fila-foto-img"
+            src={jugador.foto}
+            alt=""
+            loading="lazy"
+            onError={(ev) => {
+              // Foto rota (FotMob devuelve 404 en algunos jugadores):
+              // se quita y queda la inicial de debajo.
+              ev.currentTarget.remove();
+            }}
+          />
+        ) : null}
+      </span>
+      <span className="alz-fila-dorsal" style={{ borderColor: color }}>
+        {jugador?.dorsal || "-"}
+      </span>
+      <span className="alz-fila-texto">
+        <b>{jugador?.nombre}</b>
+        {jugador?.rol ? <small>{jugador.rol}</small> : null}
+      </span>
+    </li>
+  );
+}
+
+/** "2026-11-14T20:45:00Z" -> "14 nov 2026" */
+function fechaCorta(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d)) return "";
+  return d.toLocaleDateString("es-ES", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+/** Baja: sancion (tarjeta) o lesion, con la fecha de vuelta si la hay. */
+function FilaBaja({ jugador }) {
+  const sancion = /suspen/i.test(jugador?.tipo || "");
+  const cuando = fechaCorta(jugador?.regreso_fecha) || jugador?.regreso || "";
+  return (
+    <li className="alz-fila alz-fila-baja">
+      <span className="alz-fila-foto">
+        <span className="alz-fila-inicial">{(jugador?.nombre || "?").slice(0, 1)}</span>
+        {jugador?.foto ? (
+          <img
+            className="alz-fila-foto-img"
+            src={jugador.foto}
+            alt=""
+            loading="lazy"
+            onError={(ev) => {
+              ev.currentTarget.remove();
+            }}
+          />
+        ) : null}
+      </span>
+      <span
+        className={`alz-baja-icono ${sancion ? "sancion" : "lesion"}`}
+        aria-hidden="true"
+      >
+        {sancion ? "▮" : "+"}
+      </span>
+      <span className="alz-fila-texto">
+        <b>{jugador?.nombre}</b>
+        <small>
+          {sancion ? "Sancionado" : "Lesión"}
+          {cuando ? ` · ${cuando}` : ""}
+        </small>
+      </span>
+    </li>
+  );
+}
+
 export default function Alineacion({ sport = "soccer", eventId, league = null }) {
   const [datos, setDatos] = useState(null);
   const [cargando, setCargando] = useState(true);
@@ -558,62 +649,48 @@ export default function Alineacion({ sport = "soccer", eventId, league = null })
         </div>
       )}
 
-      <div className="alz-bancas">
-        {[
-          { equipo: local, color: COLOR_LOCAL },
-          { equipo: visita, color: COLOR_VISITA },
-        ].map(({ equipo, color }) => (
-          <div key={`b-${equipo?.equipo || color}`} className="alz-banca-grupo">
-            {equipo?.suplentes?.length ? (
-              <details className="alz-banca">
-                <summary>
-                  <span className="alz-banca-punto" style={{ background: color }} />
-                  Suplentes {equipo?.equipo}
-                  <span className="alz-banca-num">{equipo.suplentes.length}</span>
-                </summary>
-                <ul className="alz-filas">
-                  {equipo.suplentes.map((j, i) => (
-                    <FilaJugador
-                      key={`s-${j.id || i}`}
-                      jugador={j}
-                      tipo="oficial"
-                      color={color}
-                      goles={aporteDe(j).goles}
-                      asistencias={aporteDe(j).asistencias}
-                      onAbrir={abrirJugador}
-                    />
-                  ))}
-                </ul>
-              </details>
-            ) : null}
-
-            {equipo?.bajas?.length ? (
-              <details className="alz-banca alz-bl">
-                <summary>
-                  <span className="alz-banca-punto" style={{ background: "#ef4444" }} />
-                  Bajas {equipo?.equipo}
-                  <span className="alz-banca-num">{equipo.bajas.length}</span>
-                </summary>
-                <ul className="alz-filas">
-                  {equipo.bajas.map((j, i) => (
-                    <li key={`x-${i}`} className="alz-fila">
-                      <span className="alz-fila-foto">
-                        {j.foto ? (
-                          <img src={j.foto} alt="" loading="lazy" />
-                        ) : (
-                          <span className="alz-fila-inicial">?</span>
-                        )}
-                      </span>
-                      <span className="alz-fila-nombre">{j.nombre}</span>
-                      <span className="alz-fila-pos">{j.motivo || "baja"}</span>
-                    </li>
-                  ))}
-                </ul>
-              </details>
-            ) : null}
+      {/* Cuerpo tecnico */}
+      <div className="alz-tecnicos">
+        {[{ equipo: local, color: COLOR_LOCAL }, { equipo: visita, color: COLOR_VISITA }].map(({ equipo, color }) => (
+          <div key={`c-${equipo?.equipo || color}`} className="alz-tecnico">
+            <span className="alz-cab-punto" style={{ background: color }} />
+            <b>{equipo?.entrenador || "—"}</b>
+            <span>Entrenador</span>
           </div>
         ))}
       </div>
+
+      {/* Banquillo: dos columnas, con el rol de cada suplente */}
+      {local?.suplentes?.length || visita?.suplentes?.length ? (
+        <section className="alz-bloque">
+          <h4 className="alz-bloque-tit">Banquillo</h4>
+          <div className="alz-banca-grid">
+            {[{ equipo: local, color: COLOR_LOCAL }, { equipo: visita, color: COLOR_VISITA }].map(({ equipo, color }) => (
+              <ul key={`b-${equipo?.equipo || color}`} className="alz-banca-lista">
+                {(equipo?.suplentes || []).map((j, i) => (
+                  <FilaBanca key={`s-${j.id || i}`} jugador={j} color={color} onAbrir={abrirJugador} />
+                ))}
+              </ul>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {/* Bajas: tipo y fecha de vuelta */}
+      {local?.bajas?.length || visita?.bajas?.length ? (
+        <section className="alz-bloque">
+          <h4 className="alz-bloque-tit">Lesionados y sancionados</h4>
+          <div className="alz-banca-grid">
+            {[{ equipo: local, color: COLOR_LOCAL }, { equipo: visita, color: COLOR_VISITA }].map(({ equipo, color }) => (
+              <ul key={`x-${equipo?.equipo || color}`} className="alz-banca-lista">
+                {(equipo?.bajas || []).map((j, i) => (
+                  <FilaBaja key={`x-${i}`} jugador={j} />
+                ))}
+              </ul>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {/* Ficha del jugador: panel estilo FotMob (shot map + stats del partido) */}
       {sel ? (

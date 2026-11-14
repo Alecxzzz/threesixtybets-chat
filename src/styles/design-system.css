@@ -826,6 +826,141 @@
   .fj-panel { max-height: 92vh; }
 }
 
+/* -------- Banquillo, bajas y cuerpo tecnico (estilo FotMob) ---------------- */
+
+.alz-tecnicos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.alz-tecnico {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--ds-border);
+  border-radius: 12px;
+  background: var(--ds-surface);
+}
+
+.alz-tecnico b {
+  font-size: 13.5px;
+  color: var(--ds-text);
+}
+
+.alz-tecnico > span:last-child {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--ds-text-3);
+}
+
+.alz-bloque {
+  margin-top: 18px;
+}
+
+.alz-bloque-tit {
+  margin: 0 0 8px;
+  text-align: center;
+  font-size: 12.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ds-text-2);
+}
+
+.alz-banca-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 22px;
+  padding: 10px 8px;
+  border: 1px solid var(--ds-border);
+  border-radius: 12px;
+  background: var(--ds-surface);
+}
+
+.alz-banca-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.alz-banca-lista .alz-fila {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 8px;
+  border-radius: 8px;
+}
+
+.alz-fila-texto {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+/* Foto con la inicial debajo: si la imagen da 404, queda la inicial. */
+.alz-fila-foto {
+  position: relative;
+  overflow: hidden;
+}
+
+.alz-fila-foto-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}
+
+.alz-fila-texto b {
+  font-size: 13px;
+  color: var(--ds-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.alz-fila-texto small {
+  font-size: 11.5px;
+  color: var(--ds-text-3);
+}
+
+.alz-fila-baja {
+  cursor: default;
+}
+
+.alz-baja-icono {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  border-radius: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.alz-baja-icono.sancion {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.alz-baja-icono.lesion {
+  background: #f97316;
+  color: #ffffff;
+}
+
+@media (max-width: 768px) {
+  .alz-tecnicos,
+  .alz-banca-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .alz-jug,
   .alz-jug > circle,
