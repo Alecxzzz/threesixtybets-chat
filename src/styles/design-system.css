@@ -767,6 +767,111 @@
   color: var(--ds-text-3);
 }
 
+/* Mapa de remates vertical (portería arriba) */
+.fj-mapa {
+  width: 100%;
+  max-width: 208px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+/* Inicial de respaldo: queda debajo de la foto, se ve si la foto falla. */
+.fj-inicial {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--ds-text-2);
+}
+
+.fj-avatar img {
+  position: relative;
+  z-index: 1;
+}
+
+/* La nota va por encima de la foto. */
+.fj-avatar .fj-nota {
+  z-index: 2;
+}
+
+.fj-tiro-punto {
+  animation: fj-aparece 0.4s ease-out both;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+
+.fj-tiro-punto:hover {
+  filter: brightness(1.15);
+}
+
+/* Selector Remates / Calor */
+.fj-modo {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.fj-modo button {
+  flex: 1;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ds-text-3);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.fj-modo button.activo {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--ds-text);
+}
+
+/* Chips con el minuto de cada remate */
+.fj-tiros-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.fj-tiros-chips button {
+  min-width: 34px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--ds-text-3);
+  font-size: 11px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.fj-tiros-chips button.activo {
+  background: #e2e8f0;
+  border-color: #e2e8f0;
+  color: #0b1220;
+}
+
+/* Aviso bajo el mapa (ojo: NO usar .fj-nota, que es el badge de la nota) */
+.fj-aviso {
+  margin: 8px 0 0;
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--ds-text-3);
+}
+
 .fj-campo {
   width: 100%;
   height: auto;

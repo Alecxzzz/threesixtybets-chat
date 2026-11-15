@@ -1,10 +1,18 @@
+import { useState } from "react";
+
 /**
  * FichaJugador - panel de jugador estilo FotMob.
  *
  * Todo sale del mismo /stats/alineacion (matchDetails de FotMob): nota,
  * equipo, edad, pais, disparos del partido y stats por grupos.
- * NO se pinta heatmap: FotMob solo da el heatmap del PARTIDO, no del jugador;
- * en su lugar va el shot map, que si son datos reales de este jugador.
+ *
+ * Sobre el heatmap: FotMob NO publica el mapa de calor de actividad del
+ * jugador (ni `heatmapUrl` ni coordenadas por minuto; se comprobo: 400/404 y
+ * `playerStats` sin coordenadas). Lo que si da es el `shotmap` por jugador con
+ * x/y, xG, xGOT, resultado, situacion y tipo de cada remate. Con eso se pinta:
+ *   - "Remates": mapa vertical interactivo (tiro seleccionable + detalle).
+ *   - "Calor": densidad de esos mismos remates, y se dice que se calcula asi.
+ * Nunca se inventa un heatmap de actividad.
  */
 
 const TRADUCE = {
@@ -105,66 +113,144 @@ function tonoNota(nota) {
   return "bajo";
 }
 
-function MiniCampo({ disparos }) {
+/** Clasifica el remate por como acabo (color y leyenda). */
+function claseTiro(t) {
+  if (/goal/i.test(t.resultado || "")) return "gol";
+  if (t.a_puerta) return "puerta";
+  if (/block/i.test(t.resultado || "")) return "bloqueado";
+  return "fuera";
+}
+
+const COLOR_TIRO = {
+  gol: "#22c55e",
+  puerta: "#e2e8f0",
+  bloqueado: "#94a3b8",
+  fuera: "#ef4444",
+};
+
+/**
+ * Mapa de remates en vertical (porteria atacada arriba), como un tracker:
+ *
+ *  - "remates": cada tiro con su trayectoria hasta el punto de porteria, radio
+ *    segun el xG y color segun el resultado. El seleccionado lleva anillo.
+ *  - "calor": densidad de esos mismos remates. No es el heatmap de actividad
+ *    (la fuente no publica posiciones), se calcula con las coordenadas REALES
+ *    de sus tiros y se dice asi en la nota.
+ */
+function MapaRemates({ disparos, modo, seleccionado, onSeleccionar }) {
   const tiros = disparos || [];
   if (!tiros.length) {
     return <p className="fj-vacio">Sin remates en este partido.</p>;
   }
 
-  // Resumen por resultado: es lo que se pinta en la leyenda.
-  const cuenta = { gol: 0, puerta: 0, fuera: 0, bloqueado: 0 };
-  const clase = (t) => {
-    if (t.resultado === "Goal") return "gol";
-    if (t.a_puerta) return "puerta";
-    if (/block/i.test(t.resultado || "")) return "bloqueado";
-    return "fuera";
+  // Coordenadas: FotMob da x = 0 (porteria propia) .. 100 (porteria rival) e
+  // y = 0 .. 100 a lo ancho. En vertical la porteria queda arriba.
+  const punto = (t) => ({
+    x: 4 + (Math.max(0, Math.min(100, Number(t.y) || 0)) / 100) * 60,
+    // Se dibuja solo la mitad atacante (viewBox 0..62): el tiro queda al doble
+    // de tamaño. Un remate desde campo propio se ancla al borde.
+    y: Math.min(59, 3 + ((100 - Math.max(0, Math.min(100, Number(t.x) || 0))) / 100) * 99),
+  });
+
+  // Donde cruzo la linea de gol: x_porteria viene en metros desde el centro
+  // de la porteria (-3.66 .. +3.66).
+  const destinoX = (t) => {
+    const metros = Number(t.x_porteria);
+    if (!Number.isFinite(metros)) return 34;
+    return Math.max(24, Math.min(44, 34 + metros * 2.4));
   };
+
+  const cuenta = { gol: 0, puerta: 0, fuera: 0, bloqueado: 0 };
+  for (const t of tiros) cuenta[claseTiro(t)] += 1;
 
   return (
     <>
-      <svg viewBox="0 0 100 64" className="fj-campo" role="img" aria-label="Mapa de remates">
-        <rect x="0" y="0" width="100" height="64" rx="2" fill="#0f2418" />
-        {/* area grande y pequena a la derecha (porteria atacada) */}
-        <path d="M83 13 H99 V51 H83" fill="none" stroke="#4a7d61" strokeWidth="0.8" />
-        <path d="M94 24 H99 V40 H94" fill="none" stroke="#4a7d61" strokeWidth="0.8" />
-        <path d="M99 27 V37" stroke="#7dd3fc" strokeWidth="1.4" />
-        <path d="M99 0 V64" stroke="#2f4a3a" strokeWidth="0.5" />
+      <svg
+        viewBox="0 0 68 62"
+        className="fj-mapa"
+        role="img"
+        aria-label="Mapa de remates del jugador"
+      >
+        <defs>
+          <radialGradient id="fj-cal">
+            <stop offset="0%" stopColor="#fde047" stopOpacity="0.85" />
+            <stop offset="55%" stopColor="#facc15" stopOpacity="0.35" />
+            <stop offset="100%" stopColor="#facc15" stopOpacity="0" />
+          </radialGradient>
+          <filter id="fj-suave" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="2.2" />
+          </filter>
+        </defs>
 
-        {tiros.map((t, i) => {
-          const k = clase(t);
-          cuenta[k] += 1;
-          const cx = Math.max(2, Math.min(96, Number(t.x) || 0));
-          const cy = Math.max(2, Math.min(62, (Number(t.y) || 0) * 0.64));
-          // Donde cruzo la linea de gol: x_porteria viene en metros desde el
-          // centro de la porteria (-3.66 .. +3.66). Se lleva al dibujo.
-          const metros = Number(t.x_porteria);
-          const destino = Number.isFinite(metros)
-            ? Math.max(26, Math.min(38, 32 + metros * 1.64))
-            : 32;
-          const color =
-            k === "gol" ? "#22c55e" : k === "puerta" ? "#e2e8f0" : k === "bloqueado" ? "#94a3b8" : "#ef4444";
+        {/* cesped */}
+        <rect x="0" y="0" width="68" height="62" rx="3" fill="#1c6b3a" />
+        <rect x="3" y="3" width="62" height="56" rx="1.5" fill="none" stroke="#79c795" strokeWidth="0.6" opacity="0.55" />
 
-          return (
-            <g key={i} className={`fj-tiro fj-tiro--${k}`}>
-              {/* trayectoria del remate hasta la porteria */}
-              <line
-                x1={cx}
-                y1={cy}
-                x2={98}
-                y2={destino}
-                stroke={color}
-                strokeWidth={k === "gol" ? 1.1 : 0.6}
-                strokeOpacity={k === "gol" ? 0.95 : 0.55}
-                strokeDasharray={k === "fuera" ? "1.6 1.4" : k === "bloqueado" ? "0.8 1.2" : "none"}
-                strokeLinecap="round"
-              />
-              <circle cx={cx} cy={cy} r="2.6" fill={color} fillOpacity="0.9" stroke="#04120a" strokeWidth="0.4" />
-              <text x={cx} y={cy + 0.9} textAnchor="middle" fontSize="2.1" fontWeight="800" fill="#04120a">
-                {t.min}
-              </text>
-            </g>
-          );
-        })}
+        {/* areas y porteria (arriba) */}
+        <g fill="none" stroke="#79c795" strokeWidth="0.6" opacity="0.6">
+          <rect x="13" y="3" width="42" height="16" />
+          <rect x="23" y="3" width="22" height="7" />
+          <line x1="3" y1="59" x2="65" y2="59" />
+          <circle cx="34" cy="62" r="8.2" />
+          <circle cx="34" cy="59" r="0.9" fill="#79c795" stroke="none" />
+          <circle cx="34" cy="14.5" r="0.8" fill="#79c795" stroke="none" />
+        </g>
+        {/* porteria: marco claro para ver a donde apuntan los tiros */}
+        <rect x="26" y="0.6" width="16" height="2.6" rx="0.4" fill="rgba(226,232,240,0.14)" stroke="#e2e8f0" strokeWidth="0.45" />
+        <line x1="26" y1="1.9" x2="42" y2="1.9" stroke="#e2e8f0" strokeWidth="0.2" opacity="0.35" />
+
+        {modo === "calor" ? (
+          <g filter="url(#fj-suave)" style={{ mixBlendMode: "screen" }}>
+            {tiros.map((t, i) => {
+              const p = punto(t);
+              return <circle key={i} cx={p.x} cy={p.y} r="13" fill="url(#fj-cal)" />;
+            })}
+          </g>
+        ) : (
+          <g>
+            {tiros.map((t, i) => {
+              const k = claseTiro(t);
+              const p = punto(t);
+              const activo = i === seleccionado;
+              const radio = 2.6 + Math.min(1, Number(t.xg) || 0) * 4.5;
+              return (
+                <g
+                  key={i}
+                  className="fj-tiro-punto"
+                  style={{ "--i": i, cursor: "pointer" }}
+                  onClick={() => onSeleccionar(i)}
+                >
+                  <line
+                    x1={p.x}
+                    y1={p.y}
+                    x2={destinoX(t)}
+                    y2="2.4"
+                    stroke={COLOR_TIRO[k]}
+                    strokeWidth={k === "gol" ? 0.75 : 0.45}
+                    strokeOpacity={activo ? 0.95 : 0.45}
+                    strokeDasharray={k === "fuera" ? "1.4 1.2" : k === "bloqueado" ? "0.7 1" : "none"}
+                    strokeLinecap="round"
+                  />
+                  {activo ? (
+                    <circle cx={p.x} cy={p.y} r={radio + 2.2} fill="none" stroke="#ffffff" strokeWidth="0.7" />
+                  ) : null}
+                  <circle
+                    cx={p.x}
+                    cy={p.y}
+                    r={radio}
+                    fill={COLOR_TIRO[k]}
+                    fillOpacity={0.95}
+                    stroke="#04120a"
+                    strokeWidth="0.4"
+                  />
+                  <text x={p.x} y={p.y + 0.9} textAnchor="middle" fontSize="2.4" fontWeight="800" fill="#04120a">
+                    {t.min}
+                  </text>
+                </g>
+              );
+            })}
+          </g>
+        )}
       </svg>
 
       <ul className="fj-leyenda">
@@ -184,11 +270,19 @@ function MiniCampo({ disparos }) {
 }
 
 export default function FichaJugador({ jugador, stats, aporte, onClose, onPrev, onNext }) {
-  if (!jugador) return null;
+  const [modo, setModo] = useState("remates"); // remates | calor
+  const [selTiro, setSelTiro] = useState(null);
+
   const s = stats || {};
   const disparos = s.disparos || [];
   const grupos = s.grupos || [];
-  const ultimo = disparos[disparos.length - 1];
+
+  // Al pasar de jugador con ‹ › el indice guardado puede quedarse fuera de
+  // rango: se acota en vez de guardar estado dentro de un efecto.
+  const indice = Math.max(0, Math.min(selTiro ?? disparos.length - 1, disparos.length - 1));
+  const tiro = disparos[indice];
+
+  if (!jugador) return null;
   const nota = jugador.nota;
 
   return (
@@ -209,11 +303,18 @@ export default function FichaJugador({ jugador, stats, aporte, onClose, onPrev, 
 
         <header className="fj-cab">
           <div className="fj-avatar">
+            <span className="fj-inicial">{(jugador.nombre || "?").slice(0, 1)}</span>
             {jugador.foto ? (
-              <img src={jugador.foto} alt="" />
-            ) : (
-              <span>{(jugador.nombre || "?").slice(0, 1)}</span>
-            )}
+              <img
+                src={jugador.foto}
+                alt=""
+                loading="lazy"
+                onError={(ev) => {
+                  // Foto caida (404 de FotMob): se queda la inicial.
+                  ev.currentTarget.style.display = "none";
+                }}
+              />
+            ) : null}
             {nota != null ? <span className="fj-nota">{nota}</span> : null}
           </div>
           <h3 className="fj-nombre">
@@ -238,19 +339,85 @@ export default function FichaJugador({ jugador, stats, aporte, onClose, onPrev, 
         <div className="fj-cuerpo">
           <section className="fj-izq">
             <div className="fj-izq-cab">
-              <h4>Mapa de remates</h4>
+              <h4>Remates</h4>
               <span>
                 {disparos.length} {disparos.length === 1 ? "remate" : "remates"}
               </span>
             </div>
-            <MiniCampo disparos={disparos} />
-            {ultimo ? (
+
+            {disparos.length > 1 ? (
+              <div className="fj-modo" role="group" aria-label="Vista del mapa">
+                <button
+                  type="button"
+                  className={modo === "remates" ? "activo" : ""}
+                  onClick={() => setModo("remates")}
+                >
+                  Remates
+                </button>
+                <button
+                  type="button"
+                  className={modo === "calor" ? "activo" : ""}
+                  onClick={() => setModo("calor")}
+                >
+                  Calor
+                </button>
+              </div>
+            ) : null}
+
+            <MapaRemates
+              disparos={disparos}
+              modo={modo}
+              seleccionado={indice}
+              onSeleccionar={setSelTiro}
+            />
+
+            {disparos.length > 1 ? (
+              <div className="fj-tiros-chips">
+                {disparos.map((t, i) => (
+                  <button
+                    key={`${t.min}-${i}`}
+                    type="button"
+                    className={i === indice ? "activo" : ""}
+                    onClick={() => setSelTiro(i)}
+                    title={`Remate del minuto ${t.min}`}
+                  >
+                    {t.min}&apos;
+                  </button>
+                ))}
+              </div>
+            ) : null}
+
+            {modo === "calor" ? (
+              <p className="fj-aviso">
+                Calor calculado con los {disparos.length} remates reales de este partido: la fuente no
+                publica las posiciones de actividad del jugador.
+              </p>
+            ) : tiro ? (
               <dl className="fj-detalle">
-                <div><dt>Tipo</dt><dd>{txt(ultimo.tipo)}</dd></div>
-                <div><dt>Situacion</dt><dd>{txt(ultimo.situacion)}</dd></div>
-                <div><dt>Resultado</dt><dd>{txt(ultimo.resultado)}</dd></div>
-                <div><dt>xG</dt><dd>{ultimo.xg ?? "—"}</dd></div>
-                <div><dt>xGOT</dt><dd>{ultimo.xgot ?? "—"}</dd></div>
+                <div>
+                  <dt>Minuto</dt>
+                  <dd>{tiro.min}&apos;</dd>
+                </div>
+                <div>
+                  <dt>Resultado</dt>
+                  <dd>{txt(tiro.resultado)}</dd>
+                </div>
+                <div>
+                  <dt>xG</dt>
+                  <dd>{tiro.xg ?? "—"}</dd>
+                </div>
+                <div>
+                  <dt>xGOT</dt>
+                  <dd>{tiro.xgot ?? "—"}</dd>
+                </div>
+                <div>
+                  <dt>Situación</dt>
+                  <dd>{txt(tiro.situacion)}</dd>
+                </div>
+                <div>
+                  <dt>Tipo</dt>
+                  <dd>{txt(tiro.tipo)}</dd>
+                </div>
               </dl>
             ) : null}
             <div className="fj-aportes">
