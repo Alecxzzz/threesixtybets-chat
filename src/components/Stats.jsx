@@ -694,6 +694,50 @@ function GameDetail({ sport, eventId, onBack }) {
 
       {/* Contenido en una sola columna de tarjetas (estilo app) */}
       <div className="sd-stack" data-activa={tab}>
+        {/* Modelo y mercado SIEMPRE primero: es lo que se mira antes de apostar */}
+        <ContextoPartido
+          seccion="modelo"
+          predictor={detail.predictor}
+          odds={detail.odds}
+          injuries={detail.injuries}
+          equipos={detail.teams || []}
+        />
+
+        {/* Analisis IA - PRIORIDAD arriba */}
+        <div className="sd-card" data-tab="resumen">
+            <h3 style={sectionTitle()}>🤖 Analisis de la IA</h3>
+            {aiLoading && (
+              <div style={{ background: "#11161d", border: `1px solid ${theme.accent}44`, borderRadius: 10, padding: 14, display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 20, height: 20, borderRadius: "50%", border: `3px solid ${theme.accent}33`, borderTopColor: theme.accent, animation: "spin 1s linear infinite" }} />
+                <span style={{ color: "#8b95a1", fontSize: 13 }}>La IA esta analizando el partido...</span>
+              </div>
+            )}
+            {!aiLoading && aiAnalysis && (
+              <div style={{ background: "#11161d", border: `1px solid ${theme.accent}44`, borderRadius: 10, padding: 14, whiteSpace: "pre-wrap", fontSize: 13, color: "#c9d1d9", lineHeight: 1.6, minHeight: 60 }}>
+                <TypewriterText text={aiAnalysis.analysis} />
+                <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                  <button
+                    onClick={copiarAnalisis}
+                    style={{ flex: 1, padding: "8px 10px", borderRadius: 8, border: "1px solid #232a33", background: "#0d1117", color: shareCopied ? "#34d399" : "#c9d1d9", cursor: "pointer", fontSize: 12 }}
+                  >
+                    {shareCopied ? "✓ Copiado" : "📋 Copiar"}
+                  </button>
+                  <button
+                    onClick={compartirWhatsapp}
+                    style={{ flex: 1, padding: "8px 10px", borderRadius: 8, border: "1px solid #232a33", background: "#0d1117", color: "#c9d1d9", cursor: "pointer", fontSize: 12 }}
+                  >
+                    💬 WhatsApp
+                  </button>
+                </div>
+              </div>
+            )}
+            {!aiLoading && !aiAnalysis && (
+              <button onClick={loadAi} style={{ width: "100%", padding: "10px", borderRadius: 10, border: `1px solid ${theme.accent}`, background: `${theme.accent}11`, color: theme.accent, cursor: "pointer", fontWeight: 700 }}>
+                🤖 IA Analizando el partido..
+              </button>
+            )}
+          </div>
+
         {/* Alineacion: boxscore en vivo (NBA), oficial de FotMob o once probable */}
         <div className="sd-card" data-tab="alineacion">
           <h3 style={sectionTitle()}>
@@ -734,8 +778,9 @@ function GameDetail({ sport, eventId, onBack }) {
           equipos={detail.teams || []}
         />
 
-        {/* Modelo de ESPN, cuotas reales y bajas (NBA, NFL, MLB...) */}
+        {/* Bajas y dudas: cierra el contexto del partido */}
         <ContextoPartido
+          seccion="bajas"
           predictor={detail.predictor}
           odds={detail.odds}
           injuries={detail.injuries}
@@ -751,41 +796,6 @@ function GameDetail({ sport, eventId, onBack }) {
             winProbability={detail.win_probability || []}
           />
         ) : null}
-
-        {/* Analisis IA - PRIORIDAD arriba */}
-        <div className="sd-card" data-tab="resumen">
-            <h3 style={sectionTitle()}>🤖 Analisis de la IA</h3>
-            {aiLoading && (
-              <div style={{ background: "#11161d", border: `1px solid ${theme.accent}44`, borderRadius: 10, padding: 14, display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={{ width: 20, height: 20, borderRadius: "50%", border: `3px solid ${theme.accent}33`, borderTopColor: theme.accent, animation: "spin 1s linear infinite" }} />
-                <span style={{ color: "#8b95a1", fontSize: 13 }}>La IA esta analizando el partido...</span>
-              </div>
-            )}
-            {!aiLoading && aiAnalysis && (
-              <div style={{ background: "#11161d", border: `1px solid ${theme.accent}44`, borderRadius: 10, padding: 14, whiteSpace: "pre-wrap", fontSize: 13, color: "#c9d1d9", lineHeight: 1.6, minHeight: 60 }}>
-                <TypewriterText text={aiAnalysis.analysis} />
-                <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                  <button
-                    onClick={copiarAnalisis}
-                    style={{ flex: 1, padding: "8px 10px", borderRadius: 8, border: "1px solid #232a33", background: "#0d1117", color: shareCopied ? "#34d399" : "#c9d1d9", cursor: "pointer", fontSize: 12 }}
-                  >
-                    {shareCopied ? "✓ Copiado" : "📋 Copiar"}
-                  </button>
-                  <button
-                    onClick={compartirWhatsapp}
-                    style={{ flex: 1, padding: "8px 10px", borderRadius: 8, border: "1px solid #232a33", background: "#0d1117", color: "#c9d1d9", cursor: "pointer", fontSize: 12 }}
-                  >
-                    💬 WhatsApp
-                  </button>
-                </div>
-              </div>
-            )}
-            {!aiLoading && !aiAnalysis && (
-              <button onClick={loadAi} style={{ width: "100%", padding: "10px", borderRadius: 10, border: `1px solid ${theme.accent}`, background: `${theme.accent}11`, color: theme.accent, cursor: "pointer", fontWeight: 700 }}>
-                🤖 IA Analizando el partido..
-              </button>
-            )}
-          </div>
 
         {/* H2H / Local / Visitante con tabs */}
         {(detail?.teams?.length > 0) && (

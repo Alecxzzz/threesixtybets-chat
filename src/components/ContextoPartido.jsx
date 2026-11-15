@@ -8,7 +8,15 @@
 
 const ORDEN_BAJAS = { Out: 0, "Day-To-Day": 1 };
 
-export default function ContextoPartido({ predictor, odds, injuries, equipos = [] }) {
+export default function ContextoPartido({
+  predictor,
+  odds,
+  injuries,
+  equipos = [],
+  // "todo" | "modelo" | "bajas": deja colocar cada bloque en su sitio del
+  // resumen (mercado arriba, bajas abajo) sin repetir el calculo.
+  seccion = "todo",
+}) {
   const casa = equipos.find((t) => t.homeAway === "home") || equipos[0] || {};
   const fuera = equipos.find((t) => t.homeAway !== "home") || equipos[1] || {};
 
@@ -18,13 +26,15 @@ export default function ContextoPartido({ predictor, odds, injuries, equipos = [
 
   const hayModelo = predictor?.local != null && predictor?.visita != null;
   const hayCuotas = odds && (odds.linea || odds.total || odds.ml_local);
-  if (!hayModelo && !hayCuotas && !bajas.length) return null;
+  const mostrarModelo = seccion !== "bajas" && (hayModelo || hayCuotas);
+  const mostrarBajas = seccion !== "modelo" && bajas.length > 0;
+  if (!mostrarModelo && !mostrarBajas) return null;
 
   const pctLocal = hayModelo ? Number(predictor.local) : 0;
 
   return (
     <>
-      {(hayModelo || hayCuotas) && (
+      {mostrarModelo && (
         <section className="sd-card dp-card" data-tab="resumen">
           <h4 className="dp-titulo">📊 Modelo y mercado</h4>
 
@@ -73,7 +83,7 @@ export default function ContextoPartido({ predictor, odds, injuries, equipos = [
         </section>
       )}
 
-      {bajas.length ? (
+      {mostrarBajas ? (
         <section className="sd-card dp-card" data-tab="resumen">
           <h4 className="dp-titulo">🚑 Bajas y dudas</h4>
           <div className="baj-columnas">

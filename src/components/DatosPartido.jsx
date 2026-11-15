@@ -2,9 +2,17 @@ import { useEffect, useState } from "react";
 import { getStoredSession, fetchDatosPartido } from "../services/api";
 
 /**
- * Extras del partido (FotMob): forma reciente, insights, árbitro y goleadores.
- * Se pintan como tarjetas dentro de la pestaña Resumen. Si no hay datos, no
- * muestra nada (no ensucia la vista).
+ * Extras del partido (FotMob) dentro de la pestaña Resumen.
+ *
+ * ORDEN a propósito (el resumen se lee de arriba abajo):
+ *   1. Goleadores / jugadores de referencia  -> quién decide
+ *   2. Datos del partido (insights)          -> qué dice la estadística
+ *   3. Forma reciente                        -> cómo llegan
+ *   4. Árbitro                               -> quién pita
+ * "Modelo y mercado" va aparte, arriba del todo (ContextoPartido): es lo
+ * primero que se mira al valorar una apuesta.
+ *
+ * Si un bloque no tiene datos, no se pinta (no ensucia la vista).
  */
 
 /** Números: enteros tal cual, decimales a 2 cifras (xG, nota). */
@@ -52,6 +60,34 @@ export default function DatosPartido({ sport = "soccer", eventId, league = null,
 
   return (
     <div className="dp-extras">
+      {goleadores ? (
+        <section className="sd-card dp-card" data-tab="resumen">
+          <h4 className="dp-titulo">{goleadores.titulo || "Goleadores"}</h4>
+          <div className="dp-gol-cab">
+            <div className="dp-gol-jug">
+              {goleadores.local?.foto ? <img src={goleadores.local.foto} alt="" /> : null}
+              <span>{goleadores.local?.nombre}</span>
+            </div>
+            <div className="dp-gol-jug">
+              {goleadores.visita?.foto ? <img src={goleadores.visita.foto} alt="" /> : null}
+              <span>{goleadores.visita?.nombre}</span>
+            </div>
+          </div>
+          <div className="dp-gol-filas">
+            {(goleadores.local?.filas || []).map((fila, i) => {
+              const otra = (goleadores.visita?.filas || [])[i];
+              return (
+                <div key={fila.etiqueta} className="dp-gol-fila">
+                  <span className="dp-gol-val">{fmt(fila.valor)}</span>
+                  <span className="dp-gol-label">{fila.etiqueta}</span>
+                  <span className="dp-gol-val">{fmt(otra?.valor)}</span>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
+
       {insights.length ? (
         <section className="sd-card dp-card" data-tab="resumen">
           <h4 className="dp-titulo">💡 Datos del partido</h4>
@@ -142,36 +178,7 @@ export default function DatosPartido({ sport = "soccer", eventId, league = null,
         </section>
       ) : null}
 
-      {goleadores ? (
-        <section className="sd-card dp-card" data-tab="resumen">
-          <h4 className="dp-titulo">{goleadores.titulo || "Goleadores"}</h4>
-          <div className="dp-gol-cab">
-            <div className="dp-gol-jug">
-              {goleadores.local?.foto ? <img src={goleadores.local.foto} alt="" /> : null}
-              <span>{goleadores.local?.nombre}</span>
-            </div>
-            <div className="dp-gol-jug">
-              {goleadores.visita?.foto ? <img src={goleadores.visita.foto} alt="" /> : null}
-              <span>{goleadores.visita?.nombre}</span>
-            </div>
-          </div>
-          <div className="dp-gol-filas">
-            {(goleadores.local?.filas || []).map((fila, i) => {
-              const otra = (goleadores.visita?.filas || [])[i];
-              return (
-                <div key={fila.etiqueta} className="dp-gol-fila">
-                  <span className="dp-gol-val">{fmt(fila.valor)}</span>
-                  <span className="dp-gol-label">{fila.etiqueta}</span>
-                  <span className="dp-gol-val">{fmt(otra?.valor)}</span>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      ) : null}
-
       <div className="dp-fuente">Datos: FotMob</div>
     </div>
   );
 }
-
