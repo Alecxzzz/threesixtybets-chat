@@ -4401,36 +4401,7 @@ button {
   color: #e9eff7;
 }
 
-/* Tracker en vivo: el widget `live_action` de Opta que sirve FotMob se pinta
-   tal cual en un iframe (la pagina responde sin X-Frame-Options ni CSP).
-   Altura fija: el widget hace su propio scroll interno y asi no baila. */
-.alz-tracker {
-  width: 100%;
-  max-width: 440px;
-  margin: 0 auto;
-  height: 540px;
-  border-radius: 16px;
-  overflow: hidden;
-  background: #0b1118;
-  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.5), 0 1px 0 rgba(255, 255, 255, 0.06) inset;
-}
-
-.alz-tracker iframe {
-  display: block;
-  width: 100%;
-  height: 100%;
-  border: 0;
-}
-
-@media (max-width: 560px) {
-  .alz-tracker {
-    height: 440px;
-    width: calc(100% + 10px);
-    max-width: none;
-    margin: 0 -5px;
-    border-radius: 14px;
-  }
-}
+/* El tracker del partido se estiliza en design-system.css (.alz-tracker). */
 
 /* ============================================================
    Extras del partido: forma, insights, árbitro y goleadores
