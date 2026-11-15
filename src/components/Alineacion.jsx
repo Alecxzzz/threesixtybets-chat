@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { getStoredSession, fetchAlineacion, fetchTracker } from "../services/api";
+import { getStoredSession, fetchAlineacion } from "../services/api";
+import TrackerPartido from "./TrackerPartido";
 import FichaJugador from "./FichaJugador";
 
 /**
@@ -368,68 +369,6 @@ function FilaBaja({ jugador }) {
   );
 }
 
-/**
- * Tracker en vivo del partido.
- *
- * El backend devuelve la URL del widget `live_action` de Opta que FotMob
- * publica dentro de matchDetails (`content.superlive`). Esa pagina responde
- * sin `X-Frame-Options` ni `Content-Security-Policy`, asi que se embebe en un
- * iframe: el dibujo del campo, la pelota y las acciones se actualizan solos,
- * sin que nosotros mantengamos nada.
- *
- * El widget puede pedir un clic para arrancar (los navegadores bloquean el
- * audio/autoplay); es normal.
- */
-function TrackerPartido({ eventId, league = null }) {
-  const [sesion] = useState(() => getStoredSession());
-  const [estado, setEstado] = useState(null);
-
-  useEffect(() => {
-    if (!sesion || !eventId) return undefined;
-    let cancelado = false;
-    fetchTracker(sesion, "soccer", eventId, league)
-      .then((r) => {
-        if (cancelado) return;
-        if (r?.ok && r.url) setEstado({ url: r.url, enVivo: r.en_vivo });
-        else setEstado({ error: r?.detalle || "Este partido no tiene tracker en vivo." });
-      })
-      .catch(() => {
-        if (!cancelado) setEstado({ error: "No se pudo cargar el tracker." });
-      });
-
-    return () => {
-      cancelado = true;
-    };
-  }, [sesion, eventId, league]);
-
-  if (!sesion || !eventId) {
-    return <p className="alz-vacio">Inicia sesión para ver el tracker.</p>;
-  }
-
-  if (!estado) {
-    return (
-      <div className="alz-cargando">
-        <span className="alz-spinner" aria-hidden="true" />
-        Cargando tracker…
-      </div>
-    );
-  }
-
-  if (estado.error) return <p className="alz-vacio">{estado.error}</p>;
-
-  return (
-    <div className="alz-tracker">
-      <iframe
-        src={estado.url}
-        title="Tracker del partido en vivo"
-        loading="lazy"
-        allow="autoplay; fullscreen"
-        referrerPolicy="no-referrer-when-downgrade"
-      />
-    </div>
-  );
-}
-
 export default function Alineacion({ sport = "soccer", eventId, league = null }) {
   const [datos, setDatos] = useState(null);
   const [cargando, setCargando] = useState(true);
@@ -526,6 +465,9 @@ export default function Alineacion({ sport = "soccer", eventId, league = null })
 
   const { local, visita, tipo } = datos;
   const probable = tipo === "probable";
+  // La pestaña Tracker solo se pinta si el backend confirma que este partido
+  // publica el widget de Opta: antes aparecia siempre y moria en un mensaje.
+  const puedeTracker = Boolean(datos.tracker);
 
   // Campo VERTICAL (como la app de FotMob): el portero local queda abajo y el
   // visitante arriba. x = de portería a portería, y = a lo ancho del campo.
@@ -558,13 +500,15 @@ export default function Alineacion({ sport = "soccer", eventId, league = null })
           >
             Lista
           </button>
-          <button
-            type="button"
-            className={vista === "tracker" ? "alz-tab activo" : "alz-tab"}
-            onClick={() => setVista("tracker")}
-          >
-            Tracker
-          </button>
+          {puedeTracker ? (
+            <button
+              type="button"
+              className={vista === "tracker" ? "alz-tab activo" : "alz-tab"}
+              onClick={() => setVista("tracker")}
+            >
+              Tracker
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -591,8 +535,8 @@ export default function Alineacion({ sport = "soccer", eventId, league = null })
         <CabeceraEquipo equipo={visita} color={COLOR_VISITA} />
       </div>
 
-      {vista === "tracker" ? (
-        <TrackerPartido eventId={eventId} league={league} />
+      {vista === "tracker" && puedeTracker ? (
+        <TrackerPartido key={eventId} eventId={eventId} league={league} />
       ) : vista === "campo" ? (
         <svg
           viewBox="0 0 68 105"
