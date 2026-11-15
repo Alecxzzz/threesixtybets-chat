@@ -12,7 +12,12 @@ import { getStoredSession, fetchTracker } from "../services/api";
  * No se replica nada: si el partido no trae widget, se explica el motivo que
  * manda el backend (`sin_cobertura`, `sin_datos`...).
  */
-export default function TrackerPartido({ eventId, league = null }) {
+export default function TrackerPartido({
+  eventId,
+  league = null,
+  dataTab = "stats",
+  soloSiHay = false,
+}) {
   // `null` = cargando. Se resuelve de forma perezosa para no escribir estado
   // dentro del efecto (regla react-hooks/set-state-in-effect).
   const [datos, setDatos] = useState(() => {
@@ -49,6 +54,9 @@ export default function TrackerPartido({ eventId, league = null }) {
   }
 
   if (!datos.ok || !datos.url) {
+    // En el resumen el tracker es un extra: si el partido no lo publica, no se
+    // pinta nada en vez de dejar un mensaje suelto.
+    if (soloSiHay) return null;
     return (
       <p className="trk-vacio">
         {datos.detalle || "La fuente no publica el tracker de este partido."}
@@ -57,7 +65,7 @@ export default function TrackerPartido({ eventId, league = null }) {
   }
 
   return (
-    <div className="alz-tracker-caja">
+    <div className="alz-tracker-caja" data-tab={dataTab}>
       <iframe
         src={datos.url}
         title="Tracker del partido"

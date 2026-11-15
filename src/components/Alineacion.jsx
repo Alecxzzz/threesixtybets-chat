@@ -536,7 +536,7 @@ export default function Alineacion({ sport = "soccer", eventId, league = null })
       </div>
 
       {vista === "tracker" && puedeTracker ? (
-        <TrackerPartido key={eventId} eventId={eventId} league={league} />
+        <TrackerPartido key={eventId} eventId={eventId} league={league} dataTab="alineacion" />
       ) : vista === "campo" ? (
         <svg
           viewBox="0 0 68 105"

@@ -16,6 +16,7 @@ import Alineacion from "./Alineacion";
 import DatosPartido from "./DatosPartido";
 import ContextoPartido from "./ContextoPartido";
 import EstadisticasPartido from "./EstadisticasPartido";
+import TrackerPartido from "./TrackerPartido";
 import NbaAnalytics from "./NbaAnalytics";
 import NbaBoxscore from "./NbaBoxscore";
 import NbaPlantilla from "./NbaPlantilla";
@@ -639,6 +640,10 @@ function GameDetail({ sport, eventId, onBack }) {
   }
 
   const linesLen = Math.max(away?.linescores?.length || 0, home?.linescores?.length || 0);
+  // ¿Los parciales dicen algo? En futbol, una tabla de ceros no aporta.
+  const parcialesConGoles = [home, away].some((t) =>
+    (t?.linescores || []).some((v) => Number(v) > 0)
+  );
   const h2h = detail.head_to_head || [];
   const keyPlayers = detail.key_players || [];
   // Boxscore EN VIVO: ESPN lo publica en cuanto arranca el partido (y queda al
@@ -659,20 +664,25 @@ function GameDetail({ sport, eventId, onBack }) {
 
   return (
     <section className="tool-page">
-    <div className="tool-panel" style={{ width: "100%", maxWidth: 820, margin: "0 auto", padding: "14px", boxSizing: "border-box" }}>
-      <button
-        onClick={onBack}
-        style={backBtnStyle}
-        onMouseEnter={(e) => { e.currentTarget.style.transform = "translateX(-3px)"; e.currentTarget.style.borderColor = theme.accent; e.currentTarget.style.color = theme.accent; }}
-        onMouseLeave={(e) => { e.currentTarget.style.transform = "none"; e.currentTarget.style.borderColor = "#3a4450"; e.currentTarget.style.color = "#c9d1d9"; }}
-      >
-        ← Volver a partidos
-      </button>
-
+    <div className="tool-panel" style={{ width: "100%", maxWidth: 820, margin: "0 auto", padding: "12px 14px 14px", boxSizing: "border-box" }}>
       <Scoreboard detail={detail} />
 
-      {/* Pestañas del partido (estilo app): solo se muestra la seccion activa */}
-      <div className="sd-tabs" role="tablist" aria-label="Secciones del partido">
+      {/* Volver + pestañas en la misma fila: el marcador queda lo más arriba
+          posible, que es lo primero que se mira al abrir un partido. */}
+      <div className="sd-barra">
+        <button
+          onClick={onBack}
+          style={backBtnStyle}
+          className="sd-volver"
+          aria-label="Volver a partidos"
+          title="Volver a partidos"
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = theme.accent; e.currentTarget.style.color = theme.accent; }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#3a4450"; e.currentTarget.style.color = "#c9d1d9"; }}
+        >
+          ←
+        </button>
+
+        <div className="sd-tabs" role="tablist" aria-label="Secciones del partido">
         {[
           { key: "resumen", label: "Resumen" },
           { key: "stats", label: "Estadisticas" },
@@ -691,10 +701,24 @@ function GameDetail({ sport, eventId, onBack }) {
             {t.label}
           </button>
         ))}
+        </div>
       </div>
 
       {/* Contenido en una sola columna de tarjetas (estilo app) */}
       <div className="sd-stack" data-activa={tab}>
+        {/* Tracker en directo ARRIBA del resumen: es lo primero que se quiere
+            ver al abrir un partido en juego. Si el partido no lo publica, no
+            se pinta nada (soloSiHay). */}
+        {sport === "soccer" ? (
+          <TrackerPartido
+            key={`trk-${eventId}`}
+            eventId={eventId}
+            league={detail.league_code || null}
+            dataTab="resumen"
+            soloSiHay
+          />
+        ) : null}
+
         {/* Modelo y mercado SIEMPRE primero: es lo que se mira antes de apostar */}
         <ContextoPartido
           seccion="modelo"
@@ -938,15 +962,18 @@ function GameDetail({ sport, eventId, onBack }) {
           </div>
         )}
 
-        {/* Linescores */}
-        {linesLen > 0 && (
-          <div className="sd-card" data-tab="resumen" style={{ overflowX: "auto" }}>
+        {/* Parciales por tiempo/cuarto. En futbol solo si hay goles: si no,
+            era una tarjeta vacia con "1" y "T" que no decia nada. */}
+        {linesLen > 0 && (sport !== "soccer" || parcialesConGoles) && (
+          <div className="sd-card" data-tab="resumen">
+            <h3 style={sectionTitle()}>📊 Parciales</h3>
+            <div style={{ overflowX: "auto" }}>
             <table style={{ margin: "0 auto", borderCollapse: "collapse", fontSize: 13 }}>
                 <thead>
                   <tr style={{ color: "#8b95a1" }}>
                     <th style={{ padding: "4px 10px" }}></th>
                     {Array.from({ length: linesLen }, (_, i) => (
-                      <th key={i} style={{ padding: "4px 10px" }}>{i + 1}</th>
+                      <th key={i} style={{ padding: "4px 10px" }}>{sport === "soccer" ? `${i + 1}ª` : i + 1}</th>
                     ))}
                     <th style={{ padding: "4px 10px", color: theme.accent }}>T</th>
                   </tr>
@@ -966,6 +993,7 @@ function GameDetail({ sport, eventId, onBack }) {
                   ))}
                 </tbody>
               </table>
+            </div>
             </div>
           )}
 

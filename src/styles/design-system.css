@@ -774,6 +774,40 @@
   border-radius: 8px;
 }
 
+/* ---- Cabecera del partido: marcador arriba, volver + pestañas en una fila -- */
+.sd-barra {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.sd-barra .sd-tabs {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+
+.sd-volver {
+  flex: 0 0 auto;
+  padding: 7px 11px !important;
+  margin-bottom: 4px;
+  font-size: 15px !important;
+  line-height: 1;
+  border-radius: 9px !important;
+}
+
+@media (max-width: 420px) {
+  .sd-volver {
+    padding: 6px 9px !important;
+  }
+
+  .sd-barra .sd-tab {
+    padding: 9px 9px;
+    font-size: 12.5px;
+  }
+}
+
 /* ---- Estadísticas del partido (momentum, comparativa, timeline) ---------- */
 .est-stack {
   display: flex;
@@ -1423,6 +1457,20 @@
 
 .alz-tracker-caja {
   margin-top: 10px;
+}
+
+/* El tracker sigue la misma regla que las tarjetas: solo se ve en su pestaña
+   (no es .sd-card, así que necesita sus propias reglas). */
+.sd-stack[data-activa] .alz-tracker-caja {
+  display: none;
+}
+
+.sd-stack[data-activa="resumen"] .alz-tracker-caja[data-tab="resumen"],
+.sd-stack[data-activa="stats"] .alz-tracker-caja[data-tab="stats"],
+.sd-stack[data-activa="alineacion"] .alz-tracker-caja[data-tab="alineacion"],
+.sd-stack[data-activa="h2h"] .alz-tracker-caja[data-tab="h2h"],
+.sd-stack[data-activa="tabla"] .alz-tracker-caja[data-tab="tabla"] {
+  display: block;
 }
 
 .alz-tracker {
