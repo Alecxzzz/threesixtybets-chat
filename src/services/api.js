@@ -578,6 +578,20 @@ export async function fetchTracker(session, sport, eventId, league) {
 }
 
 /**
+ * Estadisticas del partido (FotMob): momentum por minuto, comparativa con los
+ * colores reales de cada equipo y timeline de acciones.
+ */
+export async function fetchEstadisticasPartido(session, sport, eventId, league) {
+  const params = new URLSearchParams({ sport, event_id: eventId });
+  if (league) params.set("league", league);
+  const res = await fetch(`${API_URL}/stats/estadisticas?${params}`, {
+    headers: authHeaders(session),
+  });
+
+  return readJson(res);
+}
+
+/**
  * Extras del partido (FotMob): forma, insights, arbitro y goleadores.
  */
 export async function fetchDatosPartido(session, sport, eventId, league) {

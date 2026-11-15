@@ -15,6 +15,7 @@ import PlayerLast5Modal from "./PlayerLast5Modal";
 import Alineacion from "./Alineacion";
 import DatosPartido from "./DatosPartido";
 import ContextoPartido from "./ContextoPartido";
+import EstadisticasPartido from "./EstadisticasPartido";
 import NbaAnalytics from "./NbaAnalytics";
 import NbaBoxscore from "./NbaBoxscore";
 import NbaPlantilla from "./NbaPlantilla";
@@ -1038,8 +1039,21 @@ function GameDetail({ sport, eventId, onBack }) {
             </div>
           )}
 
-          {/* Estadisticas por equipo */}
-          {Object.keys(groups).length > 0 &&
+          {/* Estadisticas del partido (futbol): momentum, comparativa y acciones.
+              Sustituye a la tabla plana de ESPN; `respaldo` es lo que ya venia
+              de ESPN por si FotMob no publica este partido. */}
+          {sport === "soccer" ? (
+            <EstadisticasPartido
+              key={eventId}
+              eventId={eventId}
+              league={detail.league_code || null}
+              respaldo={groups}
+            />
+          ) : null}
+
+          {/* Estadisticas por equipo (resto de deportes) */}
+          {sport !== "soccer" &&
+            Object.keys(groups).length > 0 &&
             Object.entries(groups).map(([cat, list]) => (
               <div key={cat} className="sd-card" data-tab="stats">
                 <h3 style={sectionTitle()}>📊 {cat}</h3>
