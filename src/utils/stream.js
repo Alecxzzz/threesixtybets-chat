@@ -22,10 +22,29 @@ export const PROXY_BASE = (
 ).replace(/\/$/, "");
 
 /** Devuelve la URL del stream pasada por el proxy. */
-export function toProxyUrl(rawUrl, referer) {
+export function toProxyUrl(rawUrl, referer, token) {
   let url = `${PROXY_BASE}?url=${encodeURIComponent(rawUrl)}`;
   if (referer) url += `&referer=${encodeURIComponent(referer)}`;
+  // Si el backend exige acceso al stream, hls.js no puede mandar la cookie
+  // cross-origin por sí solo en todos los casos; el token en query es respaldo.
+  if (token) url += `&token=${encodeURIComponent(token)}`;
   return url;
+}
+
+/** Cabeceras/tokens para peticiones HLS al proxy (auth de stream si aplica). */
+export function hlsRequestConfig() {
+  try {
+    const s = JSON.parse(localStorage.getItem("threesixtybets_session") || "null");
+    const token = s?.access_token;
+    if (!token) return {};
+    return {
+      xhrSetup: (xhr) => {
+        try { xhr.setRequestHeader("Authorization", `Bearer ${token}`); } catch {}
+      },
+    };
+  } catch {
+    return {};
+  }
 }
 
 /**
@@ -58,13 +77,13 @@ export function needsProxy(channel) {
  * @param {object} channel
  * @param {boolean} forceProxy  se usa para el reintento automático tras un error fatal
  */
-export function resolveStreamUrl(channel, forceProxy = false) {
+export function resolveStreamUrl(channel, forceProxy = false, token) {
   const raw = (channel?.stream || "").trim(); // trim: hay URLs con espacios en channels.js
   if (!raw) return "";
   if (channel.type === "iframe") return raw;
 
   if (forceProxy || needsProxy(channel)) {
-    return toProxyUrl(raw, channel.referer);
+    return toProxyUrl(raw, channel.referer, token);
   }
   return raw;
 }

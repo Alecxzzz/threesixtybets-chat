@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import Hls from "hls.js";
 import { channels as staticChannels } from "../data/channels";
 import { events as staticEvents } from "../data/events";
-import { resolveStreamUrl, needsProxy, transcoderUrl, channelSources, channelSourcesDetailed, esErrorDeCodec, primerNivelSoportado, describirErrorPlayer } from "../utils/stream";
+import { resolveStreamUrl, needsProxy, transcoderUrl, channelSources, channelSourcesDetailed, esErrorDeCodec, primerNivelSoportado, describirErrorPlayer, hlsRequestConfig } from "../utils/stream";
 import ChannelLogo from "./ChannelLogo";
 import StreamSlot from "./StreamSlot";
 import {
@@ -192,6 +192,9 @@ function TV() {
         levelLoadingMaxRetryTimeout: 10000,
         fragLoadingMaxRetry: 8,
         fragLoadingMaxRetryTimeout: 10000,
+        manifestLoadingTimeOut: 20000,
+        levelLoadingTimeOut: 20000,
+        fragLoadingTimeOut: 20000,
         // Buffer más grande para estabilidad en streams inestables
         // Buffer más pequeño = menos bufferAppendError en móviles
         maxBufferLength: 20,
@@ -212,6 +215,7 @@ function TV() {
         nudgeMaxRetry: 10,
         // Ajuste de ancho de banda: empezar con nivel más bajo para carga rápida
         startLevel: -1, // auto: hls.js elige el mejor nivel inicial
+        ...hlsRequestConfig(),
         // El transcodificador necesita margen: FFmpeg tarda en dar el primer
         // segmento y con el timeout por defecto hls.js abortaba antes (va al
         // final a propósito, para pisar los valores de arriba).
@@ -341,12 +345,35 @@ function TV() {
           return;
         }
 
-        // 3) Auto-reconexión: un canal en vivo que se corta debe reintentarse
+        // 3) Errores de carga de manifiesto/segmentos: si ya se intentó la cadena
+        //    proxy/transcodificador en esta fuente, saltar rápido a alternativa.
+        const esCarga = data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR ||
+          data.details === Hls.ErrorDetails.MANIFEST_LOAD_TIMEOUT ||
+          data.details === Hls.ErrorDetails.MANIFEST_PARSING_ERROR ||
+          data.details === Hls.ErrorDetails.LEVEL_LOAD_ERROR ||
+          data.details === Hls.ErrorDetails.LEVEL_LOAD_TIMEOUT ||
+          data.details === Hls.ErrorDetails.FRAG_LOAD_ERROR;
+        if (esCarga && (viaTranscoder || (viaProxy && !needsProxy(effChannel)))) {
+          const totalFuentes = channelSources(currentChannel).length;
+          if (srcIdx < totalFuentes - 1) {
+            setPlayerError(`Esta opción no responde (${data.details}). Probando alternativa ${srcIdx + 2} de ${totalFuentes}...`);
+            destroyHls();
+            if (!cancelled) {
+              reloadAttemptsRef.current = 0;
+              setViaProxy(false);
+              setViaTranscoder(false);
+              setSrcIdx((i) => i + 1);
+            }
+            return;
+          }
+        }
+
+        // 3b) Auto-reconexión: un canal en vivo que se corta debe reintentarse
         //    solo (ej. el servidor deja de responder el m3u8 a media emisión).
-        const MAX_RELOADS = 5;
+        const MAX_RELOADS = 4;
         if (reloadAttemptsRef.current < MAX_RELOADS) {
           reloadAttemptsRef.current++;
-          const espera = Math.min(2000 * reloadAttemptsRef.current, 8000); // backoff: 2s..8s
+          const espera = Math.min(1500 * reloadAttemptsRef.current, 6000); // backoff: 1.5s..6s
           setPlayerError(`Conexión perdida. ( ${data.details} )`);
           setTimeout(() => {
             if (!cancelled) {
@@ -381,7 +408,7 @@ function TV() {
           setPlayerError(
             "Este canal usa un códec que tu navegador no soporta (ej. HEVC/H.265). Prueba en otro navegador o dispositivo."
           );
-        } else if (data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR) {
+        } else if (data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR || data.details === Hls.ErrorDetails.MANIFEST_LOAD_TIMEOUT) {
           setPlayerError(
             alreadyProxied
               ? "El servidor del canal no responde el m3u8 (caído, geobloqueado o cambió la URL)."

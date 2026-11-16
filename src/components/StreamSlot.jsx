@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import Hls from "hls.js";
-import { resolveStreamUrl, needsProxy, transcoderUrl, channelSources, channelSourcesDetailed, esErrorDeCodec, primerNivelSoportado, describirErrorPlayer } from "../utils/stream";
+import { resolveStreamUrl, needsProxy, transcoderUrl, channelSources, channelSourcesDetailed, esErrorDeCodec, primerNivelSoportado, describirErrorPlayer, hlsRequestConfig } from "../utils/stream";
 
 export default function StreamSlot({ channel, slotId = "1", muted: initialMuted = true }) {
   const [loading, setLoading] = useState(false);
@@ -37,11 +37,17 @@ export default function StreamSlot({ channel, slotId = "1", muted: initialMuted 
     const video = videoRef.current;
     if (!video) return;
 
+    const sources = channelSourcesDetailed(channel);
+    const activeSrc = sources[Math.min(srcIdx, sources.length - 1)] || { url: (channel.stream || "").trim() };
+    const rawUrl = (activeSrc.url || "").trim();
+    const effChannel = { ...channel, stream: rawUrl, referer: activeSrc.referer || channel.referer };
+    const needsProxyNow = needsProxy(effChannel);
+
     let streamUrl;
     if (viaTranscoder) {
-      streamUrl = transcoderUrl(channel.stream, channel.referer);
+      streamUrl = transcoderUrl(rawUrl, effChannel.referer);
     } else {
-      streamUrl = resolveStreamUrl(channel, viaProxy);
+      streamUrl = resolveStreamUrl(effChannel, viaProxy || needsProxyNow);
     }
 
     destroyHls();
@@ -52,28 +58,54 @@ export default function StreamSlot({ channel, slotId = "1", muted: initialMuted 
       setLoading(false);
       return;
     }
+    if (!rawUrl) {
+      setLoading(false);
+      setPlayerError("Este canal no tiene una URL de stream válida.");
+      return;
+    }
 
     if (Hls.isSupported()) {
-      const hls = new Hls(
-        viaTranscoder
-          ? // FFmpeg tarda en entregar el primer segmento (hasta 30 s en el
-            // backend): sin esto hls.js aborta con manifestLoadTimeOut.
-            { manifestLoadingTimeOut: 45000, manifestLoadingMaxRetry: 1, manifestLoadingRetryDelay: 3000 }
-          : {}
-      );
+      const authCfg = hlsRequestConfig();
+      const baseCfg = {
+        enableWorker: true,
+        lowLatencyMode: false,
+        manifestLoadingTimeOut: viaTranscoder ? 45000 : 20000,
+        manifestLoadingMaxRetry: viaTranscoder ? 1 : 4,
+        manifestLoadingRetryDelay: 1000,
+        levelLoadingTimeOut: 20000,
+        levelLoadingMaxRetry: 4,
+        fragLoadingTimeOut: 20000,
+        fragLoadingMaxRetry: 6,
+        fragLoadingRetryDelay: 1000,
+        ...authCfg,
+      };
+      const hls = new Hls(viaTranscoder ? { ...baseCfg, manifestLoadingTimeOut: 45000, manifestLoadingMaxRetry: 1 } : baseCfg);
       hlsRef.current = hls;
       hls.loadSource(streamUrl);
       hls.attachMedia(video);
 
       let networkRecoveryAttempts = 0;
       let mediaRecoveryAttempts = 0;
-      const alreadyProxied = viaProxy || viaTranscoder;
+      const usingProxy = viaProxy || viaTranscoder || needsProxyNow;
+
+      const probarSiguienteFuente = (motivo) => {
+        const totalFuentes = channelSources(channel).length;
+        if (srcIdx < totalFuentes - 1) {
+          setPlayerError(motivo + " Probando opción " + (srcIdx + 2) + " de " + totalFuentes + "...");
+          destroyHls();
+          if (!cancelled) {
+            reloadAttemptsRef.current = 0;
+            setViaProxy(false);
+            setViaTranscoder(false);
+            setSrcIdx((i) => i + 1);
+          }
+          return true;
+        }
+        return false;
+      };
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         if (cancelled) return;
-        // Si el master anuncia codecs que este navegador no decodifica
-        // (HEVC/hvc1, audio AC-3...) no se espera al error: se transcodifica.
-        // El proxy no sirve aqui porque reenvia los mismos bytes.
         if (!viaTranscoder) {
           const idxSoportado = primerNivelSoportado(hls.levels);
           if (idxSoportado < 0) {
@@ -82,10 +114,11 @@ export default function StreamSlot({ channel, slotId = "1", muted: initialMuted 
             if (!cancelled) setViaTranscoder(true);
             return;
           }
-          // Varias calidades: fijar la soportada para que el ABR no elija HEVC.
           if (idxSoportado > 0 || hls.levels.length > 1) hls.currentLevel = idxSoportado;
         }
+        reloadAttemptsRef.current = 0;
         setLoading(false);
+        setPlayerError("");
         video.play().catch((err) => {
           console.log("[SV-" + slotId + "] Autoplay bloqueado:", err);
         });
@@ -95,11 +128,7 @@ export default function StreamSlot({ channel, slotId = "1", muted: initialMuted 
         console.log("[SV-" + slotId + "] HLS ERROR:", data.type, data.details, "fatal:", data.fatal, data);
         if (!data.fatal) return;
 
-        // Codec que el navegador no puede decodificar (HEVC/AC-3): ni el proxy
-        // ni reintentar lo arreglan (mismos bytes, mismo perfil). Se pasa al
-        // transcodificador FFmpeg del backend al primer intento.
         if (esErrorDeCodec(data.details) && !viaTranscoder) {
-          console.log("[SV-" + slotId + "] codec no soportado (" + data.details + "): transcodificando");
           setPlayerError("Este canal usa un codec que el navegador no soporta (H.265/AC-3). Activando transcodificador...");
           destroyHls();
           if (!cancelled) setViaTranscoder(true);
@@ -108,15 +137,16 @@ export default function StreamSlot({ channel, slotId = "1", muted: initialMuted 
 
         const isNetworkError = data.type === Hls.ErrorTypes.NETWORK_ERROR;
 
-        if (isNetworkError && !alreadyProxied && networkRecoveryAttempts < 1) {
+        if (isNetworkError && !viaProxy && !needsProxyNow && networkRecoveryAttempts < 1) {
           networkRecoveryAttempts++;
-          setPlayerError("Bloqueado por el servidor (CORS). Reintentando vía proxy... [" + data.details + "]");
+          setPlayerError("No se pudo conectar directo. Reintentando vía proxy... (" + data.details + ")");
           destroyHls();
           if (!cancelled) setViaProxy(true);
           return;
         }
-        if (isNetworkError && alreadyProxied && !viaTranscoder) {
-          setPlayerError("Activando transcodificador compatible...");
+        if (isNetworkError && !viaTranscoder) {
+          networkRecoveryAttempts++;
+          setPlayerError("Reintentando con transcodificador compatible... (" + data.details + ")");
           destroyHls();
           if (!cancelled) setViaTranscoder(true);
           return;
@@ -131,39 +161,37 @@ export default function StreamSlot({ channel, slotId = "1", muted: initialMuted 
             return;
           }
           const isBufferError = data.details === Hls.ErrorDetails.BUFFER_APPEND_ERROR;
-          const msgs = [
-            "Problema técnico.",
-            "Problema técnico.",
-            "Problema técnico.",
-            "Problema técnico.",
-            "Problema técnico.",
-            "Problema técnico."
-          ];
-          setPlayerError(msgs[mediaRecoveryAttempts - 1]);
           try {
             if (isBufferError) {
               const b = video.buffered;
               if (b.length > 0) {
                 const end = b.end(b.length - 1);
-                if (end - video.currentTime > 0.2) {
-                  video.currentTime = end - 0.25;
-                }
+                if (end - video.currentTime > 0.2) video.currentTime = end - 0.25;
               }
             }
             if (mediaRecoveryAttempts % 2 === 0) {
               const tracks = hls.audioTracks;
-              if (tracks && tracks.length > 1) {
-                hls.audioTrack = (hls.audioTrack + 1) % tracks.length;
-              }
+              if (tracks && tracks.length > 1) hls.audioTrack = (hls.audioTrack + 1) % tracks.length;
             }
             hls.recoverMediaError();
             return;
           } catch { /* cae al siguiente intento o reinicio */ }
         }
 
-        if (reloadAttemptsRef.current < 5) {
+        const esCarga = data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR ||
+          data.details === Hls.ErrorDetails.MANIFEST_LOAD_TIMEOUT ||
+          data.details === Hls.ErrorDetails.MANIFEST_PARSING_ERROR ||
+          data.details === Hls.ErrorDetails.LEVEL_LOAD_ERROR ||
+          data.details === Hls.ErrorDetails.LEVEL_LOAD_TIMEOUT ||
+          data.details === Hls.ErrorDetails.FRAG_LOAD_ERROR;
+
+        if (esCarga && (viaTranscoder || (viaProxy && !needsProxyNow))) {
+          if (probarSiguienteFuente("Esta opción no responde (" + data.details + ").")) return;
+        }
+
+        if (reloadAttemptsRef.current < 4) {
           reloadAttemptsRef.current++;
-          const espera = Math.min(2000 * reloadAttemptsRef.current, 8000);
+          const espera = Math.min(1500 * reloadAttemptsRef.current, 6000);
           setPlayerError("Conexión perdida. (" + data.details + ")");
           setTimeout(() => {
             if (!cancelled) {
@@ -174,25 +202,14 @@ export default function StreamSlot({ channel, slotId = "1", muted: initialMuted 
           return;
         }
 
-        const totalFuentes = channelSources(channel).length;
-        if (srcIdx < totalFuentes - 1) {
-          setPlayerError("Fuente " + (srcIdx + 1) + " agotada. Probando fuente alternativa " + (srcIdx + 2) + " de " + totalFuentes + "...");
-          destroyHls();
-          if (!cancelled) {
-            reloadAttemptsRef.current = 0;
-            setViaProxy(false);
-            setViaTranscoder(false);
-            setSrcIdx((i) => i + 1);
-          }
-          return;
-        }
+        if (probarSiguienteFuente("Esta opción no respondió.")) return;
 
         if (data.details === Hls.ErrorDetails.BUFFER_INCOMPATIBLE_CODECS_ERROR) {
           setPlayerError("Este canal usa un códec que tu navegador no soporta (ej. HEVC/H.265). Prueba en otro navegador o dispositivo.");
         } else if (data.details === Hls.ErrorDetails.BUFFER_ADD_CODEC_ERROR) {
           setPlayerError(describirErrorPlayer(data.details) + " Prueba con otro canal o espera al transcodificador.");
-        } else if (data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR) {
-          setPlayerError(alreadyProxied ? "El servidor del canal no responde el m3u8 (caído, geobloqueado o cambió la URL)." : "No se pudo cargar el m3u8.");
+        } else if (data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR || data.details === Hls.ErrorDetails.MANIFEST_LOAD_TIMEOUT) {
+          setPlayerError(usingProxy ? "El servidor del canal no responde el m3u8 (caído, geobloqueado o cambió la URL)." : "No se pudo cargar el m3u8.");
         } else if (data.details === Hls.ErrorDetails.MANIFEST_PARSING_ERROR) {
           setPlayerError("El m3u8 no es válido (¿el servidor devolvió HTML de error?).");
         } else if (data.details === Hls.ErrorDetails.FRAG_LOAD_ERROR) {
@@ -218,7 +235,7 @@ export default function StreamSlot({ channel, slotId = "1", muted: initialMuted 
     return () => {
       cancelled = true;
     };
-  }, [channel, slotId, reloadEpoch, viaProxy, viaTranscoder, srcIdx]);
+  }, [channel, slotId, reloadEpoch, viaProxy, viaTranscoder, srcIdx, destroyHls]);
 
   useEffect(() => {
     if (!channel) return;
