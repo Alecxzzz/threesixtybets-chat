@@ -175,6 +175,7 @@ function TV() {
     }
 
     setLoading(true);
+    setPlayerError("");
     console.log("[TV] cargando:", streamUrl, alreadyProxied ? "(proxy)" : "(directo)");
 
     video.pause();
