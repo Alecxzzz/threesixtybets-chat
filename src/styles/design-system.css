@@ -2488,3 +2488,13 @@
   background: none;
   border: none;
 }
+
+/* Una sola liga en la seccion: la tarjeta usa todo el ancho, sin hueco al lado */
+.cz-grid[data-unica="true"] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* Cabecera de dia alineada con las tarjetas */
+.cz-seccion-cab {
+  padding: 0 2px;
+}

@@ -1179,7 +1179,7 @@ function Stats() {
 
   return (
     <section className="tool-page">
-      <div className="tool-panel" style={{ maxWidth: "100%", overflowX: "auto" }}>
+      <div className="tool-panel" style={{ width: "100%", maxWidth: 1180, margin: "0 auto", boxSizing: "border-box" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
           <h2 style={{ margin: 0 }}>Estadisticas en vivo</h2>
           <span style={{ fontSize: 12, color: "#8b95a1" }}>

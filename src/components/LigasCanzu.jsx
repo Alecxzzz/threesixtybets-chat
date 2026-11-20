@@ -138,19 +138,16 @@ function Partido({ game, onOpen }) {
           odd={oddVisitante}
           conMarcador={conMarcador}
         />
-
-        <div className="cz-chips">
-          {chips.length > 0 ? (
-            chips.map((c) => (
+        {chips.length > 0 ? (
+          <div className="cz-chips">
+            {chips.map((c) => (
               <span key={c.etiqueta} className="cz-chip">
                 {c.etiqueta}
                 <b>{c.valor}</b>
               </span>
-            ))
-          ) : (
-            <span className="cz-chip cz-chip--plano">Sin cuotas publicadas</span>
-          )}
-        </div>
+            ))}
+          </div>
+        ) : null}
       </div>
     </article>
   );
@@ -253,7 +250,7 @@ function LigasCanzu({ games, onOpen, esFav, onToggleFav }) {
             ) : null}
           </div>
 
-          <div className="cz-grid">
+          <div className="cz-grid" data-unica={seccion.ligas.length === 1 ? "true" : undefined}>
             {seccion.ligas.map(([liga, juegos]) => (
               <CardLiga
                 key={liga}
