@@ -21,6 +21,7 @@ import TrackerPartido from "./TrackerPartido";
 import NbaAnalytics from "./NbaAnalytics";
 import NbaBoxscore from "./NbaBoxscore";
 import NbaPlantilla from "./NbaPlantilla";
+import H2HSection from "./H2HSection";
 
 const SPORTS = [
   { key: "soccer", label: "⚽ Futbol" },
@@ -232,23 +233,6 @@ function StatBar({ stat, awayColor, homeColor }) {
   );
 }
 
-/* ---------- Mini juego para H2H y ultimos partidos ---------- */
-function MiniGame({ game }) {
-  const ha = game.away || {};
-  const hh = game.home || {};
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, padding: "4px 0" }}>
-      {ha.logo && <img src={ha.logo} alt="" width={16} height={16} style={{ objectFit: "contain" }} />}
-      <span style={{ flex: 1, textAlign: "right", color: ha.winner ? "#e6edf3" : "#8b95a1" }}>{ha.name}</span>
-      <span style={{ fontWeight: 700, color: "#c9d1d9", minWidth: 20, textAlign: "center" }}>{ha.score ?? "-"}</span>
-      <span style={{ color: "#566270" }}>-</span>
-      <span style={{ fontWeight: 700, color: "#c9d1d9", minWidth: 20, textAlign: "center" }}>{hh.score ?? "-"}</span>
-      <span style={{ flex: 1, color: hh.winner ? "#e6edf3" : "#8b95a1" }}>{hh.name}</span>
-      {hh.logo && <img src={hh.logo} alt="" width={16} height={16} style={{ objectFit: "contain" }} />}
-    </div>
-  );
-}
-
 /* ---------- Efecto de escritura para IA ---------- */
 function TypewriterText({ text, speed = 20 }) {
   const [displayed, setDisplayed] = useState("");
@@ -403,7 +387,6 @@ function GameDetail({ sport, eventId, onBack }) {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiStarted, setAiStarted] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
-  const [h2hTab, setH2hTab] = useState("local"); // "local" | "h2h" | "visitante"
   const [tab, setTab] = useState("resumen"); // pestañas del detalle
   const [favs, setFavs] = useState({}); // clave "equipo:<id>" -> true
   const [shareCopied, setShareCopied] = useState(false);
@@ -767,144 +750,17 @@ function GameDetail({ sport, eventId, onBack }) {
           />
         ) : null}
 
-        {/* H2H / Local / Visitante con tabs */}
+        {/* H2H y ultimos partidos: dos tarjetas por equipo (Local/Todos/
+            Visitante) y debajo los enfrentamientos directos. */}
         {(detail?.teams?.length > 0) && (
-          <div className="sd-card" data-tab="h2h">
-              <h3 style={sectionTitle()}>⚔️ Historial y últimos partidos</h3>
-              {/* Favoritos rapidos por equipo */}
-              <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
-                {[home, away].filter(Boolean).map((t) => (
-                  <button
-                    key={t.id || t.name}
-                    onClick={() => toggleFavEquipo(t)}
-                    style={{
-                      display: "flex", alignItems: "center", gap: 6,
-                      padding: "5px 10px", borderRadius: 999,
-                      border: `1px solid ${favs[`equipo:${t.id}`] ? theme.accent : "#232a33"}`,
-                      background: favs[`equipo:${t.id}`] ? `${theme.accent}18` : "#0d1117",
-                      color: favs[`equipo:${t.id}`] ? theme.accent : "#8b95a1",
-                      cursor: "pointer", fontSize: 12,
-                    }}
-                    title={favs[`equipo:${t.id}`] ? "Quitar de favoritos" : "Seguir equipo"}
-                  >
-                    <span style={{ filter: favs[`equipo:${t.id}`] ? "none" : "grayscale(1)" }}>⭐</span>
-                    {t.short_name || t.name}
-                  </button>
-                ))}
-              </div>
-              {/* Tab bar */}
-              <div style={{ display: "flex", gap: 4, marginBottom: 10, background: "#0d1117", borderRadius: 8, padding: 3 }}>
-                {[
-                  { key: "local", label: `🏠 ${home?.name || "Local"}`, show: true },
-                  { key: "h2h", label: "⚔️ H2H", show: true },
-                  { key: "visitante", label: `✈️ ${away?.name || "Visitante"}`, show: true },
-                ].filter(t => t.show).map((t) => (
-                  <button
-                    key={t.key}
-                    onClick={() => setH2hTab(t.key)}
-                    style={{
-                      flex: 1,
-                      padding: "7px 10px",
-                      borderRadius: 6,
-                      border: "none",
-                      cursor: "pointer",
-                      fontWeight: 700,
-                      fontSize: 12,
-                      background: h2hTab === t.key ? theme.accent : "transparent",
-                      color: h2hTab === t.key ? "#fff" : "#8b95a1",
-                      transition: "all .2s",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Contenido de las tabs */}
-              {h2hTab === "h2h" && (
-                <div>
-                  {h2h.length > 0 ? h2h.map((h, i) => (
-                    <div key={i} style={{ marginBottom: 4 }}>
-                      <MiniGame game={h} />
-                      <div style={{ fontSize: 11, color: "#566270", textAlign: "center" }}>{formatDate(h.date)} · {h.status}</div>
-                    </div>
-                  )) : (
-                    <div style={{ textAlign: "center", color: "#8b95a1", fontSize: 12, padding: "16px 0" }}>No hay datos H2H disponibles</div>
-                  )}
-                </div>
-              )}
-
-              {h2hTab === "local" && (
-                <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: theme.accent, fontWeight: 700, marginBottom: 6 }}>
-                    {home?.logo && <img src={home.logo} alt="" width={18} height={18} style={{ objectFit: "contain" }} />}
-                    {home?.name}
-                    {home?.records?.[0] && <span style={{ fontSize: 11, color: "#8b95a1", fontWeight: 400 }}> · {home.records[0]}</span>}
-                  </div>
-                  {home?.recent_games?.length > 0 ? (
-                    <>
-                      {home.recent_games.map((r, j) => (
-                        <div key={j} style={{ marginBottom: 4 }}>
-                          <MiniGame game={r} />
-                          <div style={{ fontSize: 11, color: "#566270", textAlign: "center" }}>{formatDate(r.date)} · {r.status}</div>
-                        </div>
-                      ))}
-                      {home?.stats && Object.keys(home.stats).length > 0 && (
-                        <div style={{ marginTop: 10, padding: 10, background: "#0d1117", borderRadius: 8, border: "1px solid #1c232c" }}>
-                          <div style={{ fontSize: 11, color: "#8b95a1", fontWeight: 700, marginBottom: 6 }}>📊 Estadísticas del local</div>
-                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-                            {Object.entries(home.stats).map(([k, v], i) => (
-                              <div key={i} style={{ fontSize: 12, color: "#c9d1d9", display: "flex", justifyContent: "space-between" }}>
-                                <span style={{ color: "#8b95a1" }}>{k}</span>
-                                <span style={{ fontWeight: 700 }}>{v}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <div style={{ textAlign: "center", color: "#8b95a1", fontSize: 12, padding: "16px 0" }}>No hay últimos partidos disponibles para {home?.name || "el equipo local"}</div>
-                  )}
-                </div>
-              )}
-
-              {h2hTab === "visitante" && (
-                <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: theme.accent, fontWeight: 700, marginBottom: 6 }}>
-                    {away?.logo && <img src={away.logo} alt="" width={18} height={18} style={{ objectFit: "contain" }} />}
-                    {away?.name}
-                    {away?.records?.[0] && <span style={{ fontSize: 11, color: "#8b95a1", fontWeight: 400 }}> · {away.records[0]}</span>}
-                  </div>
-                  {away?.recent_games?.length > 0 ? (
-                    <>
-                      {away.recent_games.map((r, j) => (
-                        <div key={j} style={{ marginBottom: 4 }}>
-                          <MiniGame game={r} />
-                          <div style={{ fontSize: 11, color: "#566270", textAlign: "center" }}>{formatDate(r.date)} · {r.status}</div>
-                        </div>
-                      ))}
-                      {away?.stats && Object.keys(away.stats).length > 0 && (
-                        <div style={{ marginTop: 10, padding: 10, background: "#0d1117", borderRadius: 8, border: "1px solid #1c232c" }}>
-                          <div style={{ fontSize: 11, color: "#8b95a1", fontWeight: 700, marginBottom: 6 }}>📊 Estadísticas del visitante</div>
-                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-                            {Object.entries(away.stats).map(([k, v], i) => (
-                              <div key={i} style={{ fontSize: 12, color: "#c9d1d9", display: "flex", justifyContent: "space-between" }}>
-                                <span style={{ color: "#8b95a1" }}>{k}</span>
-                                <span style={{ fontWeight: 700 }}>{v}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <div style={{ textAlign: "center", color: "#8b95a1", fontSize: 12, padding: "16px 0" }}>No hay últimos partidos disponibles para {away?.name || "el equipo visitante"}</div>
-                  )}
-                </div>
-              )}
-          </div>
+          <H2HSection
+            home={home}
+            away={away}
+            h2h={h2h}
+            theme={theme}
+            favs={favs}
+            onToggleFav={toggleFavEquipo}
+          />
         )}
 
         {/* Parciales por tiempo/cuarto. En futbol solo si hay goles: si no,
