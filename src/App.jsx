@@ -18,6 +18,7 @@ import { sendChatMessage } from "./services/api";
 import Message from "./components/Message";
 import Input from "./components/Input";
 import LiveScoresWidget from "./components/LiveScoresWidget";
+import InstalarApp from "./components/InstalarApp";
 
 const PLANS = [
   { price: "$10", days: "15 dias" },
@@ -454,13 +455,17 @@ function App() {
       <main className="main">
         <Header openSidebar={() => setSidebarOpen(true)} user={session.user} onSignOut={signOut} />
         {page === "dashboard" && (
-          <Dashboard
-            session={session}
-            onIrACreditos={() => {
-              setSidebarOpen(false);
-              setPage("credits");
-            }}
-          />
+          <>
+            <Dashboard
+              session={session}
+              onIrACreditos={() => {
+                setSidebarOpen(false);
+                setPage("credits");
+              }}
+            />
+            {/* Aviso unico por dispositivo: usar la web como app (PWA). */}
+            <InstalarApp />
+          </>
         )}
         {page === "chat" && (
           esInvitado ? (
