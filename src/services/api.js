@@ -538,8 +538,9 @@ export function openStatsStream(_session, _sport, _league, _onData, _onError) {
   return null;
 }
 
-export async function fetchGameDetail(session, sport, eventId) {
+export async function fetchGameDetail(session, sport, eventId, league) {
   const params = new URLSearchParams({ sport, event_id: eventId });
+  if (league) params.set("league", league);
   const res = await fetch(`${API_URL}/stats/game?${params}`, {
     headers: authHeaders(session),
   });

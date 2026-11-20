@@ -380,7 +380,7 @@ function TablaPosiciones({ league }) {
   );
 }
 
-function GameDetail({ sport, eventId, onBack }) {
+function GameDetail({ sport, eventId, league, onBack, onOpenGame }) {
   const [detail, setDetail] = useState(null);
   const [error, setError] = useState(null);
   const [aiAnalysis, setAiAnalysis] = useState(null);
@@ -397,7 +397,7 @@ function GameDetail({ sport, eventId, onBack }) {
       const session = getStoredSession();
       if (!session) return;
       try {
-        const result = await fetchGameDetail(session, sport, eventId);
+        const result = await fetchGameDetail(session, sport, eventId, league);
         if (!cancelled) {
           setDetail(result);
           setError(result?.error || null);
@@ -409,7 +409,7 @@ function GameDetail({ sport, eventId, onBack }) {
     load();
     const interval = setInterval(load, REFRESH_MS);
     return () => { cancelled = true; clearInterval(interval); };
-  }, [sport, eventId]);
+  }, [sport, eventId, league]);
 
   // Auto-cargar analisis IA cuando el detalle este listo
   useEffect(() => {
@@ -546,6 +546,8 @@ function GameDetail({ sport, eventId, onBack }) {
 
   const away = detail.teams?.find((t) => t.homeAway !== "home") || detail.teams?.[0];
   const home = detail.teams?.find((t) => t.homeAway === "home") || detail.teams?.[1];
+  // Liga ESPN del partido: se reutiliza para abrir un partido del historial.
+  const liga = detail.league_code || league || null;
 
   const statsByName = {};
   for (const s of away?.statistics || []) statsByName[s.name] = { name: s.name, away: s.label, home: "" };
@@ -641,7 +643,7 @@ function GameDetail({ sport, eventId, onBack }) {
           <TrackerPartido
             key={`trk-${eventId}`}
             eventId={eventId}
-            league={detail.league_code || null}
+            league={liga}
             dataTab="resumen"
             soloSiHay
           />
@@ -719,7 +721,7 @@ function GameDetail({ sport, eventId, onBack }) {
               <NbaPlantilla equipos={detail.teams || []} />
             )
           ) : (
-            <Alineacion sport={sport} eventId={eventId} league={detail.league_code || null} />
+            <Alineacion sport={sport} eventId={eventId} league={liga} />
           )}
         </div>
 
@@ -727,7 +729,7 @@ function GameDetail({ sport, eventId, onBack }) {
         <DatosPartido
           sport={sport}
           eventId={eventId}
-          league={detail.league_code || null}
+          league={liga}
           equipos={detail.teams || []}
         />
 
@@ -760,6 +762,7 @@ function GameDetail({ sport, eventId, onBack }) {
             theme={theme}
             favs={favs}
             onToggleFav={toggleFavEquipo}
+            onOpenGame={(id) => onOpenGame?.(id, liga)}
           />
         )}
 
@@ -875,7 +878,7 @@ function GameDetail({ sport, eventId, onBack }) {
             <EstadisticasPartido
               key={eventId}
               eventId={eventId}
-              league={detail.league_code || null}
+              league={liga}
               respaldo={groups}
             />
           ) : null}
@@ -895,7 +898,7 @@ function GameDetail({ sport, eventId, onBack }) {
         {/* Tabla de posiciones de la liga (solo futbol) */}
         {sport === "soccer" && (
           <div className="sd-card" data-tab="tabla">
-            <TablaPosiciones league={detail.league_code || detail.league || null} />
+            <TablaPosiciones league={liga || detail.league || null} />
           </div>
         )}
       </div>
@@ -928,6 +931,9 @@ function Stats() {
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState(null);
   const [selected, setSelected] = useState(null);
+  // Partidos abiertos desde otro partido (ultimos partidos / H2H): se
+  // guardan para que "Volver" regrese al partido anterior y no a la lista.
+  const [pila, setPila] = useState([]);
   const [filter, setFilter] = useState("all"); // all | in | pre | post
   const [dayFilter, setDayFilter] = useState(null); // null=todo | -1..2
   const [favs, setFavs] = useState({}); // "equipo:<id>" -> true
@@ -1012,8 +1018,34 @@ function Stats() {
   // eventos no llegan al cliente (verificado en produccion). El polling de
   // 60s + cache calentado cubre la actualizacion.
 
+  function abrirPartido(eventId, ligaPartido) {
+    if (!eventId || String(eventId) === String(selected?.id)) return;
+    if (selected) setPila((p) => [...p, selected]);
+    setSelected({ id: String(eventId), sport, league: ligaPartido || selected?.league || null });
+    window.scrollTo({ top: 0 });
+  }
+
+  function volverDePartido() {
+    const previo = pila[pila.length - 1];
+    if (previo) {
+      setSelected(previo);
+      setPila(pila.slice(0, -1));
+    } else {
+      setSelected(null);
+    }
+  }
+
   if (selected) {
-    return <GameDetail sport={selected.sport} eventId={selected.id} onBack={() => setSelected(null)} />;
+    return (
+      <GameDetail
+        key={`${selected.sport}-${selected.id}`}
+        sport={selected.sport}
+        eventId={selected.id}
+        league={selected.league || null}
+        onBack={volverDePartido}
+        onOpenGame={abrirPartido}
+      />
+    );
   }
 
   const games = data?.games || [];
@@ -1162,7 +1194,14 @@ function Stats() {
         ) : (
           <LigasCanzu
             games={displayGames}
-            onOpen={(game) => setSelected({ id: game.id, sport })}
+            onOpen={(game) => {
+              setPila([]);
+              setSelected({
+                id: game.id,
+                sport,
+                league: sport === "soccer" ? game.league_code || null : null,
+              });
+            }}
             esFav={(g) => Boolean(favs[`equipo:${g.home?.id}`] || favs[`equipo:${g.away?.id}`])}
             onToggleFav={toggleFav}
           />

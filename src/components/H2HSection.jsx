@@ -2,7 +2,8 @@ import { useState } from "react";
 
 /* Sección "Historial y últimos partidos": dos tarjetas por equipo (Local /
    Todos / Visitante) y debajo los enfrentamientos directos, con el diseño de
-   la referencia (filas fecha · rival · marcador · G/P/E). */
+   la referencia (filas fecha · rival · marcador · G/P/E). Cada fila abre el
+   partido completo (estadísticas y alineación). */
 
 const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 
@@ -41,6 +42,27 @@ function leerPartido(game, team) {
   };
 }
 
+/* Props comunes de una fila clicable: abre el partido con todo su detalle. */
+function propsFila(game, onOpen) {
+  const abrir = game?.id && onOpen ? () => onOpen(game.id) : undefined;
+  if (!abrir) return { className: "h2h-fila", props: {} };
+  return {
+    className: "h2h-fila h2h-fila--link",
+    props: {
+      onClick: abrir,
+      role: "button",
+      tabIndex: 0,
+      title: `Ver estadísticas y alineación: ${game?.away?.name || "?"} vs ${game?.home?.name || "?"}`,
+      onKeyDown: (ev) => {
+        if (ev.key === "Enter" || ev.key === " ") {
+          ev.preventDefault();
+          abrir();
+        }
+      },
+    },
+  };
+}
+
 function EtiquetaResultado({ resultado }) {
   if (!resultado) return null;
   return (
@@ -58,14 +80,19 @@ function EtiquetaResultado({ resultado }) {
   );
 }
 
-function FilaPartido({ game, team }) {
+function FilaPartido({ game, team, onOpen }) {
   const { local, rival, gf, gc, resultado } = leerPartido(game, team);
   const { dia, mes } = partesFecha(game?.date);
+  const { className, props } = propsFila(game, onOpen);
   return (
-    <div className="h2h-fila" style={{
-      display: "flex", alignItems: "center", gap: 10,
-      padding: "11px 16px", borderTop: "1px solid #1e2227", fontSize: 13,
-    }}>
+    <div
+      {...props}
+      className={className}
+      style={{
+        display: "flex", alignItems: "center", gap: 10,
+        padding: "11px 16px", borderTop: "1px solid #1e2227", fontSize: 13,
+      }}
+    >
       <span style={{
         width: 54, flexShrink: 0, textAlign: "center",
         color: "#8b95a1", fontSize: 11.5, lineHeight: 1.3,
@@ -92,7 +119,7 @@ function FilaPartido({ game, team }) {
   );
 }
 
-function TarjetaEquipo({ team, juegos, label }) {
+function TarjetaEquipo({ team, juegos, label, onOpen }) {
   const [vista, setVista] = useState("todos");
   const filtrados = (juegos || []).filter((g) => {
     if (vista === "todos") return true;
@@ -141,7 +168,9 @@ function TarjetaEquipo({ team, juegos, label }) {
 
       <div className="h2h-scroll" style={{ maxHeight: 470, overflowY: "auto" }}>
         {filtrados.length > 0 ? (
-          filtrados.map((g, i) => <FilaPartido key={g.id || i} game={g} team={team} />)
+          filtrados.map((g, i) => (
+            <FilaPartido key={g.id || i} game={g} team={team} onOpen={onOpen} />
+          ))
         ) : (
           <div style={{ padding: "18px 16px", color: "#8b95a1", fontSize: 12, textAlign: "center" }}>
             Sin partidos en esta vista
@@ -152,13 +181,18 @@ function TarjetaEquipo({ team, juegos, label }) {
   );
 }
 
-function FilaH2H({ game }) {
+function FilaH2H({ game, onOpen }) {
   const { dia, mes, anio } = partesFecha(game?.date);
+  const { className, props } = propsFila(game, onOpen);
   return (
-    <div style={{
-      display: "flex", alignItems: "center", gap: 12,
-      padding: "12px 16px", borderTop: "1px solid #1e2227",
-    }}>
+    <div
+      {...props}
+      className={className}
+      style={{
+        display: "flex", alignItems: "center", gap: 12,
+        padding: "12px 16px", borderTop: "1px solid #1e2227",
+      }}
+    >
       <span style={{
         width: 52, flexShrink: 0, textAlign: "center",
         color: "#8b95a1", fontSize: 11.5, lineHeight: 1.3,
@@ -185,7 +219,7 @@ function FilaH2H({ game }) {
   );
 }
 
-export default function H2HSection({ home, away, h2h, theme, favs, onToggleFav }) {
+export default function H2HSection({ home, away, h2h, theme, favs, onToggleFav, onOpenGame }) {
   return (
     <div className="sd-card" data-tab="h2h">
       <div style={{
@@ -223,8 +257,18 @@ export default function H2HSection({ home, away, h2h, theme, favs, onToggleFav }
         gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
         gap: 12,
       }}>
-        <TarjetaEquipo team={home} juegos={home?.recent_games} label="Últimos partidos de" />
-        <TarjetaEquipo team={away} juegos={away?.recent_games} label="Últimos partidos de" />
+        <TarjetaEquipo
+          team={home}
+          juegos={home?.recent_games}
+          label="Últimos partidos de"
+          onOpen={onOpenGame}
+        />
+        <TarjetaEquipo
+          team={away}
+          juegos={away?.recent_games}
+          label="Últimos partidos de"
+          onOpen={onOpenGame}
+        />
       </div>
 
       <div style={{
@@ -239,7 +283,7 @@ export default function H2HSection({ home, away, h2h, theme, favs, onToggleFav }
         </h4>
         <div className="h2h-scroll" style={{ maxHeight: 470, overflowY: "auto" }}>
           {(h2h || []).length > 0 ? (
-            h2h.map((g, i) => <FilaH2H key={g.id || i} game={g} />)
+            h2h.map((g, i) => <FilaH2H key={g.id || i} game={g} onOpen={onOpenGame} />)
           ) : (
             <div style={{ padding: "18px 16px", color: "#8b95a1", fontSize: 12, textAlign: "center" }}>
               No hay datos H2H disponibles
@@ -247,6 +291,13 @@ export default function H2HSection({ home, away, h2h, theme, favs, onToggleFav }
           )}
         </div>
       </div>
+
+      <p style={{
+        margin: "10px 2px 0", color: "#6b7280", fontSize: 11.5,
+        display: "flex", alignItems: "center", gap: 5,
+      }}>
+        👆 Toca un partido para ver sus estadísticas completas y alineaciones
+      </p>
     </div>
   );
 }

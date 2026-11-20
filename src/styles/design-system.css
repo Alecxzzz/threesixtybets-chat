@@ -2505,3 +2505,7 @@
 .h2h-scroll::-webkit-scrollbar-track { background: transparent; }
 .h2h-scroll::-webkit-scrollbar-thumb { background: #3a4048; border-radius: 999px; }
 .h2h-scroll::-webkit-scrollbar-thumb:hover { background: #4a5058; }
+/* Filas de "ultimos partidos" y H2H: abren el partido completo. */
+.h2h-fila--link { cursor: pointer; transition: background .15s; }
+.h2h-fila--link:hover { background: #191d22; }
+.h2h-fila--link:focus-visible { outline: 2px solid #3b82f6; outline-offset: -2px; }
