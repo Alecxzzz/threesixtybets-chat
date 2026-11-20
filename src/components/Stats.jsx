@@ -16,6 +16,7 @@ import Alineacion from "./Alineacion";
 import DatosPartido from "./DatosPartido";
 import ContextoPartido from "./ContextoPartido";
 import EstadisticasPartido from "./EstadisticasPartido";
+import LigasCanzu from "./LigasCanzu";
 import TrackerPartido from "./TrackerPartido";
 import NbaAnalytics from "./NbaAnalytics";
 import NbaBoxscore from "./NbaBoxscore";
@@ -59,12 +60,6 @@ function formatDate(dateStr) {
   }
 }
 
-function statusLabel(game) {
-  if (game.state === "in") return `🔴 ${game.clock || game.status || "EN VIVO"}`;
-  if (game.state === "post") return game.status || "Final";
-  return formatTime(game.date);
-}
-
 /* ---------- Pantalla de carga grande ---------- */
 function LoadingScreen({ sport }) {
   const theme = SPORT_THEMES[sport] || SPORT_THEMES.soccer;
@@ -92,79 +87,6 @@ function LoadingScreen({ sport }) {
       <p style={{ color: "#8b95a1", fontSize: 14 }}>
         Obteniendo datos en vivo...
       </p>
-    </div>
-  );
-}
-
-/* ---------- Tarjeta de partido ---------- */
-function GameCard({ game, onOpen, esFavorito, onToggleFav }) {
-  const live = game.state === "in";
-  const theme = SPORT_THEMES[game.sport] || SPORT_THEMES.soccer;
-  const hasLines = (game.home_linescores?.length || 0) > 0 && (game.away_linescores?.length || 0) > 0;
-
-  return (
-    <div
-      onClick={() => onOpen(game)}
-      style={{
-        background: "#11161d",
-        border: `1px solid ${live ? theme.accent : "#232a33"}`,
-        borderRadius: 14,
-        padding: "14px 16px",
-        display: "flex",
-        flexDirection: "column",
-        gap: 8,
-        cursor: "pointer",
-        transition: "transform .12s, border-color .15s",
-        boxShadow: live ? `0 0 14px ${theme.accent}22` : "none",
-      }}
-      onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-2px)")}
-      onMouseLeave={(e) => (e.currentTarget.style.transform = "none")}
-    >
-      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: live ? theme.accent : "#8b95a1" }}>
-        <span>{game.league}</span>
-        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          {onToggleFav && (
-            <span
-              role="button"
-              title={esFavorito ? "Quitar de favoritos" : "Agregar a favoritos"}
-              onClick={(e) => { e.stopPropagation(); onToggleFav(game); }}
-              style={{ cursor: "pointer", fontSize: 14, filter: esFavorito ? "none" : "grayscale(1)", opacity: esFavorito ? 1 : 0.5 }}
-            >
-              ⭐
-            </span>
-          )}
-          <span style={{ fontWeight: 600 }}>{statusLabel(game)}</span>
-        </span>
-      </div>
-
-      {[game.away, game.home].map((team, i) => (
-        <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, fontWeight: team?.winner ? 700 : 400, color: team?.winner ? "#e6edf3" : "#c9d1d9" }}>
-          {team?.logo && <img src={team.logo} alt="" width={28} height={28} style={{ objectFit: "contain" }} />}
-          <span style={{ flex: 1 }}>
-            {team?.name || "?"}
-            {team?.record && <span style={{ color: "#8b95a1", fontWeight: 400, marginLeft: 8, fontSize: 12 }}>({team.record})</span>}
-          </span>
-          {hasLines && (
-            <span style={{ display: "flex", gap: 6, fontSize: 11, color: "#8b95a1", fontVariantNumeric: "tabular-nums" }}>
-              {(i === 0 ? game.away_linescores : game.home_linescores).map((v, j) => (
-                <span key={j} style={{ minWidth: 14, textAlign: "center" }}>{v}</span>
-              ))}
-            </span>
-          )}
-          <span style={{ fontVariantNumeric: "tabular-nums", fontSize: 20, minWidth: 30, textAlign: "right", color: team?.winner ? theme.accent : "#c9d1d9" }}>
-            {team?.score ?? "-"}
-          </span>
-        </div>
-      ))}
-
-      {game.odds?.details && (
-        <div style={{ fontSize: 12, color: "#8b95a1", borderTop: "1px solid #232a33", paddingTop: 8 }}>
-          📊 {game.odds.details}
-          {game.odds.over_under != null && ` | O/U ${game.odds.over_under}`}
-        </div>
-      )}
-
-      <div style={{ fontSize: 11, color: theme.accent, textAlign: "right", opacity: 0.8 }}>Ver detalle →</div>
     </div>
   );
 }
@@ -199,6 +121,17 @@ function EquipoHero({ equipo }) {
   );
 }
 
+/** "#rrggbb" -> "rgba(r,g,b,alfa)" (para los tintes de la cabecera). */
+function tinte(hex, alfa) {
+  const limpio = String(hex || "").replace("#", "");
+  if (limpio.length < 6) return `rgba(124, 108, 255, ${alfa})`;
+  const r = parseInt(limpio.slice(0, 2), 16);
+  const g = parseInt(limpio.slice(2, 4), 16);
+  const b = parseInt(limpio.slice(4, 6), 16);
+  if ([r, g, b].some((v) => Number.isNaN(v))) return `rgba(124, 108, 255, ${alfa})`;
+  return `rgba(${r}, ${g}, ${b}, ${alfa})`;
+}
+
 function Scoreboard({ detail }) {
   const theme = SPORT_THEMES[detail.sport] || SPORT_THEMES.soccer;
   const away = detail.teams?.find((t) => t.homeAway !== "home") || detail.teams?.[0];
@@ -222,7 +155,19 @@ function Scoreboard({ detail }) {
   }
 
   return (
-    <div className="sd-hero">
+    <div
+      className="sd-hero"
+      style={{
+        // Degradado con el color real de cada equipo: mitad izquierda local,
+        // mitad derecha visitante (como en los trackers de referencia).
+        background: [
+          `radial-gradient(130% 150% at 0% 0%, ${tinte(home?.color, 0.55)} 0%, transparent 60%)`,
+          `radial-gradient(130% 150% at 100% 0%, ${tinte(away?.color, 0.55)} 0%, transparent 60%)`,
+          "linear-gradient(180deg, #171c26 0%, #12161e 100%)",
+        ].join(", "),
+        borderColor: tinte(home?.color || away?.color, 0.32),
+      }}
+    >
       <div className="sd-hero-top">
         {fecha ? <span className="sd-pill">{fecha}</span> : null}
       </div>
@@ -1359,17 +1304,12 @@ function Stats() {
             No hay partidos en esta categoria.
           </p>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 12, marginTop: 20 }}>
-            {displayGames.map((g) => (
-              <GameCard
-                key={g.id}
-                game={g}
-                onOpen={(game) => setSelected({ id: game.id, sport })}
-                esFavorito={Boolean(favs[`equipo:${g.away?.id}`] || favs[`equipo:${g.home?.id}`])}
-                onToggleFav={toggleFav}
-              />
-            ))}
-          </div>
+          <LigasCanzu
+            games={displayGames}
+            onOpen={(game) => setSelected({ id: game.id, sport })}
+            esFav={(g) => Boolean(favs[`equipo:${g.home?.id}`] || favs[`equipo:${g.away?.id}`])}
+            onToggleFav={toggleFav}
+          />
         )}
       </div>
     </section>

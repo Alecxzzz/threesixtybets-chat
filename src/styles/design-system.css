@@ -880,6 +880,25 @@
 }
 
 /* ---- Cabecera del partido: marcador arriba, volver + pestañas en una fila -- */
+/* Marcador grande, como en la app móvil, también en escritorio. */
+.sd-hero .sd-marcador {
+  font-size: 40px;
+  line-height: 1;
+  letter-spacing: -1px;
+}
+
+@media (min-width: 700px) {
+  .sd-hero .sd-marcador {
+    font-size: 46px;
+  }
+}
+
+.sd-hero .sd-estado {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
 .sd-barra {
   display: flex;
   align-items: flex-end;
@@ -1034,6 +1053,26 @@
 
 .est-momento-dibujo {
   animation: est-barrido 1.15s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+/* Cada barra del momentum crece desde la línea central. */
+.est-barra {
+  transform-box: fill-box;
+  animation: est-barra-crece 0.5s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  animation-delay: calc(var(--i, 0) * 8ms);
+}
+
+.est-barra--arriba {
+  transform-origin: center bottom;
+}
+
+.est-barra--abajo {
+  transform-origin: center top;
+}
+
+@keyframes est-barra-crece {
+  from { transform: scaleY(0.02); }
+  to { transform: scaleY(1); }
 }
 
 @keyframes est-barrido {
@@ -1198,13 +1237,31 @@
   color: var(--ds-text-3);
 }
 
-.est-fila-barra {
-  display: flex;
-  gap: 2px;
-  height: 4px;
+/* Barras simétricas: cada track ocupa media fila y el relleno crece desde el
+   centro hacia fuera (lado local a la izquierda, visitante a la derecha). */
+.est-fila-barras {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
 }
 
-.est-fila-barra i {
+.est-track {
+  display: flex;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+}
+
+.est-track--izq {
+  justify-content: flex-end;
+}
+
+.est-track--der {
+  justify-content: flex-start;
+}
+
+.est-track i {
   display: block;
   height: 100%;
   border-radius: 999px;
@@ -1212,12 +1269,12 @@
   animation-delay: calc(var(--i, 0) * 45ms + 90ms);
 }
 
-.est-fila-barra i:first-child {
-  transform-origin: left center;
+.est-track--izq i {
+  transform-origin: right center;
 }
 
-.est-fila-barra i:last-child {
-  transform-origin: right center;
+.est-track--der i {
+  transform-origin: left center;
 }
 
 @keyframes est-crece {
@@ -1926,4 +1983,508 @@
   .fj-fondo {
     animation: none;
   }
+}
+
+/* ============================================================================
+   MAPA DE REMATES + HEATMAP POR JUGADOR (FichaJugador)
+   ----------------------------------------------------------------------------
+   Campo vertical (porteria atacada arriba). Cada tiro es un punto cuyo
+   radio escala con el xG y cuyo color segun el resultado:
+     gol      = verde
+     puerta   = blanco
+     fuera    = rojo
+     bloqueado= gris
+     atajado  = azul
+     palo     = ambar
+   ============================================================================ */
+
+.fj-mapa-wrap {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fj-tabs {
+  display: flex;
+  gap: 6px;
+  border-bottom: 1px solid var(--ds-border);
+  padding-bottom: 6px;
+  margin-bottom: 4px;
+}
+
+.fj-tab {
+  background: transparent;
+  border: none;
+  color: var(--ds-text-3);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.fj-tab:hover {
+  background: rgba(255,255,255,0.06);
+  color: var(--ds-text);
+}
+
+.fj-tab.activo {
+  background: var(--ds-surface-2);
+  color: var(--ds-green);
+  border: 1px solid var(--ds-border);
+  border-bottom: 1px solid transparent;
+}
+
+.fj-mapa {
+  width: 100%;
+  max-width: 260px;
+  margin: 0 auto;
+  display: block;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #0b1220;
+  border: 1px solid var(--ds-border);
+}
+
+/* Calor: heatmap real por densidad de disparos + xG */
+.fj-calor-nube {
+  filter: url(#fj-calor-blur);
+  mix-blend-mode: screen;
+}
+
+.fj-calor-punto {
+  fill: url(#fj-calor-grad);
+  opacity: 0.85;
+}
+
+/* Remates: cada tiro con trayectoria */
+.fj-trayectoria {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.5;
+}
+
+.fj-trayectoria.activa {
+  opacity: 0.95;
+  stroke-width: 0.7;
+}
+
+.fj-punto-tiro {
+  cursor: pointer;
+  transition: transform 0.15s, filter 0.15s;
+}
+
+.fj-punto-tiro:hover {
+  filter: drop-shadow(0 0 2px rgba(255,255,255,0.6));
+}
+
+.fj-punto-tiro.activo circle {
+  stroke: #ffffff;
+  stroke-width: 0.9;
+  r: calc(var(--radio, 3) + 1.5);
+}
+
+.fj-minuto {
+  text-anchor: middle;
+  fill: #04120a;
+  font-weight: 800;
+  font-size: 2.6px;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Resultado: chips debajo del mapa */
+.fj-resultado {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.fj-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--ds-border);
+  color: var(--ds-text-2);
+}
+
+.fj-chip .fj-chip-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+}
+
+.fj-chip--gol { border-color: var(--ds-green); color: var(--ds-green-text); }
+.fj-chip--gol .fj-chip-dot { background: var(--ds-green); box-shadow: 0 0 6px var(--ds-green); }
+.fj-chip--puerta { border-color: #e2e8f0; color: #e2e8f0; }
+.fj-chip--puerta .fj-chip-dot { background: #e2e8f0; }
+.fj-chip--fuera { border-color: #ef4444; color: #fca5a5; }
+.fj-chip--fuera .fj-chip-dot { background: #ef4444; }
+.fj-chip--bloqueado { border-color: #94a3b8; color: #cbd5e1; }
+.fj-chip--bloqueado .fj-chip-dot { background: #94a3b8; }
+.fj-chip--atajado { border-color: #3b82f6; color: #93c5fd; }
+.fj-chip--atajado .fj-chip-dot { background: #3b82f6; }
+.fj-chip--palo { border-color: #f59e0b; color: #fcd34d; }
+.fj-chip--palo .fj-chip-dot { background: #f59e0b; }
+
+/* Detalle del tiro seleccionado */
+.fj-detalle-tiro {
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: var(--ds-surface-2);
+  border: 1px solid var(--ds-border);
+  border-radius: 8px;
+}
+
+.fj-detalle-tiro h5 {
+  margin: 0 0 6px 0;
+  font-size: 11px;
+  color: var(--ds-green);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.fj-detalle-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 10px;
+}
+
+.fj-detalle-celda {
+  font-size: 10.5px;
+  color: var(--ds-text-3);
+}
+
+.fj-detalle-celda b {
+  color: var(--ds-text);
+  font-size: 11px;
+}
+
+.fj-vacio {
+  text-align: center;
+  color: var(--ds-text-3);
+  font-size: 11px;
+  padding: 20px 0;
+}
+
+/* Responsive: en movil el mapa se apila y se hace mas ancho */
+@media (max-width: 640px) {
+  .fj-mapa {
+    max-width: 100%;
+  }
+  .fj-detalle-grid {
+    grid-template-columns: 1fr;
+  }
+  .fj-tabs {
+    flex-wrap: wrap;
+  }
+}
+
+/* Sin movimiento: nada parpadea */
+@media (prefers-reduced-motion: reduce) {
+  .fj-punto-tiro { transition: none; }
+  .fj-punto-tiro.activo circle { r: var(--radio, 3); }
+}
+
+/* ===== Estadisticas en vivo: lista por liga estilo Canzu Analytics ===== */
+.cz-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  margin-top: 22px;
+}
+
+.cz-seccion {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cz-seccion-cab {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cz-seccion-titulo {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: #e9edf2;
+}
+
+.cz-seccion-titulo span {
+  color: rgba(255, 255, 255, 0.42);
+  font-weight: 600;
+}
+
+.cz-vivo-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.32);
+  color: #fca5a5;
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.cz-vivo-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.16);
+  animation: cz-pulso 1.8s ease-in-out infinite;
+}
+
+@keyframes cz-pulso {
+  50% { opacity: 0.35; }
+}
+
+.cz-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .cz-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+.cz-card {
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: #101318;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.cz-card-cab {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 12px;
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.cz-card-cab-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #e9edf2;
+  text-align: left;
+}
+
+.cz-code {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.cz-liga {
+  font-size: 14px;
+  font-weight: 800;
+  color: #eef2f7;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cz-live-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #ef4444;
+  flex: none;
+}
+
+.cz-cuenta {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.cz-flecha {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.38);
+  transition: transform 0.18s;
+}
+
+.cz-card[data-abierta="false"] .cz-flecha {
+  transform: rotate(-90deg);
+}
+
+.cz-fav {
+  background: none;
+  border: none;
+  padding: 0 2px;
+  cursor: pointer;
+  font-size: 12px;
+  opacity: 0.35;
+  filter: grayscale(1);
+}
+
+.cz-fav.is-on {
+  opacity: 1;
+  filter: none;
+}
+
+.cz-partidos {
+  display: flex;
+  flex-direction: column;
+}
+
+.cz-partido {
+  display: grid;
+  grid-template-columns: 50px minmax(0, 1fr);
+  gap: 6px;
+  padding: 9px 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.cz-partido:hover {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.cz-rail {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  padding-top: 2px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.55);
+  font-variant-numeric: tabular-nums;
+}
+
+.cz-rail--vivo {
+  color: #f87171;
+  font-weight: 800;
+}
+
+.cz-centro {
+  min-width: 0;
+}
+
+.cz-fila {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 22px;
+}
+
+.cz-logo {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  flex: none;
+}
+
+.cz-logo--vacio {
+  display: inline-block;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.cz-nombre {
+  flex: 1;
+  min-width: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #e6edf3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cz-record {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.32);
+  flex: none;
+}
+
+.cz-marcador {
+  min-width: 14px;
+  text-align: right;
+  font-size: 14px;
+  font-weight: 800;
+  color: #f1f5f9;
+  font-variant-numeric: tabular-nums;
+}
+
+.cz-cuota {
+  min-width: 46px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #dbe3ec;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+
+.cz-x {
+  display: flex;
+  justify-content: flex-end;
+  padding-right: 8px;
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, 0.4);
+  font-variant-numeric: tabular-nums;
+}
+
+.cz-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.cz-chip {
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  font-size: 10.5px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.cz-chip b {
+  margin-left: 3px;
+  color: #f1f5f9;
+  font-weight: 800;
+}
+
+.cz-chip--plano {
+  padding-left: 0;
+  background: none;
+  border: none;
 }

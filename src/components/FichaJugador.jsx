@@ -114,19 +114,40 @@ function tonoNota(nota) {
 }
 
 /** Clasifica el remate por como acabo (color y leyenda). */
-function claseTiro(t) {
-  if (/goal/i.test(t.resultado || "")) return "gol";
+/** Clase CSS por resultado de tiro. */
+function claseTiroCss(t) {
+  const r = String(t.resultado || "").toLowerCase();
+  if (/goal/.test(r)) return "gol";
   if (t.a_puerta) return "puerta";
-  if (/block/i.test(t.resultado || "")) return "bloqueado";
+  if (/block/.test(r)) return "bloqueado";
+  if (/post|woodwork/.test(r)) return "palo";
+  if (/save|saved/.test(r)) return "atajado";
+  if (/own/.test(r)) return "gol";
   return "fuera";
 }
 
-const COLOR_TIRO = {
-  gol: "#22c55e",
-  puerta: "#e2e8f0",
-  bloqueado: "#94a3b8",
-  fuera: "#ef4444",
-};
+function etiquetaTiroCss(t) {
+  const r = String(t.resultado || "").toLowerCase();
+  if (/goal/.test(r)) return "Gol";
+  if (t.a_puerta) return "A puerta";
+  if (/block/.test(r)) return "Bloqueado";
+  if (/post|woodwork/.test(r)) return "Palo";
+  if (/save|saved/.test(r)) return "Atajado";
+  if (/own/.test(r)) return "En propia";
+  return "Fuera";
+}
+
+function COLOR_TIRO_CSS(k) {
+  switch (k) {
+    case "gol": return "#22c55e";
+    case "puerta": return "#e2e8f0";
+    case "fuera": return "#ef4444";
+    case "bloqueado": return "#94a3b8";
+    case "atajado": return "#3b82f6";
+    case "palo": return "#f59e0b";
+    default: return "#ef4444";
+  }
+}
 
 /**
  * Mapa de remates en vertical (porteria atacada arriba), como un tracker:
@@ -160,92 +181,67 @@ function MapaRemates({ disparos, modo, seleccionado, onSeleccionar }) {
     return Math.max(24, Math.min(44, 34 + metros * 2.4));
   };
 
-  const cuenta = { gol: 0, puerta: 0, fuera: 0, bloqueado: 0 };
-  for (const t of tiros) cuenta[claseTiro(t)] += 1;
+  const cuenta = { gol: 0, puerta: 0, fuera: 0, bloqueado: 0, atajado: 0, palo: 0 };
+  for (const t of tiros) {
+    const k = claseTiroCss(t);
+    cuenta[k] = (cuenta[k] || 0) + 1;
+  }
+
+  const tiroSel = tiros[seleccionado ?? 0] || null;
 
   return (
-    <>
-      <svg
-        viewBox="0 0 68 62"
-        className="fj-mapa"
-        role="img"
-        aria-label="Mapa de remates del jugador"
-      >
+    <div className="fj-mapa-wrap">
+      <div className="fj-tabs">
+        <button type="button" className={`fj-tab ${modo === "remates" ? "activo" : ""}`} onClick={() => onSeleccionar(seleccionado ?? 0)}>
+          Remates
+        </button>
+        <button type="button" className={`fj-tab ${modo === "calor" ? "activo" : ""}`} onClick={() => onSeleccionar(seleccionado ?? 0)}>
+          Calor
+        </button>
+      </div>
+
+      <svg viewBox="0 0 68 62" className="fj-mapa" role="img" aria-label="Mapa de remates del jugador">
         <defs>
-          <radialGradient id="fj-cal">
-            <stop offset="0%" stopColor="#fde047" stopOpacity="0.85" />
-            <stop offset="55%" stopColor="#facc15" stopOpacity="0.35" />
-            <stop offset="100%" stopColor="#facc15" stopOpacity="0" />
-          </radialGradient>
-          <filter id="fj-suave" x="-30%" y="-30%" width="160%" height="160%">
-            <feGaussianBlur stdDeviation="2.2" />
-          </filter>
+          <radialGradient id="fj-calor-grad"><stop offset="0%" stopColor="#fde047" stopOpacity="0.95" /><stop offset="40%" stopColor="#f59e0b" stopOpacity="0.55" /><stop offset="100%" stopColor="#ef4444" stopOpacity="0" /></radialGradient>
+          <filter id="fj-calor-blur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3" /></filter>
+          <radialGradient id="fj-cal"><stop offset="0%" stopColor="#fde047" stopOpacity="0.85" /><stop offset="55%" stopColor="#facc15" stopOpacity="0.35" /><stop offset="100%" stopColor="#facc15" stopOpacity="0" /></radialGradient>
+          <filter id="fj-suave" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="2.2" /></filter>
         </defs>
 
-        {/* cesped */}
         <rect x="0" y="0" width="68" height="62" rx="3" fill="#1c6b3a" />
         <rect x="3" y="3" width="62" height="56" rx="1.5" fill="none" stroke="#79c795" strokeWidth="0.6" opacity="0.55" />
 
-        {/* areas y porteria (arriba) */}
         <g fill="none" stroke="#79c795" strokeWidth="0.6" opacity="0.6">
-          <rect x="13" y="3" width="42" height="16" />
-          <rect x="23" y="3" width="22" height="7" />
+          <rect x="13" y="3" width="42" height="16" /><rect x="23" y="3" width="22" height="7" />
           <line x1="3" y1="59" x2="65" y2="59" />
           <circle cx="34" cy="62" r="8.2" />
           <circle cx="34" cy="59" r="0.9" fill="#79c795" stroke="none" />
           <circle cx="34" cy="14.5" r="0.8" fill="#79c795" stroke="none" />
         </g>
-        {/* porteria: marco claro para ver a donde apuntan los tiros */}
         <rect x="26" y="0.6" width="16" height="2.6" rx="0.4" fill="rgba(226,232,240,0.14)" stroke="#e2e8f0" strokeWidth="0.45" />
         <line x1="26" y1="1.9" x2="42" y2="1.9" stroke="#e2e8f0" strokeWidth="0.2" opacity="0.35" />
 
         {modo === "calor" ? (
-          <g filter="url(#fj-suave)" style={{ mixBlendMode: "screen" }}>
+          <g className="fj-calor-nube">
             {tiros.map((t, i) => {
               const p = punto(t);
-              return <circle key={i} cx={p.x} cy={p.y} r="13" fill="url(#fj-cal)" />;
+              const radio = 9 + Math.min(1, Number(t.xg) || 0) * 6;
+              return <circle key={i} className="fj-calor-punto" cx={p.x} cy={p.y} r={radio} />;
             })}
           </g>
         ) : (
           <g>
             {tiros.map((t, i) => {
-              const k = claseTiro(t);
+              const k = claseTiroCss(t);
               const p = punto(t);
               const activo = i === seleccionado;
               const radio = 2.6 + Math.min(1, Number(t.xg) || 0) * 4.5;
               return (
-                <g
-                  key={i}
-                  className="fj-tiro-punto"
-                  style={{ "--i": i, cursor: "pointer" }}
-                  onClick={() => onSeleccionar(i)}
-                >
-                  <line
-                    x1={p.x}
-                    y1={p.y}
-                    x2={destinoX(t)}
-                    y2="2.4"
-                    stroke={COLOR_TIRO[k]}
-                    strokeWidth={k === "gol" ? 0.75 : 0.45}
-                    strokeOpacity={activo ? 0.95 : 0.45}
-                    strokeDasharray={k === "fuera" ? "1.4 1.2" : k === "bloqueado" ? "0.7 1" : "none"}
-                    strokeLinecap="round"
-                  />
-                  {activo ? (
-                    <circle cx={p.x} cy={p.y} r={radio + 2.2} fill="none" stroke="#ffffff" strokeWidth="0.7" />
-                  ) : null}
-                  <circle
-                    cx={p.x}
-                    cy={p.y}
-                    r={radio}
-                    fill={COLOR_TIRO[k]}
-                    fillOpacity={0.95}
-                    stroke="#04120a"
-                    strokeWidth="0.4"
-                  />
-                  <text x={p.x} y={p.y + 0.9} textAnchor="middle" fontSize="2.4" fontWeight="800" fill="#04120a">
-                    {t.min}
-                  </text>
+                <g key={i} className={`fj-punto-tiro ${activo ? "activo" : ""}`} style={{ "--radio": radio }} onClick={() => onSeleccionar(i)}>
+                  <line className={`fj-trayectoria ${activo ? "activa" : ""}`} x1={p.x} y1={p.y} x2={destinoX(t)} y2="2.4" stroke={COLOR_TIRO_CSS(k)} strokeWidth={k === "gol" ? 0.8 : 0.45} strokeOpacity={activo ? 0.95 : 0.45} strokeDasharray={k === "fuera" ? "1.4 1.2" : k === "bloqueado" ? "0.7 1" : "none"} strokeLinecap="round" />
+                  {activo ? <circle cx={p.x} cy={p.y} r={radio + 2.2} fill="none" stroke="#ffffff" strokeWidth="0.7" /> : null}
+                  <circle cx={p.x} cy={p.y} r={radio} fill={COLOR_TIRO_CSS(k)} fillOpacity={0.95} stroke="#04120a" strokeWidth="0.4" />
+                  <text x={p.x} y={p.y + 0.9} textAnchor="middle" fontSize="2.4" fontWeight="800" fill="#04120a">{t.min}</text>
                 </g>
               );
             })}
@@ -253,19 +249,26 @@ function MapaRemates({ disparos, modo, seleccionado, onSeleccionar }) {
         )}
       </svg>
 
-      <ul className="fj-leyenda">
-        {[
-          ["gol", "Gol"],
-          ["puerta", "A puerta"],
-          ["fuera", "Fuera"],
-          ["bloqueado", "Bloqueado"],
-        ].map(([k, etiqueta]) => (
-          <li key={k} className={`fj-leyenda-item fj-leyenda--${k}`}>
-            <i /> {etiqueta} <b>{cuenta[k]}</b>
-          </li>
+      <div className="fj-resultado">
+        {[["gol", "Gol"], ["puerta", "A puerta"], ["fuera", "Fuera"], ["bloqueado", "Bloqueado"], ["atajado", "Atajado"], ["palo", "Palo"]].filter(([k]) => (cuenta[k] || 0) > 0).map(([k, etiqueta]) => (
+          <span key={k} className={`fj-chip fj-chip--${k}`}><span className="fj-chip-dot" /> {etiqueta} <b>{cuenta[k]}</b></span>
         ))}
-      </ul>
-    </>
+      </div>
+
+      {modo === "remates" && tiroSel ? (
+        <div className="fj-detalle-tiro">
+          <h5>Remate del minuto {tiroSel.min}</h5>
+          <div className="fj-detalle-grid">
+            <div className="fj-detalle-celda">Resultado</div><div className="fj-detalle-celda"><b>{etiquetaTiroCss(tiroSel)}</b></div>
+            <div className="fj-detalle-celda">xG</div><div className="fj-detalle-celda"><b>{tiroSel.xg ?? "—"}</b></div>
+            <div className="fj-detalle-celda">xGOT</div><div className="fj-detalle-celda"><b>{tiroSel.xgot ?? "—"}</b></div>
+            <div className="fj-detalle-celda">Situación</div><div className="fj-detalle-celda"><b>{txt(tiroSel.situacion)}</b></div>
+            <div className="fj-detalle-celda">Tipo</div><div className="fj-detalle-celda"><b>{txt(tiroSel.tipo)}</b></div>
+            <div className="fj-detalle-celda">Zona</div><div className="fj-detalle-celda"><b>{tiroSel.dentro_area ? "Dentro del área" : "Fuera del área"}</b></div>
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -393,32 +396,21 @@ export default function FichaJugador({ jugador, stats, aporte, onClose, onPrev, 
                 publica las posiciones de actividad del jugador.
               </p>
             ) : tiro ? (
-              <dl className="fj-detalle">
-                <div>
-                  <dt>Minuto</dt>
-                  <dd>{tiro.min}&apos;</dd>
-                </div>
-                <div>
-                  <dt>Resultado</dt>
-                  <dd>{txt(tiro.resultado)}</dd>
-                </div>
-                <div>
-                  <dt>xG</dt>
-                  <dd>{tiro.xg ?? "—"}</dd>
-                </div>
-                <div>
-                  <dt>xGOT</dt>
-                  <dd>{tiro.xgot ?? "—"}</dd>
-                </div>
-                <div>
-                  <dt>Situación</dt>
-                  <dd>{txt(tiro.situacion)}</dd>
-                </div>
-                <div>
-                  <dt>Tipo</dt>
-                  <dd>{txt(tiro.tipo)}</dd>
-                </div>
-              </dl>
+              <div className="fj-tiro-grid">
+                {[
+                  ["xG", tiro.xg ?? "—"],
+                  ["xGOT", tiro.xgot ?? "—"],
+                  ["Resultado", txt(tiro.resultado)],
+                  ["Situación", txt(tiro.situacion)],
+                  ["Tipo", txt(tiro.tipo)],
+                  ["Zona", tiro.dentro_area ? "Dentro del área" : "Fuera del área"],
+                ].map(([clave, valor]) => (
+                  <div key={clave} className="fj-tiro-celda">
+                    <span>{clave}</span>
+                    <b>{valor}</b>
+                  </div>
+                ))}
+              </div>
             ) : null}
             <div className="fj-aportes">
               {aporte?.goles ? (

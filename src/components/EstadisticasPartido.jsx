@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { getStoredSession, fetchEstadisticasPartido } from "../services/api";
+import TrackerPartido from "./TrackerPartido";
 
 /**
  * Pestaña Estadísticas del partido, estilo tracker profesional:
@@ -101,16 +102,6 @@ function etiqueta(valor, esPorcentaje) {
 }
 
 
-/** Polilinea recta para el momentum. Con curvas suaves los puntos recortados
- *  al centro se "salen" del eje y queda una franja vacia; con segmentos rectos
- *  el area toca siempre la linea central y los picos quedan definidos, como en
- *  los trackers de referencia. */
-function polilinea(puntos) {
-  return puntos
-    .map((c, i) => `${i ? "L" : "M"}${c.x.toFixed(1)} ${c.y.toFixed(1)}`)
-    .join(" ");
-}
-
 /* ------------------------------------------------------------------ */
 /* 1. Momentum por minuto                                             */
 /* ------------------------------------------------------------------ */
@@ -119,44 +110,35 @@ function Momentum({ puntos, equipos, minuto }) {
 
   const vista = useMemo(() => {
     if (!puntos?.length) return null;
-    const anchoTotal = 320;
+    const ANCHO = 320;
     const ALTO = 96;
     const MEDIO = ALTO / 2;
     const maxMinuto = Math.max(45, ...puntos.map((p) => Number(p.minuto) || 0));
     // Eje del partido completo: 45' si solo hay primera parte, 90' si ya rueda
-    // la segunda (120' con prórroga). Así la curva no "acaba" en el minuto 66.
+    // la segunda (120' con prórroga).
     const tope = maxMinuto <= 45 ? 45 : maxMinuto <= 90 ? 90 : 120;
+    const paso = ANCHO / Math.max(1, tope);
+    const anchoBarra = Math.max(1.3, paso * 0.62);
 
-    const crudos = puntos.map((p) => {
-      const x = (Math.max(0, Number(p.minuto) || 0) / tope) * anchoTotal;
+    const barras = puntos.map((p) => {
+      const min = Math.max(0, Math.min(tope, Number(p.minuto) || 0));
       const v = Math.max(-100, Math.min(100, Number(p.valor) || 0));
-      return { x, y: MEDIO - (v / 100) * (MEDIO - 8) };
+      const alto = Math.max(0.9, (Math.abs(v) / 100) * (MEDIO - 6));
+      return { x: min * paso, alto, positivo: v >= 0, v };
     });
-    // Si el primer dato no arranca en el minuto 0, se ancla al borde para que
-    // el area no empiece "flotando" a mitad de grafico.
-    const coords = crudos[0]?.x > 0 ? [{ x: 0, y: crudos[0].y }, ...crudos] : crudos;
 
-    const linea = polilinea(coords);
-    // Se rellena SOLO la mitad de cada equipo: cada punto se recorta al centro
-    // antes de dibujar, asi el path no se cruza consigo mismo (sin huecos) y
-    // las dos curvas nunca se tapan.
-    const arriba = coords.map((c) => ({ x: c.x, y: Math.min(c.y, MEDIO) }));
-    const abajo = coords.map((c) => ({ x: c.x, y: Math.max(c.y, MEDIO) }));
-    const cierra = (puntos, base) =>
-      `${polilinea(puntos)} L${puntos[puntos.length - 1].x.toFixed(1)} ${base} L${puntos[0].x.toFixed(1)} ${base} Z`;
+    const ultimoMin = Math.min(tope, Number(puntos[puntos.length - 1]?.minuto) || 0);
 
     return {
-      ANCHO: anchoTotal,
+      ANCHO,
       ALTO,
       MEDIO,
-      areaLocal: cierra(arriba, MEDIO),
-      areaVisita: cierra(abajo, MEDIO),
-      linea,
-      espejo: polilinea(coords.map((c) => ({ x: c.x, y: MEDIO * 2 - c.y }))),
-      ultimo: coords[coords.length - 1],
-      primero: coords[0],
+      barras,
+      anchoBarra,
       tope,
-      mitad: (45 / tope) * anchoTotal,
+      xAhora: ultimoMin * paso,
+      ultimo: barras[barras.length - 1],
+      mitad: (45 / tope) * ANCHO,
     };
   }, [puntos]);
 
@@ -186,50 +168,28 @@ function Momentum({ puntos, equipos, minuto }) {
           aria-label={`Momentum: ${equipoLocal?.nombre || "local"} arriba, ${equipoVisita?.nombre || "visitante"} abajo`}
           preserveAspectRatio="none"
         >
-          <defs>
-            <linearGradient id="est-grad-local" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={colorLocal} stopOpacity="0.9" />
-              <stop offset="100%" stopColor={colorLocal} stopOpacity="0.2" />
-            </linearGradient>
-            <linearGradient id="est-grad-visita" x1="0" y1="1" x2="0" y2="0">
-              <stop offset="0%" stopColor={colorVisita} stopOpacity="0.9" />
-              <stop offset="100%" stopColor={colorVisita} stopOpacity="0.2" />
-            </linearGradient>
-            <clipPath id="est-clip-local">
-              <rect x="0" y="0" width={vista.ANCHO} height={vista.MEDIO} />
-            </clipPath>
-            <clipPath id="est-clip-visita">
-              <rect x="0" y={vista.MEDIO} width={vista.ANCHO} height={vista.MEDIO} />
-            </clipPath>
-          </defs>
-
           <g className="est-momento-dibujo">
-            <path d={vista.areaLocal} fill="url(#est-grad-local)" clipPath="url(#est-clip-local)" />
-            <path d={vista.areaVisita} fill="url(#est-grad-visita)" clipPath="url(#est-clip-visita)" />
-            <path
-              d={vista.linea}
-              fill="none"
-              stroke={colorLocal}
-              strokeWidth="1.1"
-              strokeLinejoin="round"
-              clipPath="url(#est-clip-local)"
-            />
-            <path
-              d={vista.espejo}
-              fill="none"
-              stroke={colorVisita}
-              strokeWidth="1.1"
-              strokeLinejoin="round"
-              clipPath="url(#est-clip-visita)"
-            />
+            {vista.barras.map((b, i) => (
+              <rect
+                key={i}
+                className={`est-barra ${b.positivo ? "est-barra--arriba" : "est-barra--abajo"}`}
+                style={{ "--i": i }}
+                x={b.x - vista.anchoBarra / 2}
+                y={b.positivo ? vista.MEDIO - b.alto : vista.MEDIO}
+                width={vista.anchoBarra}
+                height={b.alto}
+                rx={Math.min(1.2, vista.anchoBarra / 2.4)}
+                fill={b.positivo ? colorLocal : colorVisita}
+                opacity={0.55 + Math.min(0.45, Math.abs(b.v) / 140)}
+              />
+            ))}
             <line
               x1="0"
               y1={vista.MEDIO}
               x2={vista.ANCHO}
               y2={vista.MEDIO}
-              stroke="rgba(255,255,255,.20)"
-              strokeWidth="0.7"
-              strokeDasharray="2 2"
+              stroke="rgba(255,255,255,.22)"
+              strokeWidth="0.8"
             />
           </g>
 
@@ -244,29 +204,28 @@ function Momentum({ puntos, equipos, minuto }) {
             />
           ) : null}
 
-          {/* Marcador del minuto actual: la curva no llega hasta el final del
+          {/* Marcador del minuto actual: las barras no llegan hasta el final del
               eje mientras el partido sigue, y esto lo deja claro. */}
           <g className="est-momento-ahora">
             <line
-              x1={vista.ultimo.x}
+              x1={vista.xAhora}
               y1="2"
-              x2={vista.ultimo.x}
+              x2={vista.xAhora}
               y2={vista.ALTO - 2}
-              stroke="rgba(255,255,255,.35)"
-              strokeWidth="0.8"
-              strokeDasharray="2.5 2.5"
+              stroke="rgba(248,113,113,.85)"
+              strokeWidth="1"
             />
-            <circle className="est-momento-halo" cx={vista.ultimo.x} cy={vista.MEDIO} r="6" fill={colorLocal} />
+            <circle className="est-momento-halo" cx={vista.xAhora} cy={vista.MEDIO} r="6" fill={colorLocal} />
           </g>
 
           <circle
             className="est-momento-punto"
-            cx={vista.ultimo.x}
-            cy={vista.ultimo.y}
-            r="3.2"
-            fill={colorLocal}
-            stroke="#0b1220"
-            strokeWidth="1"
+            cx={vista.xAhora}
+            cy={vista.MEDIO}
+            r="2.6"
+            fill="#0b1220"
+            stroke={colorLocal}
+            strokeWidth="1.4"
           />
         </svg>
 
@@ -327,8 +286,11 @@ function FilaStat({ fila, equipos, i }) {
   const [equipoLocal, equipoVisita] = equipos || [];
   const a = numero(fila.local);
   const b = numero(fila.visita);
-  const pctLocal =
-    a != null && b != null && a + b > 0 ? (a / (a + b)) * 100 : 50;
+  // Cada lado crece desde el CENTRO hacia fuera y se mide contra el mayor de
+  // los dos, como en los trackers de referencia (no contra el total).
+  const tope = Math.max(a ?? 0, b ?? 0) || 1;
+  const pctLocal = a != null ? Math.max(3, (a / tope) * 100) : 0;
+  const pctVisita = b != null ? Math.max(3, (b / tope) * 100) : 0;
   const ganaLocal = fila.destaca === "home";
   const ganaVisita = fila.destaca === "away";
   const colorLocal = equipoLocal?.color || LOCAL;
@@ -345,12 +307,14 @@ function FilaStat({ fila, equipos, i }) {
 
       <div className="est-fila-medio">
         <span className="est-fila-titulo">{fila.titulo}</span>
-        {a != null && b != null && !fila.grafico ? (
-          <span className="est-fila-barra" aria-hidden="true">
+        <span className="est-fila-barras" aria-hidden="true">
+          <span className="est-track est-track--izq">
             <i style={{ width: `${pctLocal}%`, background: colorLocal }} />
-            <i style={{ width: `${100 - pctLocal}%`, background: colorVisita }} />
           </span>
-        ) : null}
+          <span className="est-track est-track--der">
+            <i style={{ width: `${pctVisita}%`, background: colorVisita }} />
+          </span>
+        </span>
       </div>
 
       <span
@@ -573,12 +537,28 @@ export default function EstadisticasPartido({ eventId, league = null, respaldo =
     filas: (g.filas || []).map((f) => ({ ...f, titulo: t(f.titulo) })),
   }));
   const pose = top.find((f) => f.grafico) || null;
-  const filas = top.filter((f) => !f.grafico);
+  // Mercado y modelo SIEMPRE primero: posesiones/xG/xA antes del resto.
+  const filas = top
+    .filter((f) => !f.grafico)
+    .sort((a, b) => {
+      const pa = ["Goles esperados (xG)", "Asistencias esperadas (xA)", "Goles", "Tiros", "Tiros a puerta"].indexOf(a.titulo);
+      const pb = ["Goles esperados (xG)", "Asistencias esperadas (xA)", "Goles", "Tiros", "Tiros a puerta"].indexOf(b.titulo);
+      if (pa === -1 && pb === -1) return 0;
+      if (pa === -1) return 1;
+      if (pb === -1) return -1;
+      return pa - pb;
+    });
   const visibles = abierto ? filas : filas.slice(0, 5);
   const hayMas = filas.length > visibles.length || grupos.length > 0;
 
   return (
     <div className="est-stack">
+      {/* Tracker en vivo: se enseña siempre que la fuente lo publique (sin soloSiHay,
+          porque en la pestaña Estadísticas el usuario quiere ver el estado real). */}
+      {eventId ? (
+        <TrackerPartido eventId={eventId} league={league || null} dataTab="stats" />
+      ) : null}
+
       {datos.momento?.length ? (
         <Momentum puntos={datos.momento} equipos={equipos} minuto={datos.minuto} />
       ) : null}
