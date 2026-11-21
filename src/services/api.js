@@ -592,6 +592,26 @@ export async function fetchEstadisticasPartido(session, sport, eventId, league) 
   return readJson(res);
 }
 
+/*
+ * Versiones PUBLICAS (sin cuenta) de alineacion, tracker y estadisticas: las
+ * sirve /tv-live/* para el partido destacado de /espn-gratis, que se ve sin
+ * iniciar sesion. El backend decide el partido; aqui no se manda event_id.
+ */
+export async function fetchAlineacionPublica() {
+  const res = await fetch(`${API_URL}/tv-live/alineacion`);
+  return readJson(res, { authRequired: false });
+}
+
+export async function fetchTrackerPublico() {
+  const res = await fetch(`${API_URL}/tv-live/tracker`);
+  return readJson(res, { authRequired: false });
+}
+
+export async function fetchEstadisticasPublicas() {
+  const res = await fetch(`${API_URL}/tv-live/estadisticas`);
+  return readJson(res, { authRequired: false });
+}
+
 /**
  * Extras del partido (FotMob): forma, insights, arbitro y goleadores.
  */

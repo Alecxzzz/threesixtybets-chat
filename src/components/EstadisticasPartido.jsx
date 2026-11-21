@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { getStoredSession, fetchEstadisticasPartido } from "../services/api";
+import { getStoredSession, fetchEstadisticasPartido, fetchEstadisticasPublicas } from "../services/api";
 import TrackerPartido from "./TrackerPartido";
 
 /**
@@ -474,11 +474,16 @@ function Esqueleto() {
 /* ------------------------------------------------------------------ */
 /* Componente principal                                               */
 /* ------------------------------------------------------------------ */
-export default function EstadisticasPartido({ eventId, league = null, respaldo = null }) {
+export default function EstadisticasPartido({
+  eventId,
+  league = null,
+  respaldo = null,
+  publico = false,
+}) {
   // `null` = cargando. Se resuelve de forma perezosa para no escribir estado
   // dentro del efecto (react-hooks/set-state-in-effect).
   const [datos, setDatos] = useState(() =>
-    getStoredSession() && eventId
+    publico || (getStoredSession() && eventId)
       ? null
       : { ok: false, detalle: "Inicia sesión para ver las estadísticas." }
   );
@@ -488,7 +493,11 @@ export default function EstadisticasPartido({ eventId, league = null, respaldo =
     if (datos) return undefined;
     let cancelado = false;
 
-    fetchEstadisticasPartido(getStoredSession(), "soccer", eventId, league)
+    const pedir = publico
+      ? fetchEstadisticasPublicas
+      : () => fetchEstadisticasPartido(getStoredSession(), "soccer", eventId, league);
+
+    pedir()
       .then((r) => {
         if (!cancelado) setDatos(r || { ok: false });
       })
@@ -499,7 +508,7 @@ export default function EstadisticasPartido({ eventId, league = null, respaldo =
     return () => {
       cancelado = true;
     };
-  }, [datos, eventId, league]);
+  }, [datos, eventId, league, publico]);
 
   if (!datos) return <Esqueleto />;
 
@@ -556,7 +565,12 @@ export default function EstadisticasPartido({ eventId, league = null, respaldo =
       {/* Tracker en vivo: se enseña siempre que la fuente lo publique (sin soloSiHay,
           porque en la pestaña Estadísticas el usuario quiere ver el estado real). */}
       {eventId ? (
-        <TrackerPartido eventId={eventId} league={league || null} dataTab="stats" />
+        <TrackerPartido
+          eventId={eventId}
+          league={league || null}
+          dataTab="stats"
+          publico={publico}
+        />
       ) : null}
 
       {datos.momento?.length ? (

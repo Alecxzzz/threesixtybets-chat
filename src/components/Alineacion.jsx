@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { getStoredSession, fetchAlineacion } from "../services/api";
+import { getStoredSession, fetchAlineacion, fetchAlineacionPublica } from "../services/api";
 import TrackerPartido from "./TrackerPartido";
 import FichaJugador from "./FichaJugador";
 
@@ -369,7 +369,7 @@ function FilaBaja({ jugador }) {
   );
 }
 
-export default function Alineacion({ sport = "soccer", eventId, league = null }) {
+export default function Alineacion({ sport = "soccer", eventId, league = null, publico = false }) {
   const [datos, setDatos] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [vista, setVista] = useState("campo");
@@ -428,12 +428,14 @@ export default function Alineacion({ sport = "soccer", eventId, league = null })
 
     async function cargar() {
       const sesion = getStoredSession();
-      if (!sesion || !eventId || sport !== "soccer") {
+      if ((!sesion && !publico) || !eventId || sport !== "soccer") {
         if (!cancelado) setCargando(false);
         return;
       }
       try {
-        const r = await fetchAlineacion(sesion, sport, eventId, league);
+        const r = publico
+          ? await fetchAlineacionPublica()
+          : await fetchAlineacion(sesion, sport, eventId, league);
         if (!cancelado) setDatos(r);
       } catch {
         if (!cancelado) setDatos({ ok: false, detalle: "No se pudo cargar la alineación." });
@@ -446,7 +448,7 @@ export default function Alineacion({ sport = "soccer", eventId, league = null })
     return () => {
       cancelado = true;
     };
-  }, [sport, eventId, league]);
+  }, [sport, eventId, league, publico]);
 
   if (sport !== "soccer") return null;
 
@@ -536,7 +538,13 @@ export default function Alineacion({ sport = "soccer", eventId, league = null })
       </div>
 
       {vista === "tracker" && puedeTracker ? (
-        <TrackerPartido key={eventId} eventId={eventId} league={league} dataTab="alineacion" />
+        <TrackerPartido
+          key={eventId}
+          eventId={eventId}
+          league={league}
+          dataTab="alineacion"
+          publico={publico}
+        />
       ) : vista === "campo" ? (
         <svg
           viewBox="0 0 68 105"

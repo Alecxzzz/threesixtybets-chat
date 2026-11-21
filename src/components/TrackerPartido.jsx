@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getStoredSession, fetchTracker } from "../services/api";
+import { getStoredSession, fetchTracker, fetchTrackerPublico } from "../services/api";
 
 /**
  * Tracker del partido: widget `live_action` de Opta, embebido.
@@ -17,10 +17,12 @@ export default function TrackerPartido({
   league = null,
   dataTab = "stats",
   soloSiHay = false,
+  publico = false,
 }) {
   // `null` = cargando. Se resuelve de forma perezosa para no escribir estado
   // dentro del efecto (regla react-hooks/set-state-in-effect).
   const [datos, setDatos] = useState(() => {
+    if (publico) return null; // endpoint publico: no hace falta sesion
     if (!getStoredSession() || !eventId) {
       return { ok: false, detalle: "Inicia sesión para ver el tracker." };
     }
@@ -31,7 +33,11 @@ export default function TrackerPartido({
     if (datos) return undefined;
     let cancelado = false;
 
-    fetchTracker(getStoredSession(), "soccer", eventId, league)
+    const pedir = publico
+      ? fetchTrackerPublico
+      : () => fetchTracker(getStoredSession(), "soccer", eventId, league);
+
+    pedir()
       .then((r) => {
         if (!cancelado) setDatos(r);
       })
@@ -42,7 +48,7 @@ export default function TrackerPartido({
     return () => {
       cancelado = true;
     };
-  }, [datos, eventId, league]);
+  }, [datos, eventId, league, publico]);
 
   if (!datos) {
     return (

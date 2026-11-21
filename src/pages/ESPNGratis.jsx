@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
 import NbaBoxscore from "../components/NbaBoxscore";
+import Alineacion from "../components/Alineacion";
+import EstadisticasPartido from "../components/EstadisticasPartido";
 
 const API_URL = (
   import.meta.env.VITE_API_URL ||
@@ -309,6 +311,23 @@ export default function ESPNGratis() {
   // Cuartos y boxscore SOLO con el partido ya iniciado (antes no existen).
   const iniciado = match?.estado === "in" || match?.estado === "post";
   const minutosRestantes = Math.ceil(restanteMs / 60000);
+  // Futbol: alineaciones y estadisticas/tracker de FotMob. La pagina es
+  // publica, asi que se piden a /tv-live/* (sin sesion).
+  const esFutbol = (match?.sport || "soccer") === "soccer";
+  // Respaldo: la tabla plana de ESPN que ya trae /tv-live/match, para cuando
+  // FotMob no publica el partido.
+  const respaldoStats = home.statistics?.length
+    ? {
+        Estadisticas: (home.statistics || []).map((st, i) => ({
+          name: (st.name || "")
+            .replace(/([A-Z])/g, " $1")
+            .replace(/^./, (c) => c.toUpperCase())
+            .trim(),
+          home: st.label ?? "-",
+          away: away.statistics?.[i]?.label ?? "-",
+        })),
+      }
+    : null;
 
   return (
     <div style={DARK}>
@@ -420,30 +439,56 @@ export default function ESPNGratis() {
               </>
             ) : null}
 
-            {/* ESTADISTICAS */}
-            <h3 style={{ margin: "4px 0 8px", fontSize: 15 }}>📊 Estadisticas</h3>
-            {home.statistics?.length ? (
-            <div style={{ display: "grid", gap: 10 }}>
-              {(home.statistics || []).map((st, idx) => {
-                const l = st.label || "-";
-                const r = away.statistics?.[idx]?.label || "-";
-                const etiqueta = (st.name || "").replace(/([A-Z])/g, " $1").replace(/^./, (c) => c.toUpperCase());
-                return (
-                  <div key={st.name || idx} style={{
-                    display: "grid", gridTemplateColumns: "56px 1fr 56px", alignItems: "center",
-                    gap: 10, background: "#111820", border: "1px solid #22303c", borderRadius: 10, padding: "8px 12px",
-                  }}>
-                    <div style={{ fontWeight: 800, textAlign: "center", color: "#4ade80" }}>{l}</div>
-                    <div style={{ textAlign: "center", color: "#8b95a1", fontSize: 12 }}>{etiqueta}</div>
-                    <div style={{ fontWeight: 800, textAlign: "center", color: "#4ade80" }}>{r}</div>
-                  </div>
-                );
-              })}
-            </div>
+            {/* ALINEACIONES + ESTADISTICAS (futbol): FotMob y tracker de Opta.
+                Si FotMob no publica el partido, EstadisticasPartido usa la tabla
+                de ESPN que ya trae /tv-live/match como respaldo. */}
+            {esFutbol && match?.event_id ? (
+              <>
+                <h3 style={{ margin: "4px 0 8px", fontSize: 15 }}>👥 Alineaciones</h3>
+                <Alineacion
+                  sport="soccer"
+                  eventId={match.event_id}
+                  league={match.league_code || null}
+                  publico
+                />
+
+                <h3 style={{ margin: "16px 0 8px", fontSize: 15 }}>
+                  📊 Estadisticas y tracker
+                </h3>
+                <EstadisticasPartido
+                  eventId={match.event_id}
+                  league={match.league_code || null}
+                  respaldo={respaldoStats}
+                  publico
+                />
+              </>
             ) : (
-              <p style={{ color: "#8b95a1", fontSize: 13, background: "#111820", border: "1px solid #22303c", borderRadius: 10, padding: "12px 14px" }}>
-                Las estadisticas aparecen cuando inicie el partido.
-              </p>
+              <>
+                <h3 style={{ margin: "4px 0 8px", fontSize: 15 }}>📊 Estadisticas</h3>
+                {home.statistics?.length ? (
+                  <div style={{ display: "grid", gap: 10 }}>
+                    {(home.statistics || []).map((st, idx) => {
+                      const l = st.label || "-";
+                      const r = away.statistics?.[idx]?.label || "-";
+                      const etiqueta = (st.name || "").replace(/([A-Z])/g, " $1").replace(/^./, (c) => c.toUpperCase());
+                      return (
+                        <div key={st.name || idx} style={{
+                          display: "grid", gridTemplateColumns: "56px 1fr 56px", alignItems: "center",
+                          gap: 10, background: "#111820", border: "1px solid #22303c", borderRadius: 10, padding: "8px 12px",
+                        }}>
+                          <div style={{ fontWeight: 800, textAlign: "center", color: "#4ade80" }}>{l}</div>
+                          <div style={{ textAlign: "center", color: "#8b95a1", fontSize: 12 }}>{etiqueta}</div>
+                          <div style={{ fontWeight: 800, textAlign: "center", color: "#4ade80" }}>{r}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p style={{ color: "#8b95a1", fontSize: 13, background: "#111820", border: "1px solid #22303c", borderRadius: 10, padding: "12px 14px" }}>
+                    Las estadisticas aparecen cuando inicie el partido.
+                  </p>
+                )}
+              </>
             )}
           </>
         )}
