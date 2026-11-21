@@ -1637,8 +1637,11 @@
 
 .alz-tracker {
   width: 100%;
-  aspect-ratio: 16 / 10;
-  min-height: 320px;
+  /* El widget de Opta pinta el campo a 16:9 exacto (390x220 en movil, 900x506
+     en escritorio) y deja el resto de la pagina en blanco: si el iframe es
+     mas alto que 16:9, ese blanco se ve como un hueco debajo del campo. */
+  aspect-ratio: 16 / 9;
+  min-height: 0;
   display: block;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 10px;
@@ -1656,13 +1659,6 @@
   margin: 12px 0;
   font-size: 12px;
   color: var(--ds-text-3);
-}
-
-@media (max-width: 640px) {
-  .alz-tracker {
-    aspect-ratio: 4 / 5;
-    min-height: 0;
-  }
 }
 
 /* Leyenda del mapa de remates: punto de color + recuento por resultado.
