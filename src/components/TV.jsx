@@ -73,7 +73,8 @@ function TV() {
   const videoRef = useRef(null);
   const hlsRef = useRef(null);
   const playerBoxRef = useRef(null);
-  const reloadAttemptsRef = useRef(3); // intentos de reconexión automática
+  const reloadAttemptsRef = useRef(0); // intentos de reconexión automática
+  const restartLimpioRef = useRef(0); // reinicios "desde cero" del mismo stream
   const lastChannelKeyRef = useRef(null);
 
   // Carga los canales desde la BD (solo los ACTIVOS) y los combina con los
@@ -165,13 +166,14 @@ function TV() {
     let hls;
     let cancelled = false;
     let mediaRecoveryAttempts = 0;
-    let networkRecoveryAttempts = 0;
+    let videoHaPintado = false; // ya salio al menos un fotograma
 
     // Reset del contador de reconexiones cuando se cambia de canal
     const channelKey = `${currentChannel.id || currentChannel.name}`;
     if (lastChannelKeyRef.current !== channelKey) {
       lastChannelKeyRef.current = channelKey;
-      reloadAttemptsRef.current = 3;
+      reloadAttemptsRef.current = 0;
+      restartLimpioRef.current = 0;
     }
 
     setLoading(true);
@@ -182,10 +184,57 @@ function TV() {
     video.removeAttribute("src");
     video.load();
 
+    // La franja "Cargando..." se quita en cuanto el <video> pinta el primer
+    // fotograma. Antes solo se quitaba en MANIFEST_PARSED: si el manifiesto
+    // llegaba pero los fragmentos fallaban en silencio (habitual en estos
+    // servidores) o el decoder no arrancaba, el spinner se quedaba fijo para
+    // siempre aunque no hubiera nada cargando.
+    const marcarPintado = () => {
+      if (cancelled) return;
+      videoHaPintado = true;
+      restartLimpioRef.current = 0;
+      setLoading(false);
+      setPlayerError("");
+    };
+    video.addEventListener("loadeddata", marcarPintado);
+    video.addEventListener("playing", marcarPintado);
+
+    // Vigia de arranque: si en 25 s (45 s con transcodificador, que tarda en
+    // dar el primer segmento) no hay imagen ni error fatal, se escala solo en
+    // vez de dejar el spinner fijo: proxy/opcion siguiente -> transcodificador
+    // -> reintentos -> mensaje.
+    const vigiaArranque = setTimeout(() => {
+      if (cancelled || videoHaPintado) return;
+      console.log("[TV] Vigia: sin imagen tras el arranque, escalando");
+      setLoading(false);
+      const totalFuentes = channelSources(currentChannel).length;
+      destroyHls();
+      if (srcIdx < totalFuentes - 1) {
+        setPlayerError(`Esta opción no arrancó. Probando alternativa ${srcIdx + 2} de ${totalFuentes}...`);
+        reloadAttemptsRef.current = 0;
+        restartLimpioRef.current = 0;
+        setViaProxy(false);
+        setViaTranscoder(false);
+        setSrcIdx((i) => i + 1);
+      } else if (!viaTranscoder) {
+        setPlayerError("El canal no arrancó. Activando transcodificador compatible...");
+        setViaProxy(true);
+        setViaTranscoder(true);
+      } else if (reloadAttemptsRef.current < 1) {
+        reloadAttemptsRef.current++;
+        setPlayerError("El canal no arrancó. Reintentando...");
+        setReloadEpoch((e) => e + 1);
+      } else {
+        setPlayerError("El canal no arrancó. Prueba otra opción o recarga el canal.");
+      }
+    }, viaTranscoder ? 45000 : 25000);
+
     if (Hls.isSupported()) {
       hls = new Hls({
         enableWorker: true,
-        lowLatencyMode: true,
+        // false: el modo baja latencia provoca saltos de timeline en estos
+        // servidores IPTV (2 s por segmento) y acaba en bufferAppendError.
+        lowLatencyMode: false,
         // Reintentos más tolerantes: muchos servidores IPTV cortan segmentos
         manifestLoadingMaxRetry: 6,
         manifestLoadingMaxRetryTimeout: 10000,
@@ -267,141 +316,146 @@ function TV() {
           return;
         }
 
-        // 1) Si aún no pasamos por el proxy y falla la red (CORS / mixed content /
-        //    bloqueo del servidor) -> reintentar automáticamente vía proxy.
-        const isNetworkError = data.type === Hls.ErrorTypes.NETWORK_ERROR;
-        if (isNetworkError && !alreadyProxied && networkRecoveryAttempts < 1) {
-          networkRecoveryAttempts++;
-          setPlayerError(`Bloqueado por el servidor (CORS). Reintentando vía proxy... [${data.details}]`);
-          destroyHls();
-          if (!cancelled) setViaProxy(true);
-          return;
-        }
+        // 1) Los errores de red/manifiesto se resuelven abajo (bloque 3), que
+        //    prueba proxy -> otra opcion del canal -> transcodificador, en ese
+        //    orden. Antes se saltaba al transcodificador en cuanto el proxy
+        //    fallaba, y un m3u8 caido dejaba al usuario 45 s en "Cargando...".
 
-        // 1b) Fallo incluso via proxy (o ya estabamos proxied) ->
-        //     activar el transcodificador universal (H.264/AAC)
-        if (isNetworkError && alreadyProxied && !viaTranscoder) {
-          setPlayerError("Activando transcodificador compatible...");
-          destroyHls();
-          if (!cancelled) setViaTranscoder(true);
-          return;
-        }
-
-        // 2) Errores de media: intentar recuperar antes de rendirse
-        //    ESPN 1/3/4 tienen problemas de codificación intermitentes.
-        //    BUFFER_APPEND_ERROR (buffer corrupto) también es MEDIA_ERROR.
-        //    Estrategia: recoverMediaError -> swapAudioCodec -> recoverMediaError -> reload
-        if (data.type === Hls.ErrorTypes.MEDIA_ERROR && mediaRecoveryAttempts < 6) {
-          mediaRecoveryAttempts++;
-          // Si el buffer sigue rompiendose tras varios intentos, escalar
-          // al transcodificador (repara codecs y timeline de raiz).
-          if (mediaRecoveryAttempts >= 4 && !viaTranscoder) {
-            setPlayerError("Activando transcodificador compatible...");
+        // 2) Errores de media. Si el canal NUNCA dio imagen, recuperar el
+        //    SourceBuffer no sirve: el problema esta en el primer fragmento
+        //    (timestamps rotos o discontinuidad al entrar al directo). Se
+        //    reinicia el stream desde cero, que es justo lo que hacia el
+        //    usuario a mano con "Recargar canal" para que arrancara.
+        if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+          setLoading(false); // hay imagen congelada o error: nada esta "cargando"
+          if (!videoHaPintado && restartLimpioRef.current < 2) {
+            restartLimpioRef.current++;
+            setLoading(true);
+            setPlayerError(`Reiniciando el canal (${restartLimpioRef.current}/2)...`);
             destroyHls();
-            if (!cancelled) setViaTranscoder(true);
+            if (!cancelled) {
+              setTimeout(() => {
+                if (!cancelled) setReloadEpoch((e) => e + 1);
+              }, 600);
+            }
             return;
           }
-          const isBufferError = data.details === Hls.ErrorDetails.BUFFER_APPEND_ERROR;
-          const msgs = [
-            "Problema técnico.",
-            "Problema técnico.",
-            "Problema técnico.",
-            "Problema técnico.",
-            "Problema técnico.",
-            "Problema técnico.",
-          ];
-          setPlayerError(msgs[mediaRecoveryAttempts - 1]);
-          try {
-            if (isBufferError) {
-              // bufferAppendError casi siempre es un gap/overlap en el
-              // timeline: saltar al final de lo que ya esta bufferizado
-              // desbloquea el append sin recargar el stream.
-              const b = video.buffered;
-              if (b.length > 0) {
-                const end = b.end(b.length - 1);
-                if (end - video.currentTime > 0.2) {
-                  video.currentTime = end - 0.25;
+          if (mediaRecoveryAttempts < 6) {
+            mediaRecoveryAttempts++;
+            // Si el buffer sigue rompiendose tras varios intentos, escalar
+            // al transcodificador (repara codecs y timeline de raiz).
+            if (mediaRecoveryAttempts >= 4 && !viaTranscoder) {
+              setPlayerError("Activando transcodificador compatible...");
+              destroyHls();
+              if (!cancelled) setViaTranscoder(true);
+              return;
+            }
+            const isBufferError = data.details === Hls.ErrorDetails.BUFFER_APPEND_ERROR;
+            setPlayerError(
+              isBufferError
+                ? `Corrigiendo el buffer (${mediaRecoveryAttempts}/6)...`
+                : `Reparando la reproducción (${mediaRecoveryAttempts}/6)...`
+            );
+            try {
+              if (isBufferError) {
+                // bufferAppendError casi siempre es un gap/overlap en el
+                // timeline: saltar al final de lo que ya esta bufferizado
+                // desbloquea el append sin recargar el stream.
+                const b = video.buffered;
+                if (b.length > 0) {
+                  const end = b.end(b.length - 1);
+                  if (end - video.currentTime > 0.2) {
+                    video.currentTime = end - 0.25;
+                  }
                 }
               }
-            }
-            if (mediaRecoveryAttempts % 2 === 0) {
-              // Intentos pares: intercambiar codec de audio (común en ESPN)
-              const tracks = hls.audioTracks;
-              if (tracks && tracks.length > 1) {
-                hls.audioTrack = (hls.audioTrack + 1) % tracks.length;
+              if (mediaRecoveryAttempts % 2 === 0) {
+                // Intentos pares: intercambiar codec de audio (común en ESPN)
+                const tracks = hls.audioTracks;
+                if (tracks && tracks.length > 1) {
+                  hls.audioTrack = (hls.audioTrack + 1) % tracks.length;
+                }
               }
+              hls.recoverMediaError();
+              return;
+            } catch {
+              /* cae al reinicio de abajo */
             }
-            hls.recoverMediaError();
-            return;
-          } catch {
-            /* cae al siguiente intento o reinicio */
-          }
-          // Si falló recoverMediaError, intentar startLoad
-          if (mediaRecoveryAttempts >= 5) {
-            // Reinicio completo del reproductor para el MISMO canal
             setPlayerError("Reiniciando el canal...");
             destroyHls();
             if (!cancelled) setReloadEpoch((e) => e + 1);
+            return;
           }
-          return;
         }
 
-        // 3) Errores de carga de manifiesto/segmentos: si ya se intentó la cadena
-        //    proxy/transcodificador en esta fuente, saltar rápido a alternativa.
+        // 3) Errores de carga de manifiesto/segmentos.
+        const MAX_RELOADS = 4;
         const esCarga = data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR ||
           data.details === Hls.ErrorDetails.MANIFEST_LOAD_TIMEOUT ||
           data.details === Hls.ErrorDetails.MANIFEST_PARSING_ERROR ||
           data.details === Hls.ErrorDetails.LEVEL_LOAD_ERROR ||
           data.details === Hls.ErrorDetails.LEVEL_LOAD_TIMEOUT ||
           data.details === Hls.ErrorDetails.FRAG_LOAD_ERROR;
-        if (esCarga && (viaTranscoder || (viaProxy && !needsProxy(effChannel)))) {
+        if (esCarga) {
           const totalFuentes = channelSources(currentChannel).length;
+
+          // 3a) Ya estaba emitiendo: es un corte de red. Reintentar el MISMO
+          //     stream con backoff antes de saltar a otra cosa.
+          if (videoHaPintado && reloadAttemptsRef.current < MAX_RELOADS) {
+            reloadAttemptsRef.current++;
+            const espera = Math.min(1500 * reloadAttemptsRef.current, 6000);
+            setPlayerError(`Conexión perdida. Reconectando (${reloadAttemptsRef.current}/${MAX_RELOADS})...`);
+            setTimeout(() => {
+              if (!cancelled) {
+                destroyHls();
+                setReloadEpoch((e) => e + 1);
+              }
+            }, espera);
+            return;
+          }
+
+          // 3b) Nunca arranco: cadena rapida proxy -> otra opcion -> transcoder.
+          //     El transcodificador NO va antes de las alternativas: si el
+          //     m3u8 esta caido FFmpeg tampoco lo abre y el reproductor se
+          //     quedaba 45 s en "Cargando..." sin decir nada.
+          if (!alreadyProxied) {
+            setPlayerError(`Bloqueado por el servidor (CORS). Reintentando vía proxy... [${data.details}]`);
+            destroyHls();
+            if (!cancelled) setViaProxy(true);
+            return;
+          }
           if (srcIdx < totalFuentes - 1) {
             setPlayerError(`Esta opción no responde (${data.details}). Probando alternativa ${srcIdx + 2} de ${totalFuentes}...`);
             destroyHls();
             if (!cancelled) {
               reloadAttemptsRef.current = 0;
+              restartLimpioRef.current = 0;
               setViaProxy(false);
               setViaTranscoder(false);
               setSrcIdx((i) => i + 1);
             }
             return;
           }
-        }
-
-        // 3b) Auto-reconexión: un canal en vivo que se corta debe reintentarse
-        //    solo (ej. el servidor deja de responder el m3u8 a media emisión).
-        const MAX_RELOADS = 4;
-        if (reloadAttemptsRef.current < MAX_RELOADS) {
-          reloadAttemptsRef.current++;
-          const espera = Math.min(1500 * reloadAttemptsRef.current, 6000); // backoff: 1.5s..6s
-          setPlayerError(`Conexión perdida. ( ${data.details} )`);
-          setTimeout(() => {
-            if (!cancelled) {
-              destroyHls();
-              setReloadEpoch((e) => e + 1);
-            }
-          }, espera);
-          return;
-        }
-
-        // 3b) Fuentes alternativas del canal: si se agotó la cadena
-        //     directo->proxy->transcoder en la fuente actual y el canal tiene
-        //     más opciones (alternatives), saltar a la siguiente en vez de
-        //     rendirse. Es el respaldo automático pedido por el usuario.
-        const totalFuentes = channelSources(currentChannel).length;
-        if (srcIdx < totalFuentes - 1) {
-          setPlayerError(
-            `Fuente ${srcIdx + 1} agotada. Probando fuente alternativa ${srcIdx + 2} de ${totalFuentes}...`
-          );
-          destroyHls();
-          if (!cancelled) {
-            reloadAttemptsRef.current = 0; // la nueva fuente arranca con sus propios reintentos
-            setViaProxy(false);
-            setViaTranscoder(false);
-            setSrcIdx((i) => i + 1);
+          if (!viaTranscoder) {
+            setPlayerError("Activando transcodificador compatible...");
+            destroyHls();
+            if (!cancelled) setViaTranscoder(true);
+            return;
           }
-          return;
+
+          // 3c) Ultimo recurso: reintentos con backoff en la misma URL.
+          if (reloadAttemptsRef.current < MAX_RELOADS) {
+            reloadAttemptsRef.current++;
+            const espera = Math.min(1500 * reloadAttemptsRef.current, 6000);
+            setPlayerError(`Reintentando el canal (${reloadAttemptsRef.current}/${MAX_RELOADS})...`);
+            setTimeout(() => {
+              if (!cancelled) {
+                destroyHls();
+                setReloadEpoch((e) => e + 1);
+              }
+            }, espera);
+            return;
+          }
         }
 
         // 4) Mensajes específicos (ya se agotaron los reintentos y las fuentes)
@@ -440,6 +494,9 @@ function TV() {
 
     return () => {
       cancelled = true;
+      clearTimeout(vigiaArranque);
+      video.removeEventListener("loadeddata", marcarPintado);
+      video.removeEventListener("playing", marcarPintado);
       destroyHls();
     };
   }, [currentChannel, viaProxy, viaTranscoder, reloadEpoch, srcIdx, destroyHls]);
@@ -912,7 +969,8 @@ function TV() {
                 }`}
                 onClick={() => {
                   setPlayerError("");
-                  setLoading(true);
+                  // Un iframe no pasa por el player HLS: no lleva spinner.
+                  setLoading(channel.type !== "iframe");
                   if (viewMode === "dual") {
                     if (activeStream === 1) setChannel1(channel);
                     else setChannel2(channel);

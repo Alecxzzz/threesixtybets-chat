@@ -44,11 +44,15 @@ export default function StreamSlot({ channel, slotId = "1", muted: initialMuted 
     const needsProxyNow = needsProxy(effChannel);
 
     let streamUrl;
+    let videoHaPintado = false;
+    let reintentoLimpio = false;
     if (viaTranscoder) {
       streamUrl = transcoderUrl(rawUrl, effChannel.referer);
     } else {
       streamUrl = resolveStreamUrl(effChannel, viaProxy || needsProxyNow);
     }
+
+    const probarSiguienteFuenteRef = { current: () => false };
 
     destroyHls();
     setLoading(true);
@@ -63,6 +67,30 @@ export default function StreamSlot({ channel, slotId = "1", muted: initialMuted 
       setPlayerError("Este canal no tiene una URL de stream válida.");
       return;
     }
+
+    // Quita el spinner en cuanto hay imagen: antes solo se quitaba con
+    // MANIFEST_PARSED y algunos canales quedaban en "Cargando" para siempre.
+    const marcarPintado = () => {
+      if (cancelled) return;
+      videoHaPintado = true;
+      setLoading(false);
+      setPlayerError("");
+    };
+    video.addEventListener("loadeddata", marcarPintado);
+    video.addEventListener("playing", marcarPintado);
+
+    const vigiaArranque = setTimeout(() => {
+      if (cancelled || videoHaPintado) return;
+      setLoading(false);
+      destroyHls();
+      if (probarSiguienteFuenteRef.current()) return;
+      if (!viaTranscoder) {
+        setPlayerError("El canal no arrancó. Activando transcodificador compatible...");
+        setViaTranscoder(true);
+      } else {
+        setPlayerError("El canal no arrancó. Prueba otra opción o recarga el canal.");
+      }
+    }, viaTranscoder ? 45000 : 25000);
 
     if (Hls.isSupported()) {
       const authCfg = hlsRequestConfig();
@@ -103,6 +131,7 @@ export default function StreamSlot({ channel, slotId = "1", muted: initialMuted 
         }
         return false;
       };
+      probarSiguienteFuenteRef.current = () => probarSiguienteFuente("Esta opción no arrancó.");
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         if (cancelled) return;
@@ -145,10 +174,24 @@ export default function StreamSlot({ channel, slotId = "1", muted: initialMuted 
           return;
         }
         if (isNetworkError && !viaTranscoder) {
+          // Si el m3u8 no responde, el transcodificador tampoco lo abre: se
+          // prueban primero las otras opciones del canal.
+          if (probarSiguienteFuente("Esta opción no responde (" + data.details + ").")) return;
           networkRecoveryAttempts++;
           setPlayerError("Reintentando con transcodificador compatible... (" + data.details + ")");
           destroyHls();
           if (!cancelled) setViaTranscoder(true);
+          return;
+        }
+
+        if (data.type === Hls.ErrorTypes.MEDIA_ERROR && !videoHaPintado && !reintentoLimpio) {
+          // Nunca hubo imagen: el primer fragmento llego roto. Reiniciar el
+          // stream desde cero funciona mejor que recuperar el SourceBuffer.
+          reintentoLimpio = true;
+          setLoading(true);
+          setPlayerError("Reiniciando el canal...");
+          destroyHls();
+          if (!cancelled) setReloadEpoch((e) => e + 1);
           return;
         }
 
@@ -234,6 +277,9 @@ export default function StreamSlot({ channel, slotId = "1", muted: initialMuted 
 
     return () => {
       cancelled = true;
+      clearTimeout(vigiaArranque);
+      video.removeEventListener("loadeddata", marcarPintado);
+      video.removeEventListener("playing", marcarPintado);
     };
   }, [channel, slotId, reloadEpoch, viaProxy, viaTranscoder, srcIdx, destroyHls]);
 
