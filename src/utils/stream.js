@@ -58,6 +58,20 @@ export function transcoderUrl(rawUrl, referer) {
 }
 
 /**
+ * ¿La fuente se puede probar DIRECTO en el navegador? Solo si es https: dentro
+ * de una pagina https un http:// es mixed content y el navegador lo bloquea.
+ *
+ * Es el caso contrario al mixed content: un CDN https que responde a la IP del
+ * usuario pero bloquea la IP de datacenter del servidor (CloudFront devuelve
+ * "403 Request blocked" al proxy y 200 al navegador). Ahi el proxy falla
+ * aunque el canal este vivo, y probar directo es lo que lo salva.
+ */
+export function puedeDirecto(channel) {
+  const raw = (channel?.stream || "").trim();
+  return /^https:\/\//i.test(raw);
+}
+
+/**
  * Decide si un canal necesita proxy obligatoriamente:
  * - Si la página está en https y el stream en http -> mixed content (bloqueado).
  * - Si el canal está marcado con proxy: true (servidor sin CORS o con geobloqueo).

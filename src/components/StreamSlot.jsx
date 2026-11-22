@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import Hls from "hls.js";
-import { resolveStreamUrl, needsProxy, transcoderUrl, channelSources, channelSourcesDetailed, esErrorDeCodec, primerNivelSoportado, describirErrorPlayer, hlsRequestConfig } from "../utils/stream";
+import { resolveStreamUrl, needsProxy, puedeDirecto, transcoderUrl, channelSources, channelSourcesDetailed, esErrorDeCodec, primerNivelSoportado, describirErrorPlayer, hlsRequestConfig } from "../utils/stream";
 
 export default function StreamSlot({ channel, slotId = "1", muted: initialMuted = true }) {
   const [loading, setLoading] = useState(false);
   const [playerError, setPlayerError] = useState("");
   const [viaProxy, setViaProxy] = useState(false);
   const [viaTranscoder, setViaTranscoder] = useState(false);
+  // true = el proxy fallo y se prueba la MISMA fuente directo en el navegador
+  const [directo, setDirecto] = useState(false);
   const [srcIdx, setSrcIdx] = useState(0);
   const [reloadEpoch, setReloadEpoch] = useState(0);
   const [isMuted, setIsMuted] = useState(initialMuted);
@@ -48,6 +50,9 @@ export default function StreamSlot({ channel, slotId = "1", muted: initialMuted 
     let reintentoLimpio = false;
     if (viaTranscoder) {
       streamUrl = transcoderUrl(rawUrl, effChannel.referer);
+    } else if (directo) {
+      // El proxy fallo con una fuente https: se intenta desde la IP del usuario.
+      streamUrl = rawUrl;
     } else {
       streamUrl = resolveStreamUrl(effChannel, viaProxy || needsProxyNow);
     }
@@ -114,7 +119,7 @@ export default function StreamSlot({ channel, slotId = "1", muted: initialMuted 
 
       let networkRecoveryAttempts = 0;
       let mediaRecoveryAttempts = 0;
-      const usingProxy = viaProxy || viaTranscoder || needsProxyNow;
+      const usingProxy = !directo && (viaProxy || viaTranscoder || needsProxyNow);
 
       const probarSiguienteFuente = (motivo) => {
         const totalFuentes = channelSources(channel).length;
@@ -124,6 +129,7 @@ export default function StreamSlot({ channel, slotId = "1", muted: initialMuted 
           if (!cancelled) {
             reloadAttemptsRef.current = 0;
             setViaProxy(false);
+            setDirecto(false);
             setViaTranscoder(false);
             setSrcIdx((i) => i + 1);
           }
@@ -171,6 +177,15 @@ export default function StreamSlot({ channel, slotId = "1", muted: initialMuted 
           setPlayerError("No se pudo conectar directo. Reintentando vía proxy... (" + data.details + ")");
           destroyHls();
           if (!cancelled) setViaProxy(true);
+          return;
+        }
+        if (isNetworkError && !viaTranscoder && !directo && (viaProxy || needsProxyNow) && puedeDirecto(effChannel)) {
+          // El proxy no trajo el m3u8 (los CDN suelen bloquear la IP del
+          // servidor y no la del usuario): se prueba la misma fuente directo
+          // antes de darla por muerta.
+          setPlayerError("El proxy no pudo traer el m3u8. Probando directo desde tu conexión...");
+          destroyHls();
+          if (!cancelled) setDirecto(true);
           return;
         }
         if (isNetworkError && !viaTranscoder) {
@@ -252,7 +267,12 @@ export default function StreamSlot({ channel, slotId = "1", muted: initialMuted 
         } else if (data.details === Hls.ErrorDetails.BUFFER_ADD_CODEC_ERROR) {
           setPlayerError(describirErrorPlayer(data.details) + " Prueba con otro canal o espera al transcodificador.");
         } else if (data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR || data.details === Hls.ErrorDetails.MANIFEST_LOAD_TIMEOUT) {
-          setPlayerError(usingProxy ? "El servidor del canal no responde el m3u8 (caído, geobloqueado o cambió la URL)." : "No se pudo cargar el m3u8.");
+          const codigoHttp = data.response?.code;
+          setPlayerError(
+            codigoHttp === 403
+              ? "El CDN rechazó la conexión (HTTP 403): bloquea al servidor del sitio, no a tu conexión. Prueba otra opción."
+              : `No se pudo cargar el m3u8${codigoHttp ? ` (HTTP ${codigoHttp})` : ""}${usingProxy ? " vía proxy" : ""}. Puede seguir emitiendo: prueba otra opción.`
+          );
         } else if (data.details === Hls.ErrorDetails.MANIFEST_PARSING_ERROR) {
           setPlayerError("El m3u8 no es válido (¿el servidor devolvió HTML de error?).");
         } else if (data.details === Hls.ErrorDetails.FRAG_LOAD_ERROR) {
@@ -281,7 +301,7 @@ export default function StreamSlot({ channel, slotId = "1", muted: initialMuted 
       video.removeEventListener("loadeddata", marcarPintado);
       video.removeEventListener("playing", marcarPintado);
     };
-  }, [channel, slotId, reloadEpoch, viaProxy, viaTranscoder, srcIdx, destroyHls]);
+  }, [channel, slotId, reloadEpoch, viaProxy, viaTranscoder, directo, srcIdx, destroyHls]);
 
   useEffect(() => {
     if (!channel) return;
@@ -381,6 +401,7 @@ export default function StreamSlot({ channel, slotId = "1", muted: initialMuted 
     setLoading(true);
     reloadAttemptsRef.current = 0;
     setViaProxy(needsProxy(channel));
+    setDirecto(false);
     setViaTranscoder(false);
     setSrcIdx(0);
     setReloadEpoch((e) => e + 1);

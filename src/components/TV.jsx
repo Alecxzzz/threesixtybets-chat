@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import Hls from "hls.js";
 import { channels as staticChannels } from "../data/channels";
 import { events as staticEvents } from "../data/events";
-import { resolveStreamUrl, needsProxy, transcoderUrl, channelSources, channelSourcesDetailed, esErrorDeCodec, primerNivelSoportado, describirErrorPlayer, hlsRequestConfig } from "../utils/stream";
+import { resolveStreamUrl, needsProxy, puedeDirecto, transcoderUrl, channelSources, channelSourcesDetailed, esErrorDeCodec, primerNivelSoportado, describirErrorPlayer, hlsRequestConfig } from "../utils/stream";
 import ChannelLogo from "./ChannelLogo";
 import StreamSlot from "./StreamSlot";
 import {
@@ -56,7 +56,9 @@ function TV() {
   const [currentChannel, setCurrentChannel] = useState(null);
   const [playerError, setPlayerError] = useState("");
   const [viaProxy, setViaProxy] = useState(false); // reintento automático
-  const [viaTranscoder, setViaTranscoder] = useState(false); // fallback universal
+  const [viaTranscoder, setViaTranscoder] = useState(false);
+  // true = el proxy fallo y se intenta la MISMA fuente directo en el navegador
+  const [directo, setDirecto] = useState(false);
   const [srcIdx, setSrcIdx] = useState(0); // fuente activa del canal (0=principal, 1+=alternatives)
   const [reloadEpoch, setReloadEpoch] = useState(0); // reinicio completo del player
   const [loading, setLoading] = useState(false);
@@ -159,10 +161,15 @@ function TV() {
     const srcActiva = fuentes[Math.min(srcIdx, fuentes.length - 1)] || "";
     const effChannel = { ...currentChannel, stream: srcActiva };
     const rawUrl = srcActiva.trim();
+    // URL: transcodificador -> directo desde el navegador -> proxy.
+    // "directo" solo aparece tras un fallo del proxy (ver bloque 3b-bis).
     const streamUrl = viaTranscoder
       ? transcoderUrl(rawUrl, currentChannel.referer)
-      : resolveStreamUrl(effChannel, viaProxy);
-    const alreadyProxied = viaTranscoder || viaProxy || needsProxy(effChannel);
+      : directo
+        ? rawUrl
+        : resolveStreamUrl(effChannel, viaProxy);
+    const alreadyProxied =
+      viaTranscoder || (!directo && (viaProxy || needsProxy(effChannel)));
     let hls;
     let cancelled = false;
     let mediaRecoveryAttempts = 0;
@@ -174,6 +181,7 @@ function TV() {
       lastChannelKeyRef.current = channelKey;
       reloadAttemptsRef.current = 0;
       restartLimpioRef.current = 0;
+      setDirecto(false);
     }
 
     setLoading(true);
@@ -214,6 +222,7 @@ function TV() {
         reloadAttemptsRef.current = 0;
         restartLimpioRef.current = 0;
         setViaProxy(false);
+        setDirecto(false);
         setViaTranscoder(false);
         setSrcIdx((i) => i + 1);
       } else if (!viaTranscoder) {
@@ -424,6 +433,21 @@ function TV() {
             if (!cancelled) setViaProxy(true);
             return;
           }
+          // 3b-bis) El proxy no pudo traer el m3u8, pero la fuente es https: se
+          //     prueba DIRECTO en el navegador antes de dar la opcion por
+          //     muerta. Los CDN suelen bloquear la IP del servidor (datacenter)
+          //     y responder sin problema a la IP del usuario: por eso el mismo
+          //     enlace abre en el navegador o en VLC. Sin este paso un canal
+          //     vivo se reportaba como "no responde el m3u8".
+          const codigoProxy = data.response?.code;
+          if (alreadyProxied && !viaTranscoder && !directo && puedeDirecto(effChannel)) {
+            setPlayerError(
+              `El proxy del sitio recibió un ${codigoProxy || "error"} del CDN. Probando directo desde tu conexión...`
+            );
+            destroyHls();
+            if (!cancelled) setDirecto(true);
+            return;
+          }
           if (srcIdx < totalFuentes - 1) {
             setPlayerError(`Esta opción no responde (${data.details}). Probando alternativa ${srcIdx + 2} de ${totalFuentes}...`);
             destroyHls();
@@ -431,6 +455,7 @@ function TV() {
               reloadAttemptsRef.current = 0;
               restartLimpioRef.current = 0;
               setViaProxy(false);
+              setDirecto(false);
               setViaTranscoder(false);
               setSrcIdx((i) => i + 1);
             }
@@ -464,10 +489,11 @@ function TV() {
             "Este canal usa un códec que tu navegador no soporta (ej. HEVC/H.265). Prueba en otro navegador o dispositivo."
           );
         } else if (data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR || data.details === Hls.ErrorDetails.MANIFEST_LOAD_TIMEOUT) {
+          const codigoHttp = data.response?.code;
           setPlayerError(
-            alreadyProxied
-              ? "El servidor del canal no responde el m3u8 (caído, geobloqueado o cambió la URL)."
-              : "No se pudo cargar el m3u8."
+            codigoHttp === 403
+              ? "El CDN rechazó la conexión (HTTP 403): bloquea al servidor del sitio, no a tu conexión. Prueba otra opción del canal."
+              : `No se pudo cargar el m3u8${codigoHttp ? ` (HTTP ${codigoHttp})` : ""}. El canal puede seguir emitiendo: prueba otra opción o recarga el canal.`
           );
         } else if (data.details === Hls.ErrorDetails.MANIFEST_PARSING_ERROR) {
           setPlayerError("El m3u8 no es válido (¿el servidor devolvió HTML de error?).");
@@ -499,7 +525,7 @@ function TV() {
       video.removeEventListener("playing", marcarPintado);
       destroyHls();
     };
-  }, [currentChannel, viaProxy, viaTranscoder, reloadEpoch, srcIdx, destroyHls]);
+  }, [currentChannel, viaProxy, viaTranscoder, directo, reloadEpoch, srcIdx, destroyHls]);
 
   // Vigilante anti-congelamiento: si la imagen se queda quieta (stream cortado
   // sin error reportado por hls.js), fuerza la reconexión del mismo canal.
@@ -623,6 +649,7 @@ function TV() {
     setLoading(true);
     reloadAttemptsRef.current = 0;
     setViaProxy(needsProxy(currentChannel));
+    setDirecto(false);
     setViaTranscoder(false);
     setSrcIdx(0);
     setReloadEpoch((e) => e + 1);
@@ -667,6 +694,7 @@ function TV() {
       else setChannel2(ch);
     } else {
       setViaProxy(needsProxy(ch));
+      setDirecto(false);
       setViaTranscoder(false);
       setSrcIdx(0);
       setCurrentChannel(ch);
@@ -881,6 +909,7 @@ function TV() {
                     setPlayerError("");
                     setLoading(true);
                     setViaProxy(false);
+                    setDirecto(false);
                     setViaTranscoder(false);
                     setSrcIdx(i);
                   }}
@@ -976,6 +1005,7 @@ function TV() {
                     else setChannel2(channel);
                   } else {
                     setViaProxy(needsProxy(channel));
+                    setDirecto(false);
                     setViaTranscoder(false);
                     setSrcIdx(0);
                     setCurrentChannel(channel);
