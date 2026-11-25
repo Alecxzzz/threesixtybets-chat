@@ -86,7 +86,7 @@ export default function ESPNGratis() {
   useEffect(() => {
     const video = muVideoRef.current;
     if (!video) return;
-    const url = "https://wapa-updater.onrender.com/WAPA-TV-4-1.m3u8";
+    const url = `${API_URL}/hls-proxy?url=${encodeURIComponent("https://wapa-updater.onrender.com/WAPA-TV-4-1.m3u8")}`;
     let hls = null;
     if (Hls.isSupported()) {
       hls = new Hls({ enableWorker: true, lowLatencyMode: false });
@@ -104,37 +104,8 @@ export default function ESPNGratis() {
     };
   }, []);
 
-  // Marcador y estadisticas: refresco cada 30 s
-  useEffect(() => {
-    let alive = true;
-    async function cargar() {
-      try {
-        const r = await fetch(`${API_URL}/tv-live/match`);
-        const d = await r.json();
-        if (!alive) return;
-        setMatch(d);
-        if (d?.cierre) setRestanteMs(restar(d.cierre));
-      } catch {
-        /* sin datos: se reintenta en el proximo ciclo */
-      } finally {
-        if (alive) setCargando(false);
-      }
-    }
-    cargar();
-    const id = setInterval(cargar, 30000);
-    return () => {
-      alive = false;
-      clearInterval(id);
-    };
-  }, []);
-
-  // Cuenta regresiva cada segundo
-  useEffect(() => {
-    const id = setInterval(() => {
-      if (match?.cierre) setRestanteMs(restar(match.cierre));
-    }, 1000);
-    return () => clearInterval(id);
-  }, [match?.cierre]);
+  // Esta pagina ahora solo muestra el stream de Miss Universo.
+  useEffect(() => { setCargando(false); }, []);
 
   // Reproductor: pide al backend hasta 3 senales validadas (Opcion 1/2/3).
   // Auto-reintento: si la senal muere, prueba la siguiente opcion sola.
@@ -357,7 +328,7 @@ export default function ESPNGratis() {
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
         {/* STREAM DE MISS UNIVERSO (WAPA TV) */}
         <div style={{ marginBottom: 18, textAlign: "center" }}>
-          <img src="/miss-universe-logo.svg" alt="Miss Universe" style={{ height: 48, marginBottom: 10 }} />
+          <img src="/miss-universe-logo.svg" alt="Miss Universe" style={{ height: 32, marginBottom: 6, maxWidth: "80%" }} />
           <div style={{ position: "relative", borderRadius: 14, overflow: "hidden", border: "1px solid #22303c", background: "#000" }}>
             <video
               ref={muVideoRef}
@@ -381,46 +352,7 @@ export default function ESPNGratis() {
           <p style={{ color: "#8b95a1" }}>Cargando el partido...</p>
         ) : (
           <>
-            {/* MARCADOR (solo si el partido esta en la agenda de ESPN) */}
-            {match?.teams && (
-            <div style={{
-              display: "flex", alignItems: "center", justifyContent: "space-between",
-              gap: 10, background: "#111820", border: "1px solid #22303c",
-              borderRadius: 14, padding: "14px 16px", marginBottom: 14,
-            }}>
-              <div style={{ flex: 1, textAlign: "center" }}>
-                <img src={home.logo} alt="" width={44} height={44} style={{ display: "block", margin: "0 auto 6px" }} />
-                <div style={{ fontWeight: 700, fontSize: 14 }}>{home.name}</div>
-              </div>
-              <div style={{ textAlign: "center" }}>
-                <div style={{ fontWeight: 900, fontSize: 34, letterSpacing: 2 }}>
-                  {home.score ?? "-"} : {away.score ?? "-"}
-                </div>
-                <div style={{ fontSize: 12, color: enVivo ? "#4ade80" : "#8b95a1", fontWeight: 700 }}>
-                  {enVivo ? `● EN VIVO ${match.reloj || ""}` : match.status || match.estado}
-                </div>
-                <div style={{ fontSize: 11, color: "#5c6670" }}>{match.liga}</div>
-              </div>
-              <div style={{ flex: 1, textAlign: "center" }}>
-                <img src={away.logo} alt="" width={44} height={44} style={{ display: "block", margin: "0 auto 6px" }} />
-                <div style={{ fontWeight: 700, fontSize: 14 }}>{away.name}</div>
-              </div>
-            </div>
-            )}
 
-            {/* CUARTOS: pegados al marcador y solo con el partido iniciado */}
-            {iniciado && <Cuartos equipos={match.teams || []} />}
-
-            {/* REPRODUCTOR */}
-            <PlayerBox
-              playerState={playerState}
-              match={match}
-              videoRef={videoRef}
-              opciones={opcionesRef.current}
-              opcionActiva={opcionActiva}
-              embedUrl={embedUrl}
-              onCambiar={(idx) => cambiarOpcionRef.current?.(idx)}
-            />
 
             {/* CTA SUSCRIPCION: aqui se ve gratis; el resto del dia es Premium */}
             <div style={{
@@ -446,85 +378,7 @@ export default function ESPNGratis() {
               </a>
             </div>
 
-            {/* TIEMPO RESTANTE */}
-            {playerState === "listo" && match?.cierre && (
-              <div style={{
-                display: "flex", justifyContent: "space-between", alignItems: "center",
-                background: "rgba(250,204,21,0.08)", border: "1px solid #78550f",
-                borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13,
-              }}>
-                <span style={{ color: "#facc15", fontWeight: 800 }}>⏳ Acceso gratis activo</span>
-                <span style={{ color: "#cbd5e1" }}>
-                  termina en {Math.floor(minutosRestantes / 60)}h {minutosRestantes % 60}m
-                </span>
-              </div>
-            )}
 
-            {/* BOXSCORE EN VIVO: la misma tabla de la ficha del partido */}
-            {iniciado && (match.boxscore || []).length ? (
-              <>
-                <h3 style={{ margin: "4px 0 8px", fontSize: 15 }}>🗂️ Boxscore en vivo</h3>
-                <NbaBoxscore
-                  playersBox={match.boxscore}
-                  equipos={match.teams || []}
-                  estado={match.estado}
-                  status={match.status || ""}
-                  clock={match.reloj || ""}
-                />
-              </>
-            ) : null}
-
-            {/* ALINEACIONES + ESTADISTICAS (futbol): FotMob y tracker de Opta.
-                Si FotMob no publica el partido, EstadisticasPartido usa la tabla
-                de ESPN que ya trae /tv-live/match como respaldo. */}
-            {esFutbol && match?.event_id ? (
-              <>
-                <h3 style={{ margin: "4px 0 8px", fontSize: 15 }}>👥 Alineaciones</h3>
-                <Alineacion
-                  sport="soccer"
-                  eventId={match.event_id}
-                  league={match.league_code || null}
-                  publico
-                />
-
-                <h3 style={{ margin: "16px 0 8px", fontSize: 15 }}>
-                  📊 Estadisticas y tracker
-                </h3>
-                <EstadisticasPartido
-                  eventId={match.event_id}
-                  league={match.league_code || null}
-                  respaldo={respaldoStats}
-                  publico
-                />
-              </>
-            ) : (
-              <>
-                <h3 style={{ margin: "4px 0 8px", fontSize: 15 }}>📊 Estadisticas</h3>
-                {home.statistics?.length ? (
-                  <div style={{ display: "grid", gap: 10 }}>
-                    {(home.statistics || []).map((st, idx) => {
-                      const l = st.label || "-";
-                      const r = away.statistics?.[idx]?.label || "-";
-                      const etiqueta = (st.name || "").replace(/([A-Z])/g, " $1").replace(/^./, (c) => c.toUpperCase());
-                      return (
-                        <div key={st.name || idx} style={{
-                          display: "grid", gridTemplateColumns: "56px 1fr 56px", alignItems: "center",
-                          gap: 10, background: "#111820", border: "1px solid #22303c", borderRadius: 10, padding: "8px 12px",
-                        }}>
-                          <div style={{ fontWeight: 800, textAlign: "center", color: "#4ade80" }}>{l}</div>
-                          <div style={{ textAlign: "center", color: "#8b95a1", fontSize: 12 }}>{etiqueta}</div>
-                          <div style={{ fontWeight: 800, textAlign: "center", color: "#4ade80" }}>{r}</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p style={{ color: "#8b95a1", fontSize: 13, background: "#111820", border: "1px solid #22303c", borderRadius: 10, padding: "12px 14px" }}>
-                    Las estadisticas aparecen cuando inicie el partido.
-                  </p>
-                )}
-              </>
-            )}
           </>
         )}
 
