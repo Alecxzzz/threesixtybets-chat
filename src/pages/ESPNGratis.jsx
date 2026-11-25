@@ -69,6 +69,7 @@ export default function ESPNGratis() {
   const cambiarOpcionRef = useRef(null);
   const [opcionActiva, setOpcionActiva] = useState(0);
   const [embedUrl, setEmbedUrl] = useState("");
+  const muVideoRef = useRef(null);
 
   // El CSS global de la app pone body { overflow: hidden } (layout del chat):
   // en esta pagina independiente lo reactivamos para que se pueda scrollear.
@@ -78,6 +79,28 @@ export default function ESPNGratis() {
     return () => {
       document.body.style.overflow = "";
       document.body.style.height = "";
+    };
+  }, []);
+
+  // Stream de Miss Universo (WAPA TV): reproductor independiente arriba.
+  useEffect(() => {
+    const video = muVideoRef.current;
+    if (!video) return;
+    const url = "https://wapa-updater.onrender.com/WAPA-TV-4-1.m3u8";
+    let hls = null;
+    if (Hls.isSupported()) {
+      hls = new Hls({ enableWorker: true, lowLatencyMode: false });
+      hls.loadSource(url);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        video.play().catch(() => {});
+      });
+    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+      video.src = url;
+      video.play().catch(() => {});
+    }
+    return () => {
+      if (hls) hls.destroy();
     };
   }, []);
 
@@ -332,6 +355,18 @@ export default function ESPNGratis() {
   return (
     <div style={DARK}>
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
+        {/* STREAM DE MISS UNIVERSO (WAPA TV) */}
+        <div style={{ marginBottom: 18, textAlign: "center" }}>
+          <img src="/miss-universe-logo.svg" alt="Miss Universe" style={{ height: 48, marginBottom: 10 }} />
+          <div style={{ position: "relative", borderRadius: 14, overflow: "hidden", border: "1px solid #22303c", background: "#000" }}>
+            <video
+              ref={muVideoRef}
+              controls
+              playsInline
+              style={{ width: "100%", aspectRatio: "16/9", display: "block", background: "#000" }}
+            />
+          </div>
+        </div>
         <header style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
           <img src="/logo.png" alt="" width={34} height={34} style={{ borderRadius: 8 }} />
           <div>
