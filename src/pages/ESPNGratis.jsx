@@ -70,6 +70,13 @@ export default function ESPNGratis() {
   const [opcionActiva, setOpcionActiva] = useState(0);
   const [embedUrl, setEmbedUrl] = useState("");
   const muVideoRef = useRef(null);
+  const muHlsRef = useRef(null);
+  const [muOpcion, setMuOpcion] = useState(0);
+  const MU_OPCIONES = [
+    { label: "Opción 1", url: `${API_URL}/hls-proxy?url=${encodeURIComponent("https://wapa-updater.onrender.com/WAPA-TV-4-1.m3u8")}` },
+    { label: "Opción 2", url: `${API_URL}/hls-proxy?url=${encodeURIComponent("http://190.11.225.124:5000/live/telemundo_hd/playlist.m3u8")}` },
+    { label: "Opción 3", url: `${API_URL}/hls-proxy?url=${encodeURIComponent("http://168.228.44.241:9997/play/a07g/index.m3u8")}` },
+  ];
 
   // El CSS global de la app pone body { overflow: hidden } (layout del chat):
   // en esta pagina independiente lo reactivamos para que se pueda scrollear.
@@ -82,27 +89,40 @@ export default function ESPNGratis() {
     };
   }, []);
 
-  // Stream de Miss Universo (WAPA TV): reproductor independiente arriba.
+  // Stream de Miss Universo: reproductor con Opcion 1/2/3.
   useEffect(() => {
     const video = muVideoRef.current;
     if (!video) return;
-    const url = `${API_URL}/hls-proxy?url=${encodeURIComponent("https://wapa-updater.onrender.com/WAPA-TV-4-1.m3u8")}`;
-    let hls = null;
+    const url = MU_OPCIONES[muOpcion]?.url;
+    if (!url) return;
+    if (muHlsRef.current) {
+      muHlsRef.current.destroy();
+      muHlsRef.current = null;
+    }
     if (Hls.isSupported()) {
-      hls = new Hls({ enableWorker: true, lowLatencyMode: false });
+      const hls = new Hls({ enableWorker: true, lowLatencyMode: false });
+      muHlsRef.current = hls;
       hls.loadSource(url);
       hls.attachMedia(video);
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         video.play().catch(() => {});
+      });
+      hls.on(Hls.Events.ERROR, (_e, data) => {
+        if (!data?.fatal) return;
+        // Si falla, probar la siguiente opcion
+        setMuOpcion((prev) => (prev + 1) % MU_OPCIONES.length);
       });
     } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
       video.src = url;
       video.play().catch(() => {});
     }
     return () => {
-      if (hls) hls.destroy();
+      if (muHlsRef.current) {
+        muHlsRef.current.destroy();
+        muHlsRef.current = null;
+      }
     };
-  }, []);
+  }, [muOpcion]);
 
   // Esta pagina ahora solo muestra el stream de Miss Universo.
   useEffect(() => { setCargando(false); }, []);
@@ -336,6 +356,23 @@ export default function ESPNGratis() {
               playsInline
               style={{ width: "100%", aspectRatio: "16/9", display: "block", background: "#000" }}
             />
+          </div>
+          <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap", justifyContent: "center" }}>
+            {MU_OPCIONES.map((o, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => setMuOpcion(i)}
+                style={{
+                  padding: "9px 16px", borderRadius: 9, fontWeight: 800, fontSize: 13, cursor: "pointer",
+                  border: i === muOpcion ? "1px solid #4ade80" : "1px solid #3a4450",
+                  background: i === muOpcion ? "rgba(74,222,128,0.15)" : "transparent",
+                  color: i === muOpcion ? "#4ade80" : "#8b95a1",
+                }}
+              >
+                {o.label}
+              </button>
+            ))}
           </div>
         </div>
 
