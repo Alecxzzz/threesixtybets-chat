@@ -338,6 +338,36 @@ export default function ESPNGratis() {
             />
           </div>
         </div>
+
+        {/* PREDICCION POLYMARKET: Miss Universo 2026 */}
+        <div style={{ marginBottom: 18, textAlign: "center" }}>
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebPage",
+            "name": "¿Ganará Nicaragua Miss Universo 2026?",
+            "description": "Prediction market: Sí 20% · No 80% on Polymarket.",
+            "url": "https://polymarket.com/event/miss-universe-2026-winner",
+            "publisher": { "@type": "Organization", "name": "Polymarket", "url": "https://polymarket.com" }
+          }) }} />
+          <figure className="polymarket-embed" aria-label="Polymarket prediction market: ¿Ganará Nicaragua Miss Universo 2026?" style={{ position: "relative", display: "inline-block", margin: 0 }}>
+            <iframe
+              title="¿Ganará Nicaragua Miss Universo 2026? — Polymarket Prediction Market"
+              src="https://embed.polymarket.com/market?market=will-nicaragua-win-miss-universe-2026&theme=dark&liveactivity=true&border=true&height=300"
+              width="400"
+              height="300"
+              frameBorder="0"
+              allowTransparency="true"
+              style={{ maxWidth: "100%" }}
+            />
+            <a href="https://polymarket.com/event/miss-universe-2026-winner" aria-label="View on Polymarket" target="_blank" rel="noopener" style={{ position: "absolute", top: 16, right: 20, width: 120, height: 24, zIndex: 10 }} />
+            <figcaption style={{ position: "absolute", width: 1, height: 1, padding: 0, margin: -1, overflow: "hidden", clip: "rect(0,0,0,0)", whiteSpace: "nowrap", border: 0 }}>
+              <strong>¿Ganará Nicaragua Miss Universo 2026?</strong><br />
+              Sí 20% · No 80%<br />
+              <a href="https://polymarket.com/event/miss-universe-2026-winner">View full market &amp; trade on Polymarket</a>
+            </figcaption>
+          </figure>
+        </div>
+
         <header style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
           <img src="/logo.png" alt="" width={34} height={34} style={{ borderRadius: 8 }} />
           <div>
