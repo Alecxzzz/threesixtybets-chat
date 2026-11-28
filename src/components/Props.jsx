@@ -1,10 +1,16 @@
 /**
  * Props - 3SIXTYBETS
- * Props de jugador: solo las que el jugador cumplio al menos el 60% de sus
- * ultimos partidos (lo filtra el backend con PROPS_PCT_MINIMA).
+ * Props de jugador: cada prop que publica el bookmaker con la racha real del
+ * jugador en sus ultimos 5 partidos.
  *
  * Layout: el shell es body{overflow:hidden} + .main{overflow:hidden}, asi que
  * ESTA pagina es su propio contenedor con scroll (igual que .messages).
+ *
+ * Organizacion:
+ *   - Agrupado por PARTIDO (liga + equipos + hora) para no perder el contexto.
+ *   - Vista de tarjetas o TABLA (escritorio).
+ *   - Filtros por tipo de prop (goles, tiros, asistencias, Pts+Reb...).
+ *   - Paginacion por partidos ("Cargar mas").
  */
 
 import { useEffect, useMemo, useState } from "react";
@@ -24,6 +30,46 @@ const ORDENES = [
   { key: "cuota", label: "Cuota mas baja" },
 ];
 
+// Etiqueta legible de cada tipo de prop (clave canonica del backend).
+const ETIQUETAS_PROP = {
+  // futbol
+  goles: "Goles",
+  asistencias: "Asistencias",
+  remates: "Tiros",
+  remates_puerta: "Tiros a puerta",
+  faltas: "Faltas",
+  offsides: "Offsides",
+  // nba
+  puntos: "Puntos",
+  rebotes: "Rebotes",
+  triples: "Triples",
+  robos: "Robos",
+  tapones: "Tapones",
+  puntos_rebotes: "Pts + Reb",
+  puntos_asistencias: "Pts + Ast",
+  rebotes_asistencias: "Reb + Ast",
+  puntos_rebotes_asistencias: "Pts + Reb + Ast",
+  dobles_dobles: "Dobles-dobles",
+  triples_dobles: "Triples-dobles",
+  // nfl
+  yardas_pase: "Yardas de pase",
+  td_pase: "TD de pase",
+  yardas_recepcion: "Yardas de recepcion",
+  recepciones: "Recepciones",
+  yardas_carrera: "Yardas de carrera",
+  td_carrera: "TD de carrera",
+  intercepciones: "Intercepciones",
+  sacks: "Sacks",
+};
+
+const ORDEN_PROPS = Object.keys(ETIQUETAS_PROP);
+
+const GRUPOS_POR_PAGINA = 4;
+
+function etiquetaProp(prop, propRaw) {
+  return ETIQUETAS_PROP[prop] || propRaw || prop || "—";
+}
+
 function iniciales(nombre) {
   const partes = String(nombre || "?").trim().split(/\s+/).filter(Boolean);
   if (!partes.length) return "?";
@@ -31,11 +77,35 @@ function iniciales(nombre) {
   return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase();
 }
 
+function fmtEvento(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  try {
+    return d.toLocaleString([], {
+      weekday: "short",
+      day: "2-digit",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return "";
+  }
+}
+
+function fmtDia(fecha) {
+  const txt = String(fecha || "").slice(5);
+  return txt ? txt.replace("-", "/") : "";
+}
+
 function Barras({ valores, linea, lado, detalle }) {
   if (!valores || !valores.length) {
     return <div className="props-barras props-barras--vacio">sin historico</div>;
   }
   const max = Math.max(linea || 0, ...valores, 1);
+  // Altura real de la linea dentro del grafico (para pintarla de referencia).
+  const ref = linea > 0 ? Math.min(100, Math.max(0, (Number(linea) / max) * 100)) : null;
   return (
     <div className="props-barras" aria-label={`Ultimos ${valores.length} partidos`}>
       {valores.map((valor, i) => {
@@ -47,6 +117,13 @@ function Barras({ valores, linea, lado, detalle }) {
         return (
           <div className="props-barra-col" key={i}>
             <div className="props-barra-wrap">
+              {ref != null && (
+                <span
+                  className="props-ref"
+                  style={{ bottom: `${ref}%` }}
+                  aria-hidden="true"
+                />
+              )}
               <div
                 className={`props-barra ${cumple ? "ok" : "no"}`}
                 style={{ height: `${alto}%`, animationDelay: `${120 + i * 70}ms` }}
@@ -54,6 +131,7 @@ function Barras({ valores, linea, lado, detalle }) {
               />
             </div>
             <span className="props-barra-val">{valor}</span>
+            <span className="props-barra-fecha">{fmtDia(d.fecha)}</span>
           </div>
         );
       })}
@@ -220,6 +298,103 @@ function Esqueleto() {
   );
 }
 
+function GrupoCabecera({ grupo }) {
+  const hora = fmtEvento(grupo.fecha);
+  return (
+    <div className="props-grupo-head">
+      <div className="props-grupo-info">
+        {grupo.liga ? <span className="props-grupo-liga">{grupo.liga}</span> : null}
+        <strong>{grupo.evento || "Partido"}</strong>
+      </div>
+      <div className="props-grupo-meta">
+        {hora && <span>{hora}</span>}
+        <span>{grupo.props.length} props</span>
+      </div>
+    </div>
+  );
+}
+
+const COLUMNAS_TABLA = [
+  { key: "jugador", label: "Jugador" },
+  { key: "prop", label: "Prop" },
+  { key: null, label: "Linea" },
+  { key: "cuota", label: "Cuota" },
+  { key: "pct", label: "Racha" },
+  { key: "edge_ajustado", label: "Adj" },
+  { key: "edge", label: "Edge" },
+];
+
+function TablaProps({ grupo, tOrden, onOrdenar }) {
+  return (
+    <div className="props-tabla-wrap">
+      <table className="props-tabla">
+        <thead>
+          <tr>
+            {COLUMNAS_TABLA.map((col) => (
+              <th
+                key={col.label}
+                className={col.key ? "ordenable" : ""}
+                onClick={col.key ? () => onOrdenar(col.key) : undefined}
+                title={col.key ? "Ordenar por esta columna" : undefined}
+              >
+                {col.label}
+                {col.key && tOrden.clave === col.key ? (
+                  <span className="props-th-flecha">{tOrden.dir === -1 ? "↓" : "↑"}</span>
+                ) : null}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {grupo.props.map((p) => (
+            <tr key={p.id || `${p.jugador}-${p.prop}-${p.linea}-${p.lado}`}>
+              <td>
+                <span className="props-tabla-jugador">
+                  <span className="props-avatar props-avatar--mini">
+                    {p.foto ? <img src={p.foto} alt="" loading="lazy" /> : <span>{iniciales(p.jugador)}</span>}
+                  </span>
+                  <span>
+                    <b>{p.jugador}</b>
+                    <small>{p.equipo || "—"}</small>
+                  </span>
+                </span>
+              </td>
+              <td className="props-tabla-prop">{p.prop_raw || p.prop}</td>
+              <td>
+                <span className={`props-lado ${p.lado === "under" ? "under" : "over"}`}>
+                  {p.lado === "under" ? "MENOS" : "MAS"} {p.linea}
+                </span>
+              </td>
+              <td className="num">
+                {p.cuota != null && !isNaN(Number(p.cuota)) ? Number(p.cuota).toFixed(2) : "-"}
+              </td>
+              <td className="num">
+                <b>{p.cumple ?? 0}/{p.n_partidos ?? 0}</b>
+                {p.pct != null ? <small>{p.pct}%</small> : null}
+              </td>
+              <td className="num">
+                {p.edge_ajustado != null ? (
+                  <span className={`props-edge ${p.edge_ajustado > 0 ? "pos" : "neg"}`}>
+                    {p.edge_ajustado > 0 ? "+" : ""}
+                    {p.edge_ajustado}%
+                  </span>
+                ) : "-"}
+              </td>
+              <td className="num">
+                {p.edge != null ? (
+                  <span className={`props-edge suave ${p.edge > 0 ? "pos" : "neg"}`}>
+                    {p.edge > 0 ? "+" : ""}
+                    {p.edge}%
+                  </span>
+                ) : "-"}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
 export default function Props({ session }) {
   const [sport, setSport] = useState("soccer");
@@ -233,6 +408,12 @@ export default function Props({ session }) {
   const [soloMas, setSoloMas] = useState(false);
   const [q, setQ] = useState("");
   const [record, setRecord] = useState(null);
+  const [vista, setVista] = useState("tarjetas");
+  const [tipos, setTipos] = useState([]);
+  const [soloAdj, setSoloAdj] = useState(false);
+  const [ligaFiltro, setLigaFiltro] = useState("");
+  const [pagina, setPagina] = useState(1);
+  const [tOrden, setTOrden] = useState({ clave: "edge_ajustado", dir: -1 });
 
   useEffect(() => {
     let vivo = true;
@@ -270,25 +451,120 @@ export default function Props({ session }) {
     };
   }, [sport, session, intento]);
 
-  const visibles = useMemo(() => {
+  // Tipos de prop presentes AHORA (para no ofrecer filtros vacios) y ligas.
+  const tiposDisponibles = useMemo(() => {
+    const presentes = new Set(props.map((p) => p.prop).filter(Boolean));
+    const ordenados = ORDEN_PROPS.filter((k) => presentes.has(k));
+    const extra = [...presentes].filter((k) => !ORDEN_PROPS.includes(k));
+    return [...ordenados, ...extra];
+  }, [props]);
+
+  const ligasDisponibles = useMemo(() => {
+    return [...new Set(props.map((p) => p.liga).filter(Boolean))]
+      .sort((a, b) => String(a).localeCompare(String(b)));
+  }, [props]);
+
+  useEffect(() => {
+    setPagina(1);
+  }, [sport, q, orden, soloMas, soloAdj, ligaFiltro, tipos.join(",")]);
+
+  useEffect(() => {
+    // Si el deporte cambia, no arrastrar filtros del anterior.
+    setTipos([]);
+    setLigaFiltro("");
+  }, [sport]);
+
+  const listaFiltrada = useMemo(() => {
     let lista = props;
     if (soloMas) lista = lista.filter((p) => p.lado !== "under");
+    if (soloAdj) {
+      lista = lista.filter((p) => p.edge_ajustado != null && p.edge_ajustado > 0);
+    }
+    if (tipos.length) lista = lista.filter((p) => tipos.includes(p.prop));
+    if (ligaFiltro) lista = lista.filter((p) => p.liga === ligaFiltro);
     const texto = q.trim().toLowerCase();
     if (texto) {
       lista = lista.filter((p) =>
-        String(p.jugador || "").toLowerCase().includes(texto));
+        String(p.jugador || "").toLowerCase().includes(texto)
+      );
     }
-    const clave = {
+    return lista;
+  }, [props, soloMas, soloAdj, tipos, ligaFiltro, q]);
+
+  function compararTabla(a, b) {
+    const k = tOrden.clave;
+    const valor = (p) => {
+      if (k === "jugador") return String(p.jugador || "");
+      if (k === "prop") return String(p.prop_raw || p.prop || "");
+      if (k === "cuota") return p.cuota ?? 99;
+      if (k === "pct") return p.pct ?? -999;
+      if (k === "edge_ajustado") return p.edge_ajustado ?? -999;
+      return p.edge ?? -999;
+    };
+    const va = valor(a);
+    const vb = valor(b);
+    if (typeof va === "string" || typeof vb === "string") {
+      return String(va).localeCompare(String(vb)) * tOrden.dir;
+    }
+    return (va - vb) * tOrden.dir;
+  }
+
+  const grupos = useMemo(() => {
+    const mapa = new Map();
+    listaFiltrada.forEach((p) => {
+      const key = p.evento_id || p.evento || `${p.jugador}-${p.prop}`;
+      if (!mapa.has(key)) {
+        mapa.set(key, {
+          key,
+          evento: p.evento,
+          liga: p.liga,
+          fecha: p.fecha_evento,
+          props: [],
+        });
+      }
+      mapa.get(key).props.push(p);
+    });
+
+    const claveOrden = {
       edge: (p) => -(p.edge ?? -999),
       ajustado: (p) => -(p.edge_ajustado ?? -999),
       pct: (p) => -(p.pct ?? 0),
       cuota: (p) => p.cuota ?? 99,
     }[orden];
-    return [...lista].sort((a, b) => clave(a) - clave(b));
-  }, [props, soloMas, q, orden]);
 
-  const conValor = props.filter((p) => p.edge != null && p.edge > 0).length;
+    const arr = [...mapa.values()];
+    arr.forEach((g) => {
+      g.props.sort(vista === "tabla" ? compararTabla : (a, b) => claveOrden(a) - claveOrden(b));
+    });
+    // Partidos mas proximos primero.
+    arr.sort((a, b) => {
+      const fa = String(a.fecha || "");
+      const fb = String(b.fecha || "");
+      return fa.localeCompare(fb) || String(a.evento || "").localeCompare(String(b.evento || ""));
+    });
+    return arr;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listaFiltrada, orden, vista, tOrden.clave, tOrden.dir]);
 
+  const gruposVisibles = useMemo(
+    () => grupos.slice(0, pagina * GRUPOS_POR_PAGINA),
+    [grupos, pagina]
+  );
+  const hayMas = gruposVisibles.length < grupos.length;
+
+  const conValor = props.filter((p) => p.edge_ajustado != null && p.edge_ajustado > 0).length;
+
+  function toggleTipo(tipo) {
+    setTipos((prev) =>
+      prev.includes(tipo) ? prev.filter((t) => t !== tipo) : [...prev, tipo]
+    );
+  }
+
+  function ordenarTabla(clave) {
+    setTOrden((prev) =>
+      prev.clave === clave ? { clave, dir: prev.dir * -1 } : { clave, dir: -1 }
+    );
+  }
 
   return (
     <div className="props-page">
@@ -373,43 +649,98 @@ export default function Props({ session }) {
 
       {estado === "ok" && props.length > 0 && (
         <div className="props-toolbar">
-          <input
-            className="props-search"
-            type="search"
-            placeholder="Buscar jugador..."
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            aria-label="Buscar jugador"
-          />
-          <div className="props-chips">
-            <button
-              type="button"
-              className={`props-chip ${!soloMas ? "on" : ""}`}
-              onClick={() => setSoloMas(false)}
+          <div className="props-toolbar-fila">
+            <input
+              className="props-search"
+              type="search"
+              placeholder="Buscar jugador..."
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              aria-label="Buscar jugador"
+            />
+            <select
+              className="props-sort"
+              value={orden}
+              onChange={(e) => setOrden(e.target.value)}
+              aria-label="Ordenar"
             >
-              Todas
-            </button>
-            <button
-              type="button"
-              className={`props-chip ${soloMas ? "on" : ""}`}
-              onClick={() => setSoloMas(true)}
-            >
-              Solo MAS
-            </button>
+              {ORDENES.map((o) => (
+                <option key={o.key} value={o.key}>{o.label}</option>
+              ))}
+            </select>
+            <div className="props-vista" role="group" aria-label="Vista">
+              <button
+                type="button"
+                className={`props-vista-btn ${vista === "tarjetas" ? "on" : ""}`}
+                onClick={() => setVista("tarjetas")}
+              >
+                Tarjetas
+              </button>
+              <button
+                type="button"
+                className={`props-vista-btn ${vista === "tabla" ? "on" : ""}`}
+                onClick={() => setVista("tabla")}
+              >
+                Tabla
+              </button>
+            </div>
           </div>
-          <select
-            className="props-sort"
-            value={orden}
-            onChange={(e) => setOrden(e.target.value)}
-            aria-label="Ordenar"
-          >
-            {ORDENES.map((o) => (
-              <option key={o.key} value={o.key}>{o.label}</option>
-            ))}
-          </select>
+
+          <div className="props-toolbar-fila props-toolbar-filtros">
+            <div className="props-tipos" aria-label="Filtrar por tipo de prop">
+              <button
+                type="button"
+                className={`props-tipo ${!tipos.length ? "on" : ""}`}
+                onClick={() => setTipos([])}
+              >
+                Todos
+              </button>
+              {tiposDisponibles.map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  className={`props-tipo ${tipos.includes(t) ? "on" : ""}`}
+                  onClick={() => toggleTipo(t)}
+                  aria-pressed={tipos.includes(t)}
+                >
+                  {etiquetaProp(t)}
+                </button>
+              ))}
+            </div>
+
+            <div className="props-toolbar-extra">
+              {ligasDisponibles.length > 1 && (
+                <select
+                  className="props-sort props-liga"
+                  value={ligaFiltro}
+                  onChange={(e) => setLigaFiltro(e.target.value)}
+                  aria-label="Filtrar por liga"
+                >
+                  <option value="">Todas las ligas</option>
+                  {ligasDisponibles.map((l) => (
+                    <option key={l} value={l}>{l}</option>
+                  ))}
+                </select>
+              )}
+              <button
+                type="button"
+                className={`props-chip ${soloMas ? "on" : ""}`}
+                onClick={() => setSoloMas((v) => !v)}
+              >
+                Solo MAS
+              </button>
+              <button
+                type="button"
+                className={`props-chip ${soloAdj ? "on" : ""}`}
+                onClick={() => setSoloAdj((v) => !v)}
+                title="Solo props con edge ajustado positivo (limite inferior de Wilson)"
+              >
+                Solo adj &gt; 0
+              </button>
+            </div>
+          </div>
         </div>
       )}
-
 
       <div className="props-body">
         {estado === "cargando" && <Esqueleto />}
@@ -435,26 +766,60 @@ export default function Props({ session }) {
           </div>
         )}
 
-        {estado === "ok" && props.length > 0 && visibles.length === 0 && (
+        {estado === "ok" && props.length > 0 && listaFiltrada.length === 0 && (
           <div className="props-empty">
             <h2>Sin resultados</h2>
-            <p>Ajusta la busqueda o quita el filtro de Solo MAS.</p>
+            <p>Ajusta la busqueda o quita los filtros activos.</p>
+            <button
+              type="button"
+              onClick={() => {
+                setQ("");
+                setTipos([]);
+                setSoloMas(false);
+                setSoloAdj(false);
+                setLigaFiltro("");
+              }}
+            >
+              Limpiar filtros
+            </button>
           </div>
         )}
 
-        {estado === "ok" && visibles.length > 0 && (
-          <div className="props-grid">
-            {visibles.map((p, i) => (
-              <Tarjeta
-                key={p.id || `${p.jugador}-${p.prop}-${p.linea}-${p.lado}`}
-                p={p}
-                indice={i}
+        {estado === "ok" && gruposVisibles.map((grupo) => (
+          <section className="props-grupo" key={grupo.key}>
+            <GrupoCabecera grupo={grupo} />
+            {vista === "tarjetas" ? (
+              <div className="props-grid">
+                {grupo.props.map((p, i) => (
+                  <Tarjeta
+                    key={p.id || `${p.jugador}-${p.prop}-${p.linea}-${p.lado}`}
+                    p={p}
+                    indice={i}
+                  />
+                ))}
+              </div>
+            ) : (
+              <TablaProps
+                grupo={grupo}
+                tOrden={tOrden}
+                onOrdenar={ordenarTabla}
               />
-            ))}
+            )}
+          </section>
+        ))}
+
+        {estado === "ok" && hayMas && (
+          <div className="props-mas-wrap">
+            <button
+              type="button"
+              className="props-mas"
+              onClick={() => setPagina((n) => n + 1)}
+            >
+              Cargar mas partidos ({grupos.length - gruposVisibles.length} restantes)
+            </button>
           </div>
         )}
       </div>
     </div>
   );
 }
-
