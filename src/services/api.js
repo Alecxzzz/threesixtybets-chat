@@ -57,6 +57,39 @@ function authHeaders(session) {
   return headers;
 }
 
+// ---- Trabajos largos del panel admin ----
+// Generar picks, analizar y resolver recorren partidos con IA y fuentes en
+// vivo: tardan MINUTOS. El backend los ejecuta en un hilo y responde al
+// instante con el id del trabajo. Antes iba todo en una sola peticion y
+// Railway la cerraba al pasar ~5 minutos sin enviar bytes: el panel mostraba
+// el generico "Failed to fetch" aunque el trabajo siguiera vivo en el
+// servidor. Ahora se sondea el estado hasta que termina.
+const TRABAJO_POLL_MS = 3000;
+const TRABAJO_MAX_MS = 30 * 60 * 1000;
+
+async function esperarTrabajo(session, inicio, base = API_URL) {
+  // Backend antiguo (sin trabajos): la respuesta ya trae el resultado.
+  if (!inicio?.trabajo) return inicio;
+
+  const desde = Date.now();
+  for (;;) {
+    await new Promise((r) => setTimeout(r, TRABAJO_POLL_MS));
+    const res = await fetch(`${base}/admin/trabajos/${inicio.trabajo}`, {
+      headers: authHeaders(session),
+    });
+    const t = await readJson(res);
+    if (t?.estado === "ok") return t.resultado ?? {};
+    if (t?.estado === "error") {
+      throw new Error(t.error || "El trabajo fallo en el servidor.");
+    }
+    if (Date.now() - desde > TRABAJO_MAX_MS) {
+      throw new Error(
+        "El trabajo sigue corriendo en el servidor. Mira el dashboard en unos minutos."
+      );
+    }
+  }
+}
+
 export function getStoredSession() {
   try {
     return JSON.parse(localStorage.getItem(SESSION_KEY));
@@ -310,7 +343,8 @@ export async function resolvePicks(session, { limite = 60, soloHoy = false, anul
     method: "POST",
     headers: authHeaders(session),
   });
-  return readJson(res);
+  const inicio = await readJson(res);
+  return esperarTrabajo(session, inicio, DATA_API_URL);
 }
 
 /**
@@ -333,7 +367,8 @@ export async function analizarPendientes(session, { limite = 12, conLlm = false 
     // mostraba "Analizados: 0" aunque hubiera picks generados).
     body: JSON.stringify({ limite, con_llm: !!conLlm, sport: "" }),
   });
-  return readJson(res);
+  const inicio = await readJson(res);
+  return esperarTrabajo(session, inicio, API_URL);
 }
 
 /** ADMIN: estado del analista (proveedor, modelo, si la capa LLM esta activa). */
@@ -835,7 +870,8 @@ export async function generateDashboard(session, maxPartidos = 8, forzar = false
     method: "POST",
     headers: authHeaders(session),
   });
-  return readJson(res);
+  const inicio = await readJson(res);
+  return esperarTrabajo(session, inicio, API_URL);
 }
 
 /**

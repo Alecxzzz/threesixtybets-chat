@@ -752,6 +752,9 @@ export default function Dashboard({ session, onIrACreditos }) {
     setAdminAccion("analizar");
     setAdminMsg(null);
     try {
+      // El trabajo corre en segundo plano en el servidor y puede tardar
+      // varios minutos: sin este aviso el boton bloqueado parece colgado.
+      setAdminMsg({ tipo: "ok", texto: "⏳ Generando y analizando en el servidor… puede tardar varios minutos." });
       const g = await generateDashboard(session, 120, true);
       const a = await analizarPendientes(session, { limite: 12 });
       const s = a?.resumen ?? {};
@@ -791,6 +794,7 @@ export default function Dashboard({ session, onIrACreditos }) {
     setAdminAccion("resolve");
     setAdminMsg(null);
     try {
+      setAdminMsg({ tipo: "ok", texto: "⏳ Verificando resultados en el servidor… puede tardar varios minutos." });
       const r = await resolvePicks(session, { limite: 100, anular: false });
       // "Sin datos" NO es un fallo del boton: es que la fuente no tiene ese
       // partido (torneos ya cerrados, dobles de tenis) o el mercado no es
