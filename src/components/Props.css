@@ -203,6 +203,13 @@
   display: block;
 }
 
+/* Sin foto: escudo del equipo del jugador (antes, iniciales sueltas). */
+.props-avatar img.props-avatar-escudo {
+  width: 62%;
+  height: 62%;
+  object-fit: contain;
+}
+
 .props-id {
   flex: 1;
   min-width: 0;
@@ -814,17 +821,45 @@
   text-overflow: ellipsis;
 }
 
-.props-grupo-liga {
+/* Equipos del partido en la cabecera: escudo + nombre, sin el texto en
+   ingles tipo "Coventry City at Leeds United" ni la liga en mayusculas. */
+.props-grupo-partido {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.props-grupo-equipo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #e6ebf2;
+}
+
+.props-grupo-equipo > span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.props-grupo-escudo {
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+.props-grupo-vs {
   flex: 0 0 auto;
-  font-size: 0.58rem;
+  font-size: 0.6rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  padding: 2px 7px;
-  border-radius: 999px;
-  color: #86efac;
-  background: rgba(34, 197, 94, 0.12);
-  border: 1px solid rgba(34, 197, 94, 0.25);
+  color: #6b7789;
 }
 
 .props-grupo-meta {

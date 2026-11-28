@@ -9,7 +9,7 @@
  * Organizacion:
  *   - Agrupado por PARTIDO (liga + equipos + hora) para no perder el contexto.
  *   - Vista de tarjetas o TABLA (escritorio).
- *   - Filtros por tipo de prop (goles, tiros, asistencias, Pts+Reb...).
+ *   - Filtros por tipo de prop (tiros, asistencias, Pts+Reb...). Goles fuera.
  *   - Paginacion por partidos ("Cargar mas").
  */
 
@@ -183,7 +183,16 @@ function Tarjeta({ p, indice }) {
       <header className="props-card-top">
         <div className="props-avatar">
           {sinFoto ? (
-            <span>{iniciales(p.jugador)}</span>
+            p.equipo_logo ? (
+              <img
+                className="props-avatar-escudo"
+                src={p.equipo_logo}
+                alt={p.equipo || ""}
+                loading="lazy"
+              />
+            ) : (
+              <span>{iniciales(p.jugador)}</span>
+            )
           ) : (
             <img
               src={p.foto}
@@ -298,13 +307,32 @@ function Esqueleto() {
   );
 }
 
+function EquipoCabecera({ nombre, escudo }) {
+  return (
+    <span className="props-grupo-equipo">
+      {escudo ? (
+        <img className="props-grupo-escudo" src={escudo} alt="" loading="lazy" />
+      ) : null}
+      <span>{nombre || "—"}</span>
+    </span>
+  );
+}
+
 function GrupoCabecera({ grupo }) {
   const hora = fmtEvento(grupo.fecha);
+  const conEquipos = Boolean(grupo.local || grupo.visita);
   return (
-    <div className="props-grupo-head">
+    <div className="props-grupo-head" title={grupo.liga || undefined}>
       <div className="props-grupo-info">
-        {grupo.liga ? <span className="props-grupo-liga">{grupo.liga}</span> : null}
-        <strong>{grupo.evento || "Partido"}</strong>
+        {conEquipos ? (
+          <div className="props-grupo-partido">
+            <EquipoCabecera nombre={grupo.local} escudo={grupo.local_escudo} />
+            <span className="props-grupo-vs">vs</span>
+            <EquipoCabecera nombre={grupo.visita} escudo={grupo.visita_escudo} />
+          </div>
+        ) : (
+          <strong>{grupo.evento || "Partido"}</strong>
+        )}
       </div>
       <div className="props-grupo-meta">
         {hora && <span>{hora}</span>}
@@ -351,7 +379,18 @@ function TablaProps({ grupo, tOrden, onOrdenar }) {
               <td>
                 <span className="props-tabla-jugador">
                   <span className="props-avatar props-avatar--mini">
-                    {p.foto ? <img src={p.foto} alt="" loading="lazy" /> : <span>{iniciales(p.jugador)}</span>}
+                    {p.foto ? (
+                      <img src={p.foto} alt="" loading="lazy" />
+                    ) : p.equipo_logo ? (
+                      <img
+                        className="props-avatar-escudo"
+                        src={p.equipo_logo}
+                        alt={p.equipo || ""}
+                        loading="lazy"
+                      />
+                    ) : (
+                      <span>{iniciales(p.jugador)}</span>
+                    )}
                   </span>
                   <span>
                     <b>{p.jugador}</b>
@@ -431,7 +470,9 @@ export default function Props({ session }) {
     fetchProps(session, sport)
       .then((data) => {
         if (!vivo) return;
-        setProps(data?.props || []);
+        // Goles fuera: era lo unico que aparecia (lineas 0.5) y tapaba al
+        // resto de mercados. El chip desaparece solo al no haber props.
+        setProps((data?.props || []).filter((p) => p.prop !== "goles"));
         setMeta({
           pct_minima: data?.pct_minima ?? 60,
           descartadas: data?.descartadas_por_pct ?? 0,
@@ -519,6 +560,10 @@ export default function Props({ session }) {
           evento: p.evento,
           liga: p.liga,
           fecha: p.fecha_evento,
+          local: p.local,
+          local_escudo: p.local_escudo,
+          visita: p.visita,
+          visita_escudo: p.visita_escudo,
           props: [],
         });
       }
